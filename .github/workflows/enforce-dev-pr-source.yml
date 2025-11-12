@@ -1,0 +1,63 @@
+name: Enforce Dev PR Source
+
+# CRITICAL: dev branch must ONLY accept PRs from feature/fix/sync branches
+# feature/fix/sync → dev → main (never main → dev or dev → dev)
+# This workflow enforces the three-tier branching strategy
+
+on:
+  pull_request:
+    branches:
+      - dev
+    types: [opened, synchronize, reopened, edited]
+
+jobs:
+  validate-source-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR source branch
+        run: |
+          SOURCE_BRANCH="${{ github.head_ref }}"
+          TARGET_BRANCH="${{ github.base_ref }}"
+
+          echo "📋 PR Source: $SOURCE_BRANCH"
+          echo "📋 PR Target: $TARGET_BRANCH"
+
+          # Extract branch prefix (everything before first /)
+          BRANCH_PREFIX=$(echo "$SOURCE_BRANCH" | cut -d'/' -f1)
+
+          # Check if source branch follows naming convention
+          if [[ "$BRANCH_PREFIX" != "feature" ]] && \
+             [[ "$BRANCH_PREFIX" != "fix" ]] && \
+             [[ "$BRANCH_PREFIX" != "sync" ]] && \
+             [[ "$BRANCH_PREFIX" != "chore" ]] && \
+             [[ "$BRANCH_PREFIX" != "docs" ]] && \
+             [[ "$BRANCH_PREFIX" != "refactor" ]] && \
+             [[ "$BRANCH_PREFIX" != "test" ]]; then
+            echo ""
+            echo "❌ ERROR: dev branch only accepts PRs from feature/fix/sync/chore/docs/refactor/test branches"
+            echo ""
+            echo "Current PR: $SOURCE_BRANCH → dev (REJECTED)"
+            echo "Required:   feature/* OR fix/* OR sync/* OR chore/* OR docs/* OR refactor/* OR test/* → dev"
+            echo ""
+            echo "Valid branch prefixes:"
+            echo "  - feature/*  : New features"
+            echo "  - fix/*      : Bug fixes"
+            echo "  - sync/*     : Dependency updates, syncs"
+            echo "  - chore/*    : Maintenance tasks"
+            echo "  - docs/*     : Documentation changes"
+            echo "  - refactor/* : Code refactoring"
+            echo "  - test/*     : Test additions/changes"
+            echo ""
+            echo "To fix this:"
+            echo "1. Create a properly named branch:"
+            echo "   git checkout -b feature/your-feature-name"
+            echo "2. Cherry-pick or merge your changes"
+            echo "3. Push and create new PR:"
+            echo "   gh pr create --base dev --head feature/your-feature-name"
+            echo ""
+            echo "See DEVELOPMENT.md § Git Branching Strategy for complete workflow"
+            exit 1
+          fi
+
+          echo "✅ Valid PR source: $SOURCE_BRANCH → $TARGET_BRANCH"
+          echo "This PR follows the three-tier branching strategy"
