@@ -52,20 +52,20 @@
 - ✅ Configured dev branch protection (PR from feature branches only)
 - ✅ Added enforce-dev-pr-source.yml workflow
 - ✅ Created PR #149 (dev → main) following three-tier strategy
+- ✅ Completed all 9 remaining MCP handlers (bank, reporting, expenses)
+- ✅ Updated xero-node to v13.2.0 and fixed claude-agent-sdk package name
+- ✅ All 14 MCP tools now fully implemented (Infrastructure Foundation 100%)
 
 **In Progress:**
-- 🔵 PR #149 awaiting review/merge (Infrastructure Foundation 80% complete)
+- 🔵 PR #149 awaiting review/merge (ready for main deployment)
 
 **Next Up:**
-- [ ] Complete remaining MCP handlers (bank transactions, reporting, expenses)
-- [ ] Install dependencies with pnpm
-- [ ] Build Lambda function wrappers
 - [ ] Deploy infrastructure with Terraform (terraform apply)
+- [ ] Configure AWS account and Xero OAuth application
+- [ ] Build Lambda function wrappers (MCP server, agent, auth)
 - [ ] Implement agent orchestrator logic (Claude Agent SDK)
-- [ ] Configure AWS account and deploy initial infrastructure (terraform apply)
-- [ ] Initialize Xero OAuth application in Xero Developer Portal
-- [ ] Build Lambda function wrappers for packages
 - [ ] Implement PWA authentication (Cognito integration)
+- [ ] Connect PWA to backend API
 
 ---
 
