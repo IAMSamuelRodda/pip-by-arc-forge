@@ -19,8 +19,8 @@
     "xero"
   ],
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.32.1",
-    "claude-agent-sdk": "^0.1.0",
+    "@anthropic-ai/sdk": "^0.68.0",
+    "@anthropic-ai/claude-agent-sdk": "^0.1.37",
     "@aws-sdk/client-lambda": "^3.700.0",
     "@aws-sdk/client-dynamodb": "^3.700.0",
     "@aws-sdk/lib-dynamodb": "^3.700.0",
