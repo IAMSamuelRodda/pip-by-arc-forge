@@ -33,25 +33,30 @@
 - ✅ Added ADR-007: Memory persistence and relationship building
 - ✅ Added ADR-008: Voice-to-voice integration (premium tier)
 - ✅ Defined subscription model (Free, Pro, Enterprise tiers)
-- ✅ Created monorepo directory structure (packages/, functions/, infrastructure/)
+- ✅ Created monorepo directory structure (packages/, functions/, terraform/)
 - ✅ Set up Terraform infrastructure foundation (9 files, 1,270 lines)
 - ✅ Implemented DynamoDB single-table design in Terraform
 - ✅ Created IAM roles with least-privilege policies (agent, MCP, auth)
 - ✅ Configured Secrets Manager for Xero OAuth tokens
 - ✅ Added terraform.tfvars.example and comprehensive README
+- ✅ Moved Terraform to root level (standard project structure)
 - ✅ Initialized mcp-xero-server package (MCP SDK, 14 tools defined)
 - ✅ Initialized agent-core package (4 sub-agents, session/memory managers)
 - ✅ Initialized pwa-app package (React 18, Vite 6, PWA configured)
 - ✅ Configured pnpm workspaces and Turbo monorepo
 - ✅ Documented Claude Agent SDK architecture and best practices
+- ✅ Researched and documented Xero API integration (450+ lines)
+- ✅ Implemented Xero client wrapper with token management
+- ✅ Completed all 5 MCP invoice handlers with Xero API integration
 
 **In Progress:**
-- 🔵 Infrastructure Foundation (GitHub Issue #1) - nearing completion
-- 🔵 MCP tool implementation (invoice handlers complete, others pending)
+- 🔵 Infrastructure Foundation (GitHub Issue #1) - 80% complete
 
 **Next Up:**
-- [ ] Install dependencies with pnpm (packages + root)
-- [ ] Implement MCP tool handlers (Xero API integration)
+- [ ] Complete remaining MCP handlers (bank transactions, reporting, expenses)
+- [ ] Install dependencies with pnpm
+- [ ] Build Lambda function wrappers
+- [ ] Deploy infrastructure with Terraform (terraform apply)
 - [ ] Implement agent orchestrator logic (Claude Agent SDK)
 - [ ] Configure AWS account and deploy initial infrastructure (terraform apply)
 - [ ] Initialize Xero OAuth application in Xero Developer Portal
