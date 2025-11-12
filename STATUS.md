@@ -46,8 +46,8 @@
 - ✅ Documented Claude Agent SDK architecture and best practices
 
 **In Progress:**
-- 🔵 Infrastructure Foundation (GitHub Issue #1)
-- 🔵 Package implementation (handlers, utilities, API clients)
+- 🔵 Infrastructure Foundation (GitHub Issue #1) - nearing completion
+- 🔵 MCP tool implementation (invoice handlers complete, others pending)
 
 **Next Up:**
 - [ ] Install dependencies with pnpm (packages + root)
