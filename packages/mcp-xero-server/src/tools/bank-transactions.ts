@@ -7,7 +7,7 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 export const bankTransactionTools: Tool[] = [
   {
     name: 'get_bank_transactions',
-    description: 'Get bank transactions for a specific account',
+    description: 'Get bank transactions for a specific account with cursor-based pagination',
     inputSchema: {
       type: 'object',
       properties: {
@@ -17,16 +17,17 @@ export const bankTransactionTools: Tool[] = [
         },
         fromDate: {
           type: 'string',
-          description: 'Start date (ISO format)',
+          description: 'Start date (YYYY-MM-DD)',
+          pattern: '^\\d{4}-\\d{2}-\\d{2}$',
         },
         toDate: {
           type: 'string',
-          description: 'End date (ISO format)',
+          description: 'End date (YYYY-MM-DD)',
+          pattern: '^\\d{4}-\\d{2}-\\d{2}$',
         },
-        page: {
-          type: 'number',
-          description: 'Page number for pagination',
-          default: 1,
+        cursor: {
+          type: 'string',
+          description: 'Opaque pagination cursor from previous response. Omit for first page.',
         },
       },
       required: ['accountId'],

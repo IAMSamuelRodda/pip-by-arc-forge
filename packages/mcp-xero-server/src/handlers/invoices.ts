@@ -2,8 +2,17 @@
  * Invoice handler implementations
  */
 
-import { Invoice, LineItem } from 'xero-node';
+import { Invoice } from 'xero-node';
 import { getXeroClient, makeXeroRequest } from '../lib/xero-client.js';
+import {
+  parsePaginationParams,
+  createPaginatedResponse
+} from '../lib/pagination.js';
+import {
+  filterInvoiceSummary,
+  filterInvoiceDetail,
+  logTokenMetrics
+} from '../lib/response-filters.js';
 
 export async function createInvoice(args: any) {
   try {
@@ -39,22 +48,18 @@ export async function createInvoice(args: any) {
 
     const createdInvoice = response.body.invoices![0];
 
+    const responseText = JSON.stringify({
+      success: true,
+      invoice: filterInvoiceSummary(createdInvoice)
+    }, null, 2);
+
+    logTokenMetrics('create_invoice', responseText);
+
     return {
       content: [
         {
           type: 'text',
-          text: JSON.stringify({
-            success: true,
-            invoice: {
-              invoiceID: createdInvoice.invoiceID,
-              invoiceNumber: createdInvoice.invoiceNumber,
-              contact: createdInvoice.contact?.name,
-              total: createdInvoice.total,
-              status: createdInvoice.status,
-              date: createdInvoice.date,
-              dueDate: createdInvoice.dueDate,
-            },
-          }, null, 2),
+          text: responseText,
         },
       ],
     };
@@ -89,27 +94,14 @@ export async function getInvoice(args: any) {
 
     const invoice = response.body.invoices![0];
 
+    const responseText = JSON.stringify(filterInvoiceDetail(invoice), null, 2);
+    logTokenMetrics('get_invoice', responseText);
+
     return {
       content: [
         {
           type: 'text',
-          text: JSON.stringify({
-            invoiceID: invoice.invoiceID,
-            invoiceNumber: invoice.invoiceNumber,
-            contact: invoice.contact?.name,
-            total: invoice.total,
-            amountDue: invoice.amountDue,
-            amountPaid: invoice.amountPaid,
-            status: invoice.status,
-            date: invoice.date,
-            dueDate: invoice.dueDate,
-            lineItems: invoice.lineItems?.map((item) => ({
-              description: item.description,
-              quantity: item.quantity,
-              unitAmount: item.unitAmount,
-              lineAmount: item.lineAmount,
-            })),
-          }, null, 2),
+          text: responseText,
         },
       ],
     };
@@ -154,18 +146,18 @@ export async function updateInvoice(args: any) {
 
     const updatedInvoice = response.body.invoices![0];
 
+    const responseText = JSON.stringify({
+      success: true,
+      invoice: filterInvoiceSummary(updatedInvoice)
+    }, null, 2);
+
+    logTokenMetrics('update_invoice', responseText);
+
     return {
       content: [
         {
           type: 'text',
-          text: JSON.stringify({
-            success: true,
-            invoice: {
-              invoiceID: updatedInvoice.invoiceID,
-              status: updatedInvoice.status,
-              total: updatedInvoice.total,
-            },
-          }, null, 2),
+          text: responseText,
         },
       ],
     };
@@ -189,9 +181,12 @@ Troubleshooting:
 
 export async function listInvoices(args: any) {
   try {
-    const { userId, status, contactName, fromDate, toDate, page = 1 } = args;
+    const { userId, status, contactName, fromDate, toDate, cursor } = args;
 
     const { client: xero, tenantId } = await getXeroClient(userId);
+
+    // Parse pagination params (cursor or default to first page)
+    const { offset, pageSize } = parsePaginationParams({ cursor }, 100);
 
     // Build where clause
     const whereClauses: string[] = [];
@@ -214,6 +209,9 @@ export async function listInvoices(args: any) {
 
     const where = whereClauses.length > 0 ? whereClauses.join(' AND ') : undefined;
 
+    // Calculate page number from offset (Xero uses 1-indexed pages)
+    const page = Math.floor(offset / pageSize) + 1;
+
     const response = await makeXeroRequest(() =>
       xero.accountingApi.getInvoices(
         tenantId,
@@ -225,30 +223,35 @@ export async function listInvoices(args: any) {
         undefined, // contactIDs
         undefined, // statuses
         page,
-        100 // pageSize
+        undefined, // includeArchived
+        undefined, // createdByMyApp
+        undefined, // unitdp
+        undefined, // summaryOnly
+        pageSize   // pageSize
       )
     );
 
     const invoices = response.body.invoices || [];
 
+    // Filter to summary format
+    const filteredInvoices = invoices.map(filterInvoiceSummary);
+
+    // Create paginated response with nextCursor if more results exist
+    const paginatedResponse = createPaginatedResponse(
+      filteredInvoices,
+      invoices.length,
+      pageSize,
+      offset
+    );
+
+    const responseText = JSON.stringify(paginatedResponse, null, 2);
+    logTokenMetrics('list_invoices', responseText);
+
     return {
       content: [
         {
           type: 'text',
-          text: JSON.stringify({
-            count: invoices.length,
-            page,
-            invoices: invoices.map((inv) => ({
-              invoiceID: inv.invoiceID,
-              invoiceNumber: inv.invoiceNumber,
-              contact: inv.contact?.name,
-              total: inv.total,
-              amountDue: inv.amountDue,
-              status: inv.status,
-              date: inv.date,
-              dueDate: inv.dueDate,
-            })),
-          }, null, 2),
+          text: responseText,
         },
       ],
     };
@@ -294,17 +297,22 @@ export async function sendInvoice(args: any) {
 
     // Email invoice to contact
     await makeXeroRequest(() =>
-      xero.accountingApi.emailInvoice(tenantId, invoiceId)
+      xero.accountingApi.emailInvoice(tenantId, invoiceId, {})
     );
+
+    const responseText = JSON.stringify({
+      success: true,
+      message: `Invoice ${invoice.invoiceNumber} sent to ${invoice.contact?.emailAddress}`,
+      invoice: filterInvoiceSummary(invoice)
+    }, null, 2);
+
+    logTokenMetrics('send_invoice', responseText);
 
     return {
       content: [
         {
           type: 'text',
-          text: JSON.stringify({
-            success: true,
-            message: `Invoice ${invoice.invoiceNumber} sent to ${invoice.contact?.emailAddress}`,
-          }, null, 2),
+          text: responseText,
         },
       ],
     };

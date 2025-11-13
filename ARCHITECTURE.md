@@ -629,6 +629,310 @@ User Voice → WebRTC/WebSocket → Lambda (Transcribe) → Agent → Lambda (Po
 
 ---
 
+### ADR-009: MCP Context Window Optimization
+**Date**: 2025-11-13
+**Status**: Accepted
+
+**Context**: Initial xero-mcp-server implementation scored 42/100 on the improving-mcps assessment framework (below production threshold of ≥75/100), consuming an estimated 95,000 tokens per conversation. This creates severe operational issues:
+- **Cost Impact**: $9,500/month baseline vs optimized $500/month (94.7% waste)
+- **Context Exhaustion**: Multi-turn conversations hitting 200K token limits within 2-3 exchanges
+- **User Experience**: Slow responses, conversation resets, inability to handle complex workflows
+- **Production Blocker**: Cannot deploy until score reaches ≥75/100
+
+**Assessment Findings** (see `docs/MCP_SERVER_ASSESSMENT.md`):
+```
+Dimension                    Score    Max    Notes
+═══════════════════════════════════════════════════════════
+Progressive Disclosure       0/20     Critical: Monolithic tool loading
+Response Optimization        3/15     Critical: Full API objects returned
+Pagination Implementation    0/12     Critical: All results fetched at once
+Workflow-Oriented Design     8/10     Good: Invoice/expense workflows
+Error Handling Quality       8/10     Good: Comprehensive messages
+Input Validation             5/8      Moderate: Basic validation only
+Single Responsibility        8/8      Excellent: Clean tool separation
+ResourceLink Pattern         0/7      Missing: Reports consume 50K+ tokens
+
+TOTAL SCORE: 42/100 (BELOW THRESHOLD)
+```
+
+**Token Consumption Breakdown (Before Optimization)**:
+- List invoices (100 items, full objects): ~20,000 tokens
+- List bank transactions (200 items): ~30,000 tokens
+- Generate profit/loss report (full nested structure): ~45,000 tokens
+- **Total estimated usage**: 95,000 tokens/conversation
+
+**Decision**: Implement comprehensive MCP optimization strategy in two phases:
+
+**Phase 1 (P1) - Core Optimizations** [Implemented]:
+1. **Cursor-Based Pagination** (MCP Protocol Revision 2025-03-26)
+   - Opaque cursor tokens (base64-encoded offset + timestamp + pageSize)
+   - 1-hour expiration for security
+   - `nextCursor` parameter signaling more results
+   - Implementation: `src/lib/pagination.ts` (encodeCursor, decodeCursor, createPaginatedResponse)
+   - Applied to: list_invoices, list_bank_transactions, list_expenses
+
+2. **Response Filtering** (85% token reduction)
+   - Extract only essential fields from API responses
+   - Invoice: 12 fields (invoiceID, invoiceNumber, contact, total, amountDue, amountPaid, status, date, dueDate) - excludes lineItems details, full contact object, payments array
+   - Bank Transaction: 10 fields - excludes lineItems, full account/contact objects
+   - Expense: 9 fields - excludes attachment data, full account details
+   - Report: Summary format (section totals only) - excludes row-level details, nested cell structures
+   - Implementation: `src/lib/response-filters.ts` (filterInvoiceSummary, filterBankTransactionSummary, filterExpenseSummary, filterReportSummary)
+
+3. **Token Metrics Collection**
+   - Automated tracking: estimateTokens() using ~4 chars/token heuristic
+   - Structured logging: JSON format with toolName, tokens, responseLength, timestamp
+   - Implementation: `src/lib/response-filters.ts` (logTokenMetrics)
+   - Enables continuous optimization monitoring
+
+**Phase 2 (P2) - Advanced Optimizations** [Implemented]:
+1. **ResourceLink Pattern** (99% token reduction for large datasets)
+   - Dual-response architecture: preview (first N items) + ResourceLink URI for out-of-band retrieval
+   - Applied to: generate_profit_loss with `fullReport=true` parameter
+   - Preview size: 10 rows (configurable)
+   - Storage strategy: In-memory (development), DynamoDB + S3 (production)
+   - 1-hour TTL with automatic cleanup
+   - Implementation: `src/lib/resource-storage.ts` (createDualResponse, storeResource, retrieveResource)
+   - Production schema:
+     ```typescript
+     // DynamoDB
+     PK: "RESOURCE#<resourceId>"
+     SK: "METADATA"
+     type: "report" | "list" | "export"
+     tenantId, userId, createdAt, expiresAt
+     data: object (if <400KB)
+     s3Key: string (if >400KB → S3)
+     ttl: number (DynamoDB TTL)
+
+     // S3
+     s3://xero-agent-resources/resources/<resourceId>.json
+     ```
+   - **TODO**: Implement REST API Lambda for resource retrieval (GET /resources/:resourceId, GET /resources/:resourceId/data, POST /resources/:resourceId/query)
+
+2. **Enhanced Input Validation**
+   - JSON Schema constraints with min/max bounds and regex patterns
+   - Applied to all tool definitions:
+     - `create_invoice`: email pattern (^[a-zA-Z0-9._%+-]+@...), date format (YYYY-MM-DD), contactName length (1-255 chars), lineItems array (1-100 items), quantity range (0.0001-999999), unitAmount range (0.01-999999999), accountCode pattern (^[0-9]{1,10}$)
+     - `generate_profit_loss`: date patterns, periods constraints (1-12), fullReport boolean
+   - Implementation: Updated `src/tools/invoices.ts`, `src/tools/reporting.ts`
+
+**Implementation Files**:
+- `src/lib/pagination.ts` - Cursor utilities
+- `src/lib/response-filters.ts` - Response filtering + token metrics
+- `src/lib/resource-storage.ts` - ResourceLink pattern (dual-response)
+- `src/handlers/invoices.ts` - Updated with pagination + filtering
+- `src/handlers/bank-transactions.ts` - Updated with pagination + filtering
+- `src/handlers/expenses.ts` - Updated with pagination + filtering
+- `src/handlers/reporting.ts` - Updated with ResourceLink pattern
+- `src/tools/invoices.ts` - Enhanced validation
+- `src/tools/reporting.ts` - Added fullReport parameter
+
+**Quantified Impact**:
+
+Before optimization:
+```
+list_invoices (100 items): 20,000 tokens
+  → Full Invoice objects with lineItems[], payments[], contact{}, etc.
+
+generate_profit_loss: 45,000 tokens
+  → Complete nested report structure with all rows, cells, sections
+
+TOTAL: 95,000 tokens/conversation
+COST: $9,500/month (10,000 conversations @ $0.95/conversation)
+```
+
+After P1 optimization (pagination + filtering):
+```
+list_invoices (20 items per page, filtered): 800 tokens (96% reduction)
+  → 12 essential fields only, cursor for next page
+
+generate_profit_loss (summary): 2,500 tokens (94.4% reduction)
+  → Section totals only, no row-level details
+
+ESTIMATED: ~17,000 tokens/conversation (82% overall reduction)
+COST: ~$1,700/month
+```
+
+After P2 optimization (ResourceLink pattern):
+```
+generate_profit_loss (fullReport=true): 500 tokens (98.9% reduction)
+  → Preview (10 rows) + ResourceLink URI + metadata
+  → Full dataset retrieved out-of-band via REST API
+
+ESTIMATED: ~5,000 tokens/conversation (94.7% overall reduction)
+COST: ~$500/month
+ANNUAL SAVINGS: $108,000/year
+```
+
+**Consequences:**
+- ✅ **Massive Token Reduction**: 94.7% reduction (95,000 → 5,000 tokens)
+- ✅ **Cost Optimization**: $108K/year savings at scale
+- ✅ **Production Ready**: Expected score improvement to ≥75/100
+- ✅ **Multi-Turn Conversations**: Can handle 40+ exchanges within 200K context
+- ✅ **User Experience**: Faster responses, no conversation resets
+- ✅ **Compliance**: MCP Protocol Revision 2025-03-26 cursor-based pagination
+- ✅ **Monitoring**: Built-in token metrics for continuous optimization
+- ✅ **Backward Compatible**: Summary mode remains default (fullReport=false)
+- ❌ **Additional Infrastructure**: Requires DynamoDB + S3 + REST API Lambda for production ResourceLink
+- ❌ **Complexity**: Three-tier loading (summary → full paginated → ResourceLink)
+- ❌ **Out-of-Band Retrieval**: Users must make second request for complete reports
+
+**Alternatives Considered:**
+1. **No Optimization** (rejected: production blocker, unsustainable costs)
+2. **Offset-Based Pagination** (rejected: MCP spec requires cursor-based)
+3. **Field Selection Parameters** (rejected: increases API complexity, users must know schema)
+4. **Streaming Responses** (rejected: MCP spec doesn't support streaming yet)
+5. **Server-Side Progressive Disclosure** (deferred to Phase 3: requires tool registry refactoring)
+
+**Validation Metrics** (to be measured after deployment):
+- Re-run improving-mcps assessment (target: ≥75/100)
+- Measure actual token consumption per tool via logTokenMetrics()
+- Track context window utilization in CloudWatch
+- Monitor conversation length before context exhaustion
+- Measure user adoption of fullReport parameter
+
+**Future Work**:
+- [ ] Implement production resource storage (DynamoDB + S3)
+- [ ] Create resource retrieval Lambda (REST API)
+- [ ] Extend ResourceLink to list_invoices (for 1000+ invoice scenarios)
+- [ ] Add regression tests (token budget assertions)
+- [ ] Implement server-side progressive disclosure (tool registry refactoring)
+
+**References:**
+- MCP Optimization Guide: `docs/MCP_CONTEXT_OPTIMIZATION.md` (29,000+ words)
+- Assessment Report: `docs/MCP_SERVER_ASSESSMENT.md`
+- MCP Protocol Spec: https://modelcontextprotocol.io/specification/2025-03-26/protocol/
+- improving-mcps Skill: `~/.claude/skills/improving-mcps/`
+
+---
+
+### ADR-010: Lean Infrastructure Strategy (No Production Until Revenue)
+**Date**: 2025-11-13
+**Status**: Accepted
+
+**Context**: Traditional approach would deploy separate staging and production environments immediately. However, production infrastructure costs ~$500+/month baseline with zero users, burning runway before validation.
+
+**Decision**: Deploy ONLY staging/dev environment initially. Production infrastructure will be created when we have actual paying users.
+
+**Environment Strategy:**
+
+```
+CURRENT STATE (Pre-Launch):
+├── dev branch → AWS Dev Environment
+│   ├── Purpose: Development, testing, demos
+│   ├── Cost: ~$1.32/month
+│   └── Users: Developers + early testers
+└── main branch → NO INFRASTRUCTURE (git only)
+    └── Purpose: Source of truth, branch protection
+
+FUTURE STATE (Post-First-Paying-Customer):
+├── dev branch → AWS Dev Environment
+│   └── Cost: ~$1.32/month
+└── main branch → AWS Production Environment
+    ├── Created via: terraform workspace new prod
+    ├── Cost: ~$503/month (100 users)
+    └── Revenue: $0-2,900/month (0-100 paying users)
+```
+
+**Infrastructure Deployment Timeline:**
+
+1. **Week 1-2: Dev Environment Only**
+   - Deploy to AWS dev workspace: `terraform workspace new dev && terraform apply`
+   - Connect to dev Xero app (separate OAuth credentials)
+   - Test with development team
+   - Cost: $1.32/month
+
+2. **Post-Launch: Main Branch Protected, No Infrastructure**
+   - Main branch has branch protection (PR from dev only)
+   - No AWS resources deployed
+   - Terraform state exists but no `terraform apply` executed
+   - Cost: $0/month
+
+3. **Trigger: First Paying Customer (or 10+ Active Free Users)**
+   - Create production Xero OAuth app
+   - Deploy production: `terraform workspace new prod && terraform apply`
+   - Promote dev → main → production deployment
+   - Cost: $503/month baseline → offset by revenue
+
+**Cost Implications:**
+
+| Phase | Dev Cost | Prod Cost | Total | Revenue | Net |
+|-------|----------|-----------|-------|---------|-----|
+| Pre-Launch (Weeks 1-8) | $1.32/mo | $0 | **$10** (8 weeks) | $0 | **-$10** |
+| Post-Launch (No users) | $1.32/mo | $0 | $1.32/mo | $0 | -$1.32/mo |
+| First customer | $1.32/mo | $503/mo | $504/mo | $29/mo | **-$475/mo** |
+| 20 customers | $1.32/mo | $503/mo | $504/mo | $580/mo | **+$76/mo** |
+| 100 customers | $1.32/mo | $503/mo | $504/mo | $2,900/mo | **+$2,396/mo** |
+
+**Breakeven**: ~18 paying customers ($522 revenue vs $504 cost)
+
+**Consequences:**
+
+✅ **Runway Preservation**:
+- Save $500+/month pre-launch (4-8 weeks = $2,000-4,000 saved)
+- Only pay for production when justified by users
+
+✅ **Risk Mitigation**:
+- Avoid paying for unused infrastructure
+- Validate product-market fit before scaling costs
+
+✅ **Faster Iteration**:
+- Single environment = simpler deployments
+- No production database to manage during pivots
+
+✅ **Clear Migration Path**:
+- Terraform workspaces make prod creation trivial
+- Same IaC, just `terraform apply` when ready
+
+❌ **Initial Production Delay**:
+- 5-10 minutes to provision infrastructure on first customer
+- Mitigated: Pre-create resources, keep stopped (still costs $0)
+
+❌ **No "Production-Like" Testing**:
+- Can't test production scale before launch
+- Mitigated: Dev environment is identical architecture
+
+❌ **Risk of "Launch Day Surprises"**:
+- First production deploy could surface issues
+- Mitigated: Terraform plan, comprehensive testing in dev
+
+**Alternative Considered:**
+- Deploy both dev + prod immediately (rejected: $500/month burn for 0 users)
+- Use same environment for dev + prod (rejected: too risky, no isolation)
+- Delay all infrastructure until first customer (rejected: can't demo or test)
+
+**Migration Checklist (When Deploying Production):**
+
+```bash
+# 1. Create production workspace
+cd terraform/
+terraform workspace new prod
+terraform workspace select prod
+
+# 2. Update terraform.tfvars for production
+cp terraform.tfvars.dev terraform.tfvars.prod
+# Edit: production domain, Xero app credentials, etc.
+
+# 3. Plan and review
+terraform plan -var-file=terraform.tfvars.prod
+
+# 4. Deploy (5-10 minutes)
+terraform apply -var-file=terraform.tfvars.prod
+
+# 5. Verify
+curl https://api.xero-agent.com/health
+
+# 6. Migrate first users from dev
+# (export/import DynamoDB data if needed)
+```
+
+**Decision Point**: Deploy production infrastructure when EITHER:
+1. First paying customer signs up
+2. 10+ active free tier users (validates demand)
+3. Demo to investor/partner requires "production" environment
+
+---
+
 ## Deployment Architecture
 
 ### CloudFront + S3

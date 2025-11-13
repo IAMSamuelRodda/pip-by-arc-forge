@@ -2,14 +2,19 @@
  * Bank transaction handler implementations
  */
 
-import { BankTransaction, Account } from 'xero-node';
+import { BankTransaction } from 'xero-node';
 import { getXeroClient, makeXeroRequest } from '../lib/xero-client.js';
+import { parsePaginationParams, createPaginatedResponse } from '../lib/pagination.js';
+import { filterBankTransactionSummary, logTokenMetrics } from '../lib/response-filters.js';
 
 export async function getBankTransactions(args: any) {
   try {
-    const { userId, accountId, fromDate, toDate, page = 1 } = args;
+    const { userId, accountId, fromDate, toDate, cursor } = args;
 
     const { client: xero, tenantId } = await getXeroClient(userId);
+
+    // Parse pagination params (cursor or default to first page)
+    const { offset, pageSize } = parsePaginationParams({ cursor }, 100);
 
     // Build where clause for filtering
     const whereClauses: string[] = [`BankAccountID == GUID("${accountId}")`];
@@ -24,6 +29,9 @@ export async function getBankTransactions(args: any) {
 
     const where = whereClauses.join(' AND ');
 
+    // Calculate page number from offset (Xero uses 1-indexed pages)
+    const page = Math.floor(offset / pageSize) + 1;
+
     const response = await makeXeroRequest(() =>
       xero.accountingApi.getBankTransactions(
         tenantId,
@@ -31,37 +39,31 @@ export async function getBankTransactions(args: any) {
         where,
         undefined, // order
         page,
-        100 // pageSize
+        pageSize
       )
     );
 
     const transactions = response.body.bankTransactions || [];
 
+    // Filter to summary format (remove full nested structures)
+    const filteredTransactions = transactions.map(filterBankTransactionSummary);
+
+    // Create paginated response with nextCursor if more results exist
+    const paginatedResponse = createPaginatedResponse(
+      filteredTransactions,
+      transactions.length,
+      pageSize,
+      offset
+    );
+
+    const responseText = JSON.stringify(paginatedResponse, null, 2);
+    logTokenMetrics('get_bank_transactions', responseText);
+
     return {
       content: [
         {
           type: 'text',
-          text: JSON.stringify({
-            count: transactions.length,
-            page,
-            transactions: transactions.map((txn) => ({
-              bankTransactionID: txn.bankTransactionID,
-              type: txn.type,
-              date: txn.date,
-              reference: txn.reference,
-              status: txn.status,
-              total: txn.total,
-              contact: txn.contact?.name,
-              isReconciled: txn.isReconciled,
-              lineItems: txn.lineItems?.map((item) => ({
-                description: item.description,
-                quantity: item.quantity,
-                unitAmount: item.unitAmount,
-                lineAmount: item.lineAmount,
-                accountCode: item.accountCode,
-              })),
-            })),
-          }, null, 2),
+          text: responseText,
         },
       ],
     };
@@ -76,7 +78,8 @@ Troubleshooting:
 - Verify accountId is a valid Xero bank account GUID
 - Check date format is YYYY-MM-DD
 - Ensure user has access to this bank account
-- Confirm Xero OAuth token is valid`,
+- Confirm Xero OAuth token is valid
+- If using cursor, verify it hasn't expired (1 hour TTL)`,
         },
       ],
       isError: true,

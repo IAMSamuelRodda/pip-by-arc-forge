@@ -7,16 +7,21 @@
 
 import { BankTransaction } from 'xero-node';
 import { getXeroClient, makeXeroRequest } from '../lib/xero-client.js';
+import { parsePaginationParams, createPaginatedResponse } from '../lib/pagination.js';
+import { filterExpenseSummary, logTokenMetrics } from '../lib/response-filters.js';
 
 export async function createExpense(args: any) {
   try {
-    const { userId, date, description, amount, category, receipt } = args;
+    const { userId, date, description, amount, category, bankAccountId } = args;
 
     const { client: xero, tenantId } = await getXeroClient(userId);
 
     // Create expense as a bank transaction (SPEND type)
     const bankTransaction: BankTransaction = {
       type: BankTransaction.TypeEnum.SPEND,
+      bankAccount: {
+        accountID: bankAccountId
+      },
       date,
       reference: description,
       lineItems: [
@@ -104,6 +109,8 @@ export async function categorizeExpense(args: any) {
       xero.accountingApi.updateBankTransaction(tenantId, expenseId, {
         bankTransactions: [{
           bankTransactionID: expenseId,
+          type: expense.type,
+          bankAccount: expense.bankAccount,
           lineItems: updatedLineItems,
         }],
       })
@@ -149,9 +156,12 @@ Troubleshooting:
 
 export async function listExpenses(args: any) {
   try {
-    const { userId, fromDate, toDate, category, page = 1 } = args;
+    const { userId, fromDate, toDate, category, cursor } = args;
 
     const { client: xero, tenantId } = await getXeroClient(userId);
+
+    // Parse pagination params (cursor or default to first page)
+    const { offset, pageSize } = parsePaginationParams({ cursor }, 100);
 
     // Build where clause to filter for SPEND transactions (expenses)
     const whereClauses: string[] = ['Type=="SPEND"'];
@@ -166,6 +176,9 @@ export async function listExpenses(args: any) {
 
     const where = whereClauses.join(' AND ');
 
+    // Calculate page number from offset (Xero uses 1-indexed pages)
+    const page = Math.floor(offset / pageSize) + 1;
+
     const response = await makeXeroRequest(() =>
       xero.accountingApi.getBankTransactions(
         tenantId,
@@ -173,7 +186,7 @@ export async function listExpenses(args: any) {
         where,
         undefined, // order
         page,
-        100 // pageSize
+        pageSize
       )
     );
 
@@ -186,24 +199,25 @@ export async function listExpenses(args: any) {
       );
     }
 
+    // Filter to summary format
+    const filteredExpenses = expenses.map(filterExpenseSummary);
+
+    // Create paginated response with nextCursor if more results exist
+    const paginatedResponse = createPaginatedResponse(
+      filteredExpenses,
+      expenses.length,
+      pageSize,
+      offset
+    );
+
+    const responseText = JSON.stringify(paginatedResponse, null, 2);
+    logTokenMetrics('list_expenses', responseText);
+
     return {
       content: [
         {
           type: 'text',
-          text: JSON.stringify({
-            count: expenses.length,
-            page,
-            expenses: expenses.map((exp) => ({
-              bankTransactionID: exp.bankTransactionID,
-              date: exp.date,
-              reference: exp.reference,
-              total: exp.total,
-              status: exp.status,
-              category: exp.lineItems?.[0]?.accountCode,
-              description: exp.lineItems?.[0]?.description,
-              isReconciled: exp.isReconciled,
-            })),
-          }, null, 2),
+          text: responseText,
         },
       ],
     };
@@ -219,6 +233,7 @@ Troubleshooting:
 - Ensure fromDate is before toDate
 - Check category/accountCode is valid if filtering
 - Confirm Xero OAuth token is valid
+- If using cursor, verify it hasn't expired (1 hour TTL)
 
 Note: Expenses are retrieved as SPEND bank transactions from Xero.`,
         },

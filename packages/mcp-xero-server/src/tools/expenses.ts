@@ -55,26 +55,27 @@ export const expenseTools: Tool[] = [
   },
   {
     name: 'list_expenses',
-    description: 'List expenses with optional filters',
+    description: 'List expenses with optional filters and cursor-based pagination',
     inputSchema: {
       type: 'object',
       properties: {
         fromDate: {
           type: 'string',
-          description: 'Start date (ISO format)',
+          description: 'Start date (YYYY-MM-DD)',
+          pattern: '^\\d{4}-\\d{2}-\\d{2}$',
         },
         toDate: {
           type: 'string',
-          description: 'End date (ISO format)',
+          description: 'End date (YYYY-MM-DD)',
+          pattern: '^\\d{4}-\\d{2}-\\d{2}$',
         },
         category: {
           type: 'string',
-          description: 'Filter by category',
+          description: 'Filter by category/account code',
         },
-        page: {
-          type: 'number',
-          description: 'Page number for pagination',
-          default: 1,
+        cursor: {
+          type: 'string',
+          description: 'Opaque pagination cursor from previous response. Omit for first page.',
         },
       },
     },

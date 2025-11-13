@@ -7,21 +7,25 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 export const reportingTools: Tool[] = [
   {
     name: 'generate_profit_loss',
-    description: 'Generate a profit and loss report',
+    description: 'Generate a profit and loss report. Returns summary by default. Set fullReport=true for complete data via ResourceLink.',
     inputSchema: {
       type: 'object',
       properties: {
         fromDate: {
           type: 'string',
-          description: 'Start date (ISO format)',
+          description: 'Start date (YYYY-MM-DD)',
+          pattern: '^\\d{4}-\\d{2}-\\d{2}$',
         },
         toDate: {
           type: 'string',
-          description: 'End date (ISO format)',
+          description: 'End date (YYYY-MM-DD)',
+          pattern: '^\\d{4}-\\d{2}-\\d{2}$',
         },
         periods: {
           type: 'number',
           description: 'Number of periods to include',
+          minimum: 1,
+          maximum: 12,
           default: 1,
         },
         timeframe: {
@@ -29,6 +33,11 @@ export const reportingTools: Tool[] = [
           enum: ['MONTH', 'QUARTER', 'YEAR'],
           description: 'Time period grouping',
           default: 'MONTH',
+        },
+        fullReport: {
+          type: 'boolean',
+          description: 'If true, returns preview + ResourceLink for complete data (out-of-band retrieval). If false (default), returns summary only.',
+          default: false,
         },
       },
       required: ['fromDate', 'toDate'],
