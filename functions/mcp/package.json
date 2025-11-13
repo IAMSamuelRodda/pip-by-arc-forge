@@ -1,0 +1,23 @@
+{
+  "name": "@xero-agent/lambda-mcp",
+  "version": "0.1.0",
+  "description": "Lambda function wrapper for MCP Xero Server",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc && npm run package",
+    "package": "npm run clean && cp package.json dist/ && cd dist && npm install --production && cd .. && zip -r mcp-lambda.zip dist node_modules",
+    "clean": "rm -rf dist mcp-lambda.zip"
+  },
+  "dependencies": {
+    "@xero-agent/mcp-xero-server": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.10",
+    "@types/aws-lambda": "^8.10.145",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

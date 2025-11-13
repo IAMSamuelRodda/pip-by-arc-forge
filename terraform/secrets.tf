@@ -74,6 +74,35 @@ resource "aws_secretsmanager_secret_version" "api_keys" {
   }
 }
 
+# Xero Client Secret (separate from API keys for easier rotation)
+resource "aws_secretsmanager_secret" "xero_client_secret" {
+  count = 1
+
+  name        = "${var.project_name}/${var.environment}/xero-client-secret"
+  description = "Xero OAuth client secret"
+
+  kms_key_id = var.environment == "prod" ? aws_kms_key.secrets[0].id : null
+
+  tags = merge(
+    var.tags,
+    {
+      Name        = "${var.project_name}-${var.environment}-xero-client-secret"
+      Description = "Xero OAuth client secret"
+    }
+  )
+}
+
+resource "aws_secretsmanager_secret_version" "xero_client_secret" {
+  count = 1
+
+  secret_id     = aws_secretsmanager_secret.xero_client_secret[0].id
+  secret_string = var.xero_client_secret
+
+  lifecycle {
+    ignore_changes = [secret_string]
+  }
+}
+
 # KMS Key for Secrets Manager (production only)
 resource "aws_kms_key" "secrets" {
   count = var.environment == "prod" ? 1 : 0
