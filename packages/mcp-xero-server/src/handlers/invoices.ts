@@ -225,7 +225,7 @@ export async function listInvoices(args: any) {
         undefined, // contactIDs
         undefined, // statuses
         page,
-        100 // pageSize
+        true // includeArchived
       )
     );
 
@@ -294,7 +294,7 @@ export async function sendInvoice(args: any) {
 
     // Email invoice to contact
     await makeXeroRequest(() =>
-      xero.accountingApi.emailInvoice(tenantId, invoiceId)
+      xero.accountingApi.emailInvoice(tenantId, invoiceId, {})
     );
 
     return {

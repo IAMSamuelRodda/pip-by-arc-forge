@@ -17,6 +17,9 @@ export async function createExpense(args: any) {
     // Create expense as a bank transaction (SPEND type)
     const bankTransaction: BankTransaction = {
       type: BankTransaction.TypeEnum.SPEND,
+      bankAccount: {
+        code: '090', // Default bank account - should be configurable
+      },
       date,
       reference: description,
       lineItems: [
@@ -104,6 +107,8 @@ export async function categorizeExpense(args: any) {
       xero.accountingApi.updateBankTransaction(tenantId, expenseId, {
         bankTransactions: [{
           bankTransactionID: expenseId,
+          type: expense.type || BankTransaction.TypeEnum.SPEND,
+          bankAccount: expense.bankAccount || { code: '090' },
           lineItems: updatedLineItems,
         }],
       })

@@ -131,29 +131,7 @@ resource "aws_iam_role_policy" "lambda_mcp" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid    = "SecretsManagerReadXeroTokens"
-        Effect = "Allow"
-        Action = [
-          "secretsmanager:GetSecretValue",
-          "secretsmanager:DescribeSecret"
-        ]
-        Resource = [
-          try(aws_secretsmanager_secret.xero_tokens[0].arn, "*")
-        ]
-      },
-      {
-        Sid    = "SecretsManagerUpdateXeroTokens"
-        Effect = "Allow"
-        Action = [
-          "secretsmanager:PutSecretValue",
-          "secretsmanager:UpdateSecret"
-        ]
-        Resource = [
-          try(aws_secretsmanager_secret.xero_tokens[0].arn, "*")
-        ]
-      },
-      {
-        Sid    = "DynamoDBCacheAccess"
+        Sid    = "DynamoDBUserTokensAccess"
         Effect = "Allow"
         Action = [
           "dynamodb:GetItem",
@@ -245,17 +223,14 @@ resource "aws_iam_role_policy" "lambda_auth" {
         ]
       },
       {
-        Sid    = "SecretsManagerWriteXeroTokens"
+        Sid    = "SecretsManagerReadXeroOAuth"
         Effect = "Allow"
         Action = [
-          "secretsmanager:CreateSecret",
-          "secretsmanager:PutSecretValue",
-          "secretsmanager:UpdateSecret",
-          "secretsmanager:TagResource"
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:DescribeSecret"
         ]
         Resource = [
-          try(aws_secretsmanager_secret.xero_tokens[0].arn, "*"),
-          "arn:aws:secretsmanager:${var.aws_region}:*:secret:${var.project_name}/${var.environment}/xero-tokens/*"
+          try(aws_secretsmanager_secret.xero_oauth[0].arn, "*")
         ]
       },
       {

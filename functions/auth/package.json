@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc && npm run package",
-    "package": "npm run clean && cp package.json dist/ && cd dist && npm install --production && cd .. && zip -r auth-lambda.zip dist node_modules",
+    "package": "rm -rf auth-lambda.zip && zip -r auth-lambda.zip dist node_modules",
     "clean": "rm -rf dist auth-lambda.zip"
   },
   "dependencies": {

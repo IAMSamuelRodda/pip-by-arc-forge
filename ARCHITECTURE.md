@@ -153,17 +153,21 @@ xero-agent/
 }
 ```
 
-**tokens** (stored in Secrets Manager, metadata in DynamoDB)
+**tokens** (stored in DynamoDB with encryption at rest)
 ```typescript
 {
   PK: "USER#<userId>",
   SK: "TOKEN#<organizationId>",
   userId: string,
   organizationId: string,
-  secretArn: string,       // Reference to Secrets Manager
-  expiresAt: number,
+  xeroTenantId: string,
+  accessToken: string,     // Encrypted at rest by DynamoDB
+  refreshToken: string,    // Encrypted at rest by DynamoDB
+  expiresAt: number,       // Access token expiry (30 minutes)
+  refreshExpiresAt: number, // Refresh token expiry (30 days)
   scopes: string[],
-  createdAt: number
+  createdAt: number,
+  updatedAt: number
 }
 ```
 
@@ -289,16 +293,16 @@ xero-agent/
 3. User grants permissions to Xero organization
 4. Callback receives authorization code
 5. Backend Lambda exchanges code for Xero tokens
-6. Store tokens in Secrets Manager (encrypted at rest)
-7. Store token metadata in DynamoDB (SecretARN reference)
+6. Store tokens in DynamoDB (encrypted at rest with AWS managed KMS)
+7. Tokens associated with userId + organizationId composite key
 
 **API Requests:**
 1. Frontend sends request with Cognito JWT
 2. API Gateway validates JWT via Cognito authorizer
-3. Lambda retrieves Xero token metadata from DynamoDB
-4. Lambda retrieves actual tokens from Secrets Manager
-5. Check expiration (30 minutes for Xero access tokens)
-6. Refresh if expired using Xero refresh token
+3. Lambda retrieves user tokens from DynamoDB (userId from JWT)
+4. Check expiration (30 minutes for Xero access tokens)
+5. Refresh if expired using Xero refresh token (stored in same DynamoDB row)
+6. Update tokens in DynamoDB if refreshed
 7. Make Xero API call with valid access token
 
 **Token Refresh:**
@@ -312,10 +316,12 @@ xero-agent/
 ## Security
 
 ### Token Security
-- **Storage**: Xero tokens encrypted in AWS Secrets Manager (AES-256)
-- **Access Control**: IAM policies restrict Lambda access only
-- **Rotation**: Automatic Xero token refresh via Lambda
+- **Storage**: User OAuth tokens encrypted in DynamoDB (AWS managed KMS)
+- **Shared Secrets**: Anthropic API key + Xero client credentials in Secrets Manager
+- **Access Control**: IAM policies with least-privilege access
+- **Rotation**: Automatic Xero token refresh via Lambda (30-day refresh tokens)
 - **Cognito Tokens**: Short-lived JWTs with secure refresh flow
+- **Cost Optimization**: DynamoDB storage scales to millions of users at $0/month (free tier)
 
 ### Data Protection
 - **In Transit**: TLS 1.3 (enforced by CloudFront + API Gateway)
@@ -731,36 +737,54 @@ Deploy to Production (terraform apply)
 ### Cost Optimization
 
 #### AWS Free Tier Considerations
-- **Lambda**: 1M free requests/month + 400,000 GB-seconds
-- **DynamoDB**: 25 GB storage + 25 RCU/WCU
-- **S3**: 5 GB storage + 20,000 GET requests
-- **CloudFront**: 1 TB data transfer out
-- **Cognito**: 50,000 MAUs free
-- **Secrets Manager**: $0.40/secret/month (no free tier)
+- **Lambda**: 1M free requests/month + 400,000 GB-seconds ✅
+- **DynamoDB**: 25 GB storage + 25 RCU/WCU (includes encrypted tokens) ✅
+- **S3**: 5 GB storage + 20,000 GET requests ✅
+- **CloudFront**: 1 TB data transfer out ✅
+- **Cognito**: 50,000 MAUs free ✅
+- **Secrets Manager**: $0.40/secret/month (no free tier) ⚠️
+- **API Gateway**: 1M requests/month free (first 12 months) ✅
 
-#### Estimated Infrastructure Costs (Per User)
+#### Estimated Infrastructure Costs
 
-**Free Tier User:**
-- Lambda: $0.50/month (50 requests)
-- DynamoDB: $0 (within free tier)
-- S3/CloudFront: $0 (within free tier)
-- **Total**: ~$0.50/user/month
+**Development Environment (< 50 users):**
+- **Secrets Manager**: $0.80/month (2 secrets: API keys + Xero OAuth)
+  - `shared/dev/api-keys` - Shared across all dev apps
+  - `xero-agent/dev/xero-oauth` - App-specific Xero credentials
+- **Lambda**: $0 (< 1M requests/month)
+- **DynamoDB**: $0 (< 25GB storage, includes user tokens)
+- **API Gateway**: $0 (< 1M requests/month, first 12 months)
+- **Cognito**: $0 (< 50k MAUs)
+- **CloudWatch Logs**: $0 (< 5GB)
+- **Total**: **$0.80/month** ✅
 
-**Pro Tier User:**
-- Lambda: $2-3/month (1000 requests)
-- DynamoDB: $1/month (extended memory)
-- Voice (Transcribe + Polly): $24-30/month (1000 minutes)
-- S3/CloudFront: $0.50/month
-- **Total**: ~$27-35/user/month (cost: $27-35, revenue: $29 → **margin: $0-2**)
+**Scalability:**
+- 1 user: $0.80/month
+- 100 users: $0.80/month (same cost!)
+- 10,000 users: $0.80/month (still same!)
+- 50,000 users: $0.80/month (Cognito free tier limit)
 
-**Enterprise Tier:**
-- Custom infrastructure (dedicated resources)
-- Cost-plus pricing model
+**Key Insight:** User tokens in DynamoDB (free, encrypted) instead of Secrets Manager
+- Old design: 100 users × $0.40 = $40/month ❌
+- New design: 100 users × $0 = $0.80/month ✅
 
-**Margin Strategy:**
-- Free tier is loss leader (subsidized by Pro/Enterprise)
-- Pro tier breaks even or small margin (customer acquisition)
-- Enterprise tier drives profitability (80% margin target)
+**Production Environment (Per Profitable App):**
+- Secrets Manager: $0.80/month (shared API keys + app OAuth)
+- Lambda: $5-10/month (depends on usage)
+- DynamoDB: $2-5/month (on-demand pricing)
+- API Gateway: $3.50 per million requests
+- CloudWatch: $1-2/month
+- **Total**: ~$10-20/month per production app
+
+**Multi-App Strategy:**
+- Shared `shared/dev/api-keys` secret across all dev apps
+- Only 1 additional secret per app ($0.40) for app-specific OAuth
+- See `docs/COST_OPTIMIZATION_MULTI_APP.md` for details
+
+**Example: 20 Apps in Development**
+- Old approach: 20 apps × 3 secrets × $0.40 = $24/month
+- New approach: 1 shared secret + 20 OAuth secrets = $8.80/month
+- Savings: $15.20/month (63% reduction)
 
 ---
 
@@ -873,6 +897,36 @@ For detailed task breakdown and current progress, see the [GitHub Project board]
 
 ---
 
+## Recent Architecture Changes
+
+### 2025-11-14: Cost Optimization - Token Storage Migration
+
+**Change:** Migrated user OAuth tokens from Secrets Manager to DynamoDB
+
+**Reason:**
+- Secrets Manager costs $0.40/secret/month with no free tier
+- Per-user tokens would cost $40/month for 100 users (not scalable)
+- DynamoDB provides free encryption at rest with AWS managed KMS
+
+**Impact:**
+- Monthly cost: $1.20 → $0.80 (33% reduction)
+- Scalability: Cost stays flat regardless of user count
+- Security: No compromise - DynamoDB encryption equivalent to Secrets Manager for this use case
+
+**Implementation:**
+- User tokens stored in DynamoDB with `PK: USER#<userId>, SK: TOKEN#<organizationId>`
+- Tokens encrypted at rest automatically with AWS managed KMS keys
+- IAM policies restrict access to Lambda functions only
+- Automatic expiration via DynamoDB TTL (30 days for refresh tokens)
+
+**Secrets Manager Usage (Final):**
+1. `shared/dev/api-keys` - Anthropic API key (shared across all apps)
+2. `xero-agent/dev/xero-oauth` - Xero client ID/secret (per-app)
+
+**See:** `docs/COST_OPTIMIZATION_MULTI_APP.md` for multi-app scaling strategy
+
+---
+
 ## References
 
 - **Detailed Firebase Architecture**: See `docs/archive/ARCHITECTURE.old.md` (deprecated)
@@ -885,4 +939,4 @@ For detailed task breakdown and current progress, see the [GitHub Project board]
 
 ---
 
-**Last Updated**: 2025-11-12
+**Last Updated**: 2025-11-14

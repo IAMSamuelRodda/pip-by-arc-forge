@@ -53,47 +53,57 @@ output "cognito_user_pool_arn" {
 }
 
 output "cognito_user_pool_client_id" {
-  description = "ID of the Cognito User Pool Client"
-  value       = try(aws_cognito_user_pool_client.main[0].id, "")
+  description = "ID of the Cognito User Pool Client (PWA)"
+  value       = try(aws_cognito_user_pool_client.pwa[0].id, "")
   sensitive   = true
 }
 
-# S3 Outputs
-output "s3_bucket_name" {
-  description = "Name of the S3 bucket for PWA hosting"
-  value       = try(aws_s3_bucket.pwa[0].id, "")
+output "cognito_user_pool_domain" {
+  description = "Cognito User Pool hosted UI domain"
+  value       = try(aws_cognito_user_pool_domain.main[0].domain, "")
 }
 
-output "s3_bucket_arn" {
-  description = "ARN of the S3 bucket for PWA hosting"
-  value       = try(aws_s3_bucket.pwa[0].arn, "")
+output "cognito_identity_pool_id" {
+  description = "ID of the Cognito Identity Pool"
+  value       = try(aws_cognito_identity_pool.main[0].id, "")
 }
 
-# CloudFront Outputs
-output "cloudfront_distribution_id" {
-  description = "ID of the CloudFront distribution"
-  value       = try(aws_cloudfront_distribution.pwa[0].id, "")
-}
+# S3 Outputs (disabled - not deployed in dev)
+# output "s3_bucket_name" {
+#   description = "Name of the S3 bucket for PWA hosting"
+#   value       = try(aws_s3_bucket.pwa[0].id, "")
+# }
 
-output "cloudfront_domain_name" {
-  description = "Domain name of the CloudFront distribution"
-  value       = try(aws_cloudfront_distribution.pwa[0].domain_name, "")
-}
+# output "s3_bucket_arn" {
+#   description = "ARN of the S3 bucket for PWA hosting"
+#   value       = try(aws_s3_bucket.pwa[0].arn, "")
+# }
 
-output "cloudfront_url" {
-  description = "Full URL of the CloudFront distribution"
-  value       = try("https://${aws_cloudfront_distribution.pwa[0].domain_name}", "")
-}
+# CloudFront Outputs (disabled - not deployed in dev)
+# output "cloudfront_distribution_id" {
+#   description = "ID of the CloudFront distribution"
+#   value       = try(aws_cloudfront_distribution.pwa[0].id, "")
+# }
+
+# output "cloudfront_domain_name" {
+#   description = "Domain name of the CloudFront distribution"
+#   value       = try(aws_cloudfront_distribution.pwa[0].domain_name, "")
+# }
+
+# output "cloudfront_url" {
+#   description = "Full URL of the CloudFront distribution"
+#   value       = try("https://${aws_cloudfront_distribution.pwa[0].domain_name}", "")
+# }
 
 # Secrets Manager Outputs
-output "secrets_manager_xero_tokens_arn" {
-  description = "ARN of the Secrets Manager secret for Xero tokens"
-  value       = try(aws_secretsmanager_secret.xero_tokens[0].arn, "")
+output "secrets_manager_api_keys_arn" {
+  description = "ARN of the Secrets Manager secret for shared API keys"
+  value       = try(aws_secretsmanager_secret.api_keys[0].arn, "")
 }
 
-output "secrets_manager_api_keys_arn" {
-  description = "ARN of the Secrets Manager secret for API keys"
-  value       = try(aws_secretsmanager_secret.api_keys[0].arn, "")
+output "secrets_manager_xero_oauth_arn" {
+  description = "ARN of the Secrets Manager secret for Xero OAuth credentials"
+  value       = try(aws_secretsmanager_secret.xero_oauth[0].arn, "")
 }
 
 # IAM Outputs
@@ -114,7 +124,7 @@ output "environment_summary" {
     environment         = var.environment
     region              = var.aws_region
     project             = var.project_name
-    pwa_url             = try("https://${aws_cloudfront_distribution.pwa[0].domain_name}", "")
+    pwa_url             = var.domain_name != "" ? "https://${var.domain_name}" : "http://localhost:5173"
     api_url             = try(aws_api_gateway_stage.main[0].invoke_url, "")
     dynamodb_table      = try(aws_dynamodb_table.main[0].name, "")
     cognito_user_pool   = try(aws_cognito_user_pool.main[0].id, "")

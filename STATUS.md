@@ -3,8 +3,8 @@
 > **Purpose**: Current work, active bugs, and recent changes (2-week rolling window)
 > **Lifecycle**: Living (update daily/weekly during active development)
 
-**Last Updated**: 2025-11-13
-**Current Phase**: Lambda Functions Complete - Ready for API Gateway/Cognito
+**Last Updated**: 2025-11-14
+**Current Phase**: Infrastructure Ready - Awaiting API Credentials for Deployment
 **Version**: 0.1.0 (Pre-release)
 
 ---
@@ -13,8 +13,8 @@
 
 | Aspect | Status | Notes |
 |--------|--------|-------|
-| Development | 🟢 | MCP server + Lambda functions complete, ready for deployment |
-| Staging | ⚪ | Blocked: Need API Gateway + Cognito Terraform resources |
+| Development | 🟢 | Infrastructure ready, terraform plan validated (79 resources) |
+| Staging | 🟡 | Ready to deploy - need API credentials (Xero OAuth + Anthropic) |
 | Production | ⚪ | Deferred: Per ADR-010 (no prod until revenue) |
 | CI/CD Pipeline | 🔵 | Branch protection configured |
 | Test Coverage | ⚪ | No tests yet |
@@ -65,34 +65,41 @@
 - ✅ Created Terraform Lambda resources (lambda.tf, 229 lines)
 - ✅ Added Xero client secret to Secrets Manager
 - ✅ Documented Lambda architecture (functions/README.md, 400+ lines)
+- ✅ Created API Gateway Terraform resources (api-gateway.tf, 450+ lines, 7 endpoints)
+- ✅ Created Cognito Terraform resources (cognito.tf, 270+ lines with custom attributes)
+- ✅ Built Lambda deployment packages (agent: 49MB, mcp: 15MB, auth: 5.6MB)
+- ✅ Optimized Secrets Manager cost ($1.20 → $0.80/month, tokens in DynamoDB)
+- ✅ Created terraform.tfvars and comprehensive deployment guide
+- ✅ Validated Terraform plan (79 resources ready to deploy)
+- ✅ Fixed TypeScript compilation errors in Lambda functions
+- ✅ Resolved Terraform dependency cycles and resource references
 
 **In Progress:**
-- 🔵 PR #158 - MCP optimization + Cost optimization (pending review)
-- 🔵 PR #159 - Lambda function wrappers (pending review)
+- 🔵 Awaiting API credentials (Xero OAuth + Anthropic) for terraform apply
 
-**Next Up (Blocked by API Gateway + Cognito):**
-- [ ] Create API Gateway Terraform resources (terraform/api-gateway.tf) - **CRITICAL**
-- [ ] Create Cognito Terraform resources (terraform/cognito.tf) - **CRITICAL**
-- [ ] Build Lambda deployment packages (pnpm build:lambda)
+**Next Up (Ready to deploy):**
+- [ ] Obtain Xero OAuth credentials (client_id, client_secret)
+- [ ] Obtain Anthropic API key
+- [ ] Update terraform.tfvars with real credentials
 - [ ] Deploy dev infrastructure with Terraform (terraform apply)
-- [ ] Configure AWS account and dev Xero OAuth application
+- [ ] Update Lambda auth environment with API Gateway URL
 - [ ] Test OAuth flow end-to-end
-- [ ] Implement agent orchestrator logic (Claude Agent SDK integration)
-- [ ] Create S3 + CloudFront for PWA hosting (optional)
-- [ ] Implement PWA authentication (Cognito integration)
+- [ ] Implement minimal PWA chat interface
 - [ ] Connect PWA to backend API
+- [ ] Test end-to-end flow (auth + chat + Xero integration)
 
 ---
 
 ## Deployment Status
 
 ### Development Environment (dev branch → AWS)
-- **Status**: Ready to deploy (Lambda functions complete, need API Gateway + Cognito)
-- **URL**: CloudFront distribution URL (*.cloudfront.net, no custom domain)
-- **Cost**: ~$0.80/month (Secrets Manager only)
+- **Status**: Infrastructure ready, awaiting API credentials (Xero + Anthropic)
+- **URL**: API Gateway endpoint (will be generated on first deploy)
+- **Cost**: ~$0.80/month (Secrets Manager: 2 secrets @ $0.40/month each)
 - **Purpose**: Development, testing, demos
-- **Last Activity**: 2025-11-13
-- **Blocked by**: API Gateway + Cognito Terraform resources (see terraform/TODO.md)
+- **Last Activity**: 2025-11-14
+- **Resources**: 79 resources validated (DynamoDB, Lambda x3, API Gateway, Cognito, Secrets Manager, IAM, CloudWatch)
+- **Blocked by**: Need to obtain and configure API credentials in terraform.tfvars
 
 ### Staging Environment
 - **Status**: Using dev environment for staging (single environment strategy)

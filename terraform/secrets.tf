@@ -1,58 +1,23 @@
-# AWS Secrets Manager for OAuth Tokens and API Keys
+# AWS Secrets Manager for Shared Application Secrets
+#
+# Cost Optimization: User OAuth tokens stored in DynamoDB (free, encrypted at rest)
+# Only shared application secrets stored here ($0.40/secret/month)
 
-# Xero OAuth Tokens (per-organization)
-# Actual token values stored here, metadata in DynamoDB
-resource "aws_secretsmanager_secret" "xero_tokens" {
-  count = 1
-
-  name        = "${var.project_name}/${var.environment}/xero-tokens"
-  description = "Xero OAuth access tokens and refresh tokens (per-organization)"
-
-  # KMS encryption (customer managed key for production)
-  kms_key_id = var.environment == "prod" ? aws_kms_key.secrets[0].id : null
-
-  # Automatic rotation (30 days - matches Xero refresh token validity)
-  rotation_rules {
-    automatically_after_days = 30
-  }
-
-  tags = merge(
-    var.tags,
-    {
-      Name        = "${var.project_name}-${var.environment}-xero-tokens"
-      Description = "Xero OAuth tokens storage"
-    }
-  )
-}
-
-# Initial placeholder value (actual tokens added via OAuth callback)
-resource "aws_secretsmanager_secret_version" "xero_tokens_initial" {
-  count = 1
-
-  secret_id = aws_secretsmanager_secret.xero_tokens[0].id
-  secret_string = jsonencode({
-    placeholder = "Initial value - tokens added via OAuth callback"
-  })
-
-  lifecycle {
-    ignore_changes = [secret_string]
-  }
-}
-
-# API Keys (Anthropic, OpenAI for embeddings, etc.)
+# Shared API Keys (all dev apps can use these)
+# Scalable across multiple apps - see docs/COST_OPTIMIZATION_MULTI_APP.md
 resource "aws_secretsmanager_secret" "api_keys" {
   count = 1
 
-  name        = "${var.project_name}/${var.environment}/api-keys"
-  description = "API keys for external services (Anthropic, OpenAI, Stripe)"
+  name        = var.environment == "dev" ? "shared/${var.environment}/api-keys" : "${var.project_name}/${var.environment}/api-keys"
+  description = "Shared API keys for external services (Anthropic, OpenAI, Stripe)"
 
   kms_key_id = var.environment == "prod" ? aws_kms_key.secrets[0].id : null
 
   tags = merge(
     var.tags,
     {
-      Name        = "${var.project_name}-${var.environment}-api-keys"
-      Description = "External API keys storage"
+      Name        = var.environment == "dev" ? "shared-${var.environment}-api-keys" : "${var.project_name}-${var.environment}-api-keys"
+      Description = "Shared external API keys (dev) or app-specific (prod)"
     }
   )
 }
@@ -64,9 +29,9 @@ resource "aws_secretsmanager_secret_version" "api_keys" {
   secret_id = aws_secretsmanager_secret.api_keys[0].id
   secret_string = jsonencode({
     anthropic_api_key = var.anthropic_api_key
-    xero_client_id    = var.xero_client_id
-    xero_client_secret = var.xero_client_secret
-    # Add more keys as needed (OpenAI, Stripe, etc.)
+    # Add more shared keys as needed:
+    # openai_api_key = var.openai_api_key
+    # stripe_test_key = var.stripe_test_key
   })
 
   lifecycle {
@@ -74,29 +39,33 @@ resource "aws_secretsmanager_secret_version" "api_keys" {
   }
 }
 
-# Xero Client Secret (separate from API keys for easier rotation)
-resource "aws_secretsmanager_secret" "xero_client_secret" {
+# Xero OAuth Credentials (app-specific, not shared)
+# Each app needs its own Xero OAuth application
+resource "aws_secretsmanager_secret" "xero_oauth" {
   count = 1
 
-  name        = "${var.project_name}/${var.environment}/xero-client-secret"
-  description = "Xero OAuth client secret"
+  name        = "${var.project_name}/${var.environment}/xero-oauth"
+  description = "Xero OAuth client credentials for ${var.project_name}"
 
   kms_key_id = var.environment == "prod" ? aws_kms_key.secrets[0].id : null
 
   tags = merge(
     var.tags,
     {
-      Name        = "${var.project_name}-${var.environment}-xero-client-secret"
-      Description = "Xero OAuth client secret"
+      Name        = "${var.project_name}-${var.environment}-xero-oauth"
+      Description = "Xero OAuth client ID and secret"
     }
   )
 }
 
-resource "aws_secretsmanager_secret_version" "xero_client_secret" {
+resource "aws_secretsmanager_secret_version" "xero_oauth" {
   count = 1
 
-  secret_id     = aws_secretsmanager_secret.xero_client_secret[0].id
-  secret_string = var.xero_client_secret
+  secret_id = aws_secretsmanager_secret.xero_oauth[0].id
+  secret_string = jsonencode({
+    client_id     = var.xero_client_id
+    client_secret = var.xero_client_secret
+  })
 
   lifecycle {
     ignore_changes = [secret_string]

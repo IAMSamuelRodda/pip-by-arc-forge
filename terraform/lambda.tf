@@ -72,11 +72,10 @@ resource "aws_lambda_function" "mcp" {
 
   environment {
     variables = {
-      XERO_TOKENS_SECRET_ARN = aws_secretsmanager_secret.xero_tokens[0].arn
-      DYNAMODB_TABLE         = aws_dynamodb_table.main[0].name
-      AWS_REGION             = var.aws_region
-      ENVIRONMENT            = var.environment
-      MCP_SERVER_PATH        = "/opt/nodejs/mcp-xero-server/dist/index.js"
+      DYNAMODB_TABLE  = aws_dynamodb_table.main[0].name
+      AWS_REGION      = var.aws_region
+      ENVIRONMENT     = var.environment
+      MCP_SERVER_PATH = "/opt/nodejs/mcp-xero-server/dist/index.js"
     }
   }
 
@@ -116,15 +115,13 @@ resource "aws_lambda_function" "auth" {
 
   environment {
     variables = {
-      XERO_CLIENT_ID             = var.xero_client_id
-      XERO_CLIENT_SECRET_ARN     = aws_secretsmanager_secret.xero_client_secret[0].arn
-      XERO_TOKENS_SECRET_ARN     = aws_secretsmanager_secret.xero_tokens[0].arn
-      REDIRECT_URI               = "${try(aws_api_gateway_stage.main[0].invoke_url, "https://api.example.com")}/auth/xero/callback"
-      FRONTEND_URL               = var.domain_name != "" ? "https://${var.domain_name}" : try("https://${aws_cloudfront_distribution.pwa[0].domain_name}", "http://localhost:5173")
-      COGNITO_USER_POOL_ID       = try(aws_cognito_user_pool.main[0].id, "")
-      DYNAMODB_TABLE             = aws_dynamodb_table.main[0].name
-      AWS_REGION                 = var.aws_region
-      ENVIRONMENT                = var.environment
+      XERO_OAUTH_SECRET_ARN  = aws_secretsmanager_secret.xero_oauth[0].arn
+      REDIRECT_URI           = "PLACEHOLDER_UPDATE_AFTER_DEPLOY"  # Update after API Gateway is created
+      FRONTEND_URL           = var.domain_name != "" ? "https://${var.domain_name}" : "http://localhost:5173"
+      COGNITO_USER_POOL_ID   = aws_cognito_user_pool.main[0].id
+      DYNAMODB_TABLE         = aws_dynamodb_table.main[0].name
+      AWS_REGION             = var.aws_region
+      ENVIRONMENT            = var.environment
     }
   }
 

@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc && npm run package",
-    "package": "npm run clean && cp package.json dist/ && cd dist && npm install --production && cd .. && zip -r agent-lambda.zip dist node_modules",
+    "package": "rm -rf agent-lambda.zip && zip -r agent-lambda.zip dist node_modules",
     "clean": "rm -rf dist agent-lambda.zip"
   },
   "dependencies": {
