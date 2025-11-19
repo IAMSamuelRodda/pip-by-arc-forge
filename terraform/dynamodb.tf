@@ -93,7 +93,7 @@ resource "aws_dynamodb_table" "main" {
     var.tags,
     {
       Name        = "${var.project_name}-${var.environment}-main"
-      Description = "Single-table design for users, sessions, organizations, tokens, memory"
+      Description = "Single-table design for all app data"
     }
   )
 }

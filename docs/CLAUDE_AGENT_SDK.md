@@ -184,14 +184,14 @@ agent.registerTools(tools);
 
 ### Lambda-Based MCP Integration
 
-For serverless architectures (like Xero Agent):
+For serverless architectures (like Zero Agent):
 
 ```typescript
 class AgentOrchestrator {
   async invokeMCPTool(toolName: string, args: any) {
     // Invoke MCP Lambda function
     const result = await lambda.invoke({
-      FunctionName: 'xero-agent-dev-mcp',
+      FunctionName: 'zero-agent-dev-mcp',
       Payload: JSON.stringify({ tool: toolName, arguments: args }),
     });
 
@@ -394,7 +394,7 @@ class AgentOrchestrator {
 
 ---
 
-## Xero Agent Implementation
+## Zero Agent Implementation
 
 ### Architecture
 

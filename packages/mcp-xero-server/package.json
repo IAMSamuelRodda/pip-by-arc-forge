@@ -1,5 +1,5 @@
 {
-  "name": "@xero-agent/mcp-xero-server",
+  "name": "@zero-agent/mcp-xero-server",
   "version": "0.1.0",
   "description": "Model Context Protocol server for Xero API integration",
   "type": "module",

@@ -1,5 +1,5 @@
 {
-  "name": "xero-agent",
+  "name": "zero-agent",
   "version": "0.1.0",
   "private": true,
   "description": "Claude Code-like agent for Xero accounting using Claude Agent SDK and MCP",
@@ -10,13 +10,16 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
-    "build:lambda": "pnpm --filter '@xero-agent/lambda-*' run build",
+    "build:lambda": "pnpm --filter '@zero-agent/lambda-*' run build",
     "test": "turbo run test",
     "lint": "turbo run lint",
     "clean": "turbo run clean && rm -rf node_modules",
-    "deploy:dev": "cd terraform && terraform workspace select dev && terraform apply"
+    "deploy:dev": "cd terraform && terraform workspace select dev && terraform apply",
+    "chat": "tsx examples/chat.ts"
   },
   "devDependencies": {
+    "dotenv": "^17.2.3",
+    "tsx": "^4.19.2",
     "turbo": "^2.3.3",
     "typescript": "^5.7.2"
   },

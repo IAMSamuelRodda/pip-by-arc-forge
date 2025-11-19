@@ -1,6 +1,6 @@
 # PWA App
 
-Progressive Web App for Xero Agent.
+Progressive Web App for Zero Agent.
 
 ## Overview
 

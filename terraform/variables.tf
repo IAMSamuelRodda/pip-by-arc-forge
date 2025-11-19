@@ -2,7 +2,7 @@
 variable "aws_region" {
   description = "AWS region for all resources"
   type        = string
-  default     = "us-east-1"
+  default     = "ap-southeast-2"  # Sydney - optimal for Australian Xero users
 }
 
 variable "environment" {
@@ -19,7 +19,7 @@ variable "environment" {
 variable "project_name" {
   description = "Project name used for resource naming"
   type        = string
-  default     = "xero-agent"
+  default     = "zero-agent"
 }
 
 # Application Configuration

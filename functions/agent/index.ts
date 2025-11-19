@@ -19,7 +19,7 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 import Anthropic from '@anthropic-ai/sdk';
-import { AgentOrchestrator } from '@xero-agent/agent-core';
+import { AgentOrchestrator } from '@zero-agent/agent-core';
 
 const lambdaClient = new LambdaClient({ region: process.env.AWS_REGION });
 const anthropic = new Anthropic({

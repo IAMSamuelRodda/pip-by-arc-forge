@@ -39,7 +39,7 @@ Run 20+ development apps on a single EC2 instance for $0-7.50/month instead of A
 │                                                   │
 │  ┌─────────────────────────────────────────┐   │
 │  │ App Containers (20+ Node.js apps)       │   │
-│  │ - xero-agent:3001                        │   │
+│  │ - zero-agent:3001                        │   │
 │  │ - todo-app:3002                          │   │
 │  │ - finance-app:3003                       │   │
 │  │ ... (port per app)                       │   │
@@ -106,9 +106,9 @@ services:
       timeout: 5s
       retries: 5
 
-  # Xero Agent app
-  xero-agent:
-    build: ./xero-agent
+  # Zero Agent app
+  zero-agent:
+    build: ./zero-agent
     restart: unless-stopped
     environment:
       NODE_ENV: development
@@ -161,8 +161,8 @@ networks:
 ### Caddyfile (Auto HTTPS)
 
 ```
-xero-agent.yourdomain.com {
-    reverse_proxy xero-agent:3001
+zero-agent.yourdomain.com {
+    reverse_proxy zero-agent:3001
 }
 
 todo-app.yourdomain.com {
@@ -391,7 +391,7 @@ mkdir -p ~/apps
 cd ~/apps
 
 # Create directory for each app
-mkdir xero-agent todo-app finance-app
+mkdir zero-agent todo-app finance-app
 
 # Shared infrastructure
 touch docker-compose.yml Caddyfile .env init-databases.sql
@@ -424,14 +424,14 @@ docker compose up -d
 docker compose ps
 
 # View logs
-docker compose logs -f xero-agent
+docker compose logs -f zero-agent
 ```
 
 ### 6. Setup Domain (Optional)
 
 ```bash
 # Point DNS to EC2 elastic IP:
-# xero-agent.yourdomain.com → A → <elastic-ip>
+# zero-agent.yourdomain.com → A → <elastic-ip>
 # todo-app.yourdomain.com → A → <elastic-ip>
 
 # Caddy will automatically provision Let's Encrypt SSL ✅

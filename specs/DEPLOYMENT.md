@@ -1,8 +1,8 @@
-# Xero Agent - Deployment Guide
+# Zero Agent - Deployment Guide
 
 ## Quick Start: Deploy to AWS
 
-This guide will get your Xero Agent deployed and ready for manual testing in ~15 minutes.
+This guide will get your Zero Agent deployed and ready for manual testing in ~15 minutes.
 
 **Cost:** $0.80/month (2 Secrets Manager secrets)
 
@@ -35,7 +35,7 @@ aws sts get-caller-identity
 2. Sign up / Log in
 3. Click "My Apps" → "New App"
 4. Fill in:
-   - **App name:** Xero Agent Dev
+   - **App name:** Zero Agent Dev
    - **Integration type:** Web app
    - **Company/App URL:** https://yourdomain.com (can be localhost for dev)
    - **Redirect URI:** https://API_GATEWAY_URL/auth/xero/callback
@@ -70,7 +70,7 @@ nano terraform.tfvars
 # AWS Configuration
 aws_region  = "us-east-1"  # or your preferred region
 environment = "dev"
-project_name = "xero-agent"
+project_name = "zero-agent"
 
 # Xero OAuth (from Xero Developer Portal)
 xero_client_id     = "YOUR_XERO_CLIENT_ID"
@@ -84,7 +84,7 @@ domain_name = ""
 
 # Tags for cost tracking
 tags = {
-  Project     = "xero-agent"
+  Project     = "zero-agent"
   Environment = "dev"
   ManagedBy   = "terraform"
 }
@@ -150,16 +150,16 @@ Outputs:
 api_gateway_url = "https://abc123.execute-api.us-east-1.amazonaws.com/dev"
 cognito_user_pool_id = "us-east-1_XYZ123"
 cognito_user_pool_client_id = <sensitive>
-dynamodb_table_name = "xero-agent-dev-main"
-lambda_agent_function_name = "xero-agent-dev-agent"
-lambda_mcp_function_name = "xero-agent-dev-mcp"
+dynamodb_table_name = "zero-agent-dev-main"
+lambda_agent_function_name = "zero-agent-dev-agent"
+lambda_mcp_function_name = "zero-agent-dev-mcp"
 
 environment_summary = {
   "api_url" = "https://abc123.execute-api.us-east-1.amazonaws.com/dev"
   "cognito_user_pool" = "us-east-1_XYZ123"
-  "dynamodb_table" = "xero-agent-dev-main"
+  "dynamodb_table" = "zero-agent-dev-main"
   "environment" = "dev"
-  "project" = "xero-agent"
+  "project" = "zero-agent"
   "pwa_url" = ""
   "region" = "us-east-1"
 }
@@ -280,13 +280,13 @@ curl -X POST \
 
 ```bash
 # Watch Agent Lambda logs
-aws logs tail /aws/lambda/xero-agent-dev-agent --follow
+aws logs tail /aws/lambda/zero-agent-dev-agent --follow
 
 # In another terminal: Watch MCP Lambda logs
-aws logs tail /aws/lambda/xero-agent-dev-mcp --follow
+aws logs tail /aws/lambda/zero-agent-dev-mcp --follow
 
 # In another terminal: Watch Auth Lambda logs
-aws logs tail /aws/lambda/xero-agent-dev-auth --follow
+aws logs tail /aws/lambda/zero-agent-dev-auth --follow
 ```
 
 ---
@@ -299,7 +299,7 @@ aws logs tail /aws/lambda/xero-agent-dev-auth --follow
 ```bash
 # Delete existing secrets (if any)
 aws secretsmanager delete-secret --secret-id shared/dev/api-keys --force-delete-without-recovery
-aws secretsmanager delete-secret --secret-id xero-agent/dev/xero-oauth --force-delete-without-recovery
+aws secretsmanager delete-secret --secret-id zero-agent/dev/xero-oauth --force-delete-without-recovery
 
 # Retry
 terraform apply
@@ -309,7 +309,7 @@ terraform apply
 
 **Check CloudWatch Logs:**
 ```bash
-aws logs tail /aws/lambda/xero-agent-dev-agent --since 10m
+aws logs tail /aws/lambda/zero-agent-dev-agent --since 10m
 
 # Common causes:
 # - Missing environment variables
@@ -382,7 +382,7 @@ Once deployed and tested:
 
 1. **Build PWA Frontend**
    - See `packages/pwa-app/README.md`
-   - Run locally: `pnpm --filter @xero-agent/pwa-app dev`
+   - Run locally: `pnpm --filter @zero-agent/pwa-app dev`
    - Connect to API Gateway URL
 
 2. **Test Full OAuth Flow**

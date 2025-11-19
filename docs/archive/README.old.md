@@ -1,10 +1,10 @@
-# Xero Agent
+# Zero Agent
 
 > AI-powered accounting assistant for Xero, built with Claude Agent SDK and Model Context Protocol
 
 ## Overview
 
-Xero Agent is a mobile-first Progressive Web App (PWA) that brings natural language interaction to Xero accounting software. Manage invoices, track expenses, generate reports, and reconcile accounts through conversational AI, powered by Claude's advanced language understanding.
+Zero Agent is a mobile-first Progressive Web App (PWA) that brings natural language interaction to Xero accounting software. Manage invoices, track expenses, generate reports, and reconcile accounts through conversational AI, powered by Claude's advanced language understanding.
 
 ## Features
 
@@ -78,7 +78,7 @@ Xero Agent is a mobile-first Progressive Web App (PWA) that brings natural langu
 1. **Clone the repository:**
    ```bash
    git clone <repository-url>
-   cd xero-agent
+   cd zero-agent
    ```
 
 2. **Install dependencies:**
@@ -180,7 +180,7 @@ Would you like me to break this down by category or compare it to previous quart
 ## Project Structure
 
 ```
-xero-agent/
+zero-agent/
 ├── .claude/                 # Claude Code configuration
 │   ├── agents/              # Specialized sub-agents
 │   ├── skills/              # Domain expertise

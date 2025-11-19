@@ -1,4 +1,4 @@
-# API Gateway for Xero Agent
+# API Gateway for Zero Agent
 # Provides REST API endpoints for PWA and OAuth callbacks
 
 # REST API
@@ -6,7 +6,7 @@ resource "aws_api_gateway_rest_api" "main" {
   count = 1
 
   name        = "${var.project_name}-${var.environment}-api"
-  description = "REST API for Xero Agent - PWA backend and OAuth"
+  description = "REST API for Zero Agent - PWA backend and OAuth"
 
   endpoint_configuration {
     types = ["REGIONAL"]

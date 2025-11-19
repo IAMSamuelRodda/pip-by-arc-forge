@@ -1,4 +1,4 @@
-# Xero Agent - CLAUDE.md
+# Zero Agent - CLAUDE.md
 
 > **Purpose**: Minimal navigation hub for AI agents (pointers to detailed documentation)
 > **Lifecycle**: Living (target: ~100 lines max)

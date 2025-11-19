@@ -1,6 +1,6 @@
 # Lambda Functions
 
-This directory contains AWS Lambda function implementations for the Xero Agent serverless architecture.
+This directory contains AWS Lambda function implementations for the Zero Agent serverless architecture.
 
 ## Functions
 
@@ -118,7 +118,7 @@ Terraform will:
 ```bash
 # Upload Lambda function
 aws lambda update-function-code \
-  --function-name xero-agent-dev-mcp \
+  --function-name zero-agent-dev-mcp \
   --zip-file fileb://functions/mcp/mcp-lambda.zip \
   --region us-east-1
 ```
@@ -218,7 +218,7 @@ sam local start-api
 For production (when needed):
 ```bash
 aws lambda put-provisioned-concurrency-config \
-  --function-name xero-agent-prod-agent \
+  --function-name zero-agent-prod-agent \
   --provisioned-concurrent-executions 2
 ```
 
@@ -234,19 +234,19 @@ Each Lambda has a dedicated IAM role with least-privilege permissions:
 - **Auth Lambda**: Secrets Manager (read/write OAuth tokens)
 
 ### Secrets Management
-- Xero OAuth tokens stored per-user: `xero-agent/oauth/{userId}`
-- API keys stored centrally: `xero-agent/anthropic-api-key`
-- Client secret stored centrally: `xero-agent/xero-client-secret`
+- Xero OAuth tokens stored per-user: `zero-agent/oauth/{userId}`
+- API keys stored centrally: `zero-agent/anthropic-api-key`
+- Client secret stored centrally: `zero-agent/xero-client-secret`
 
 ## Monitoring
 
 ### CloudWatch Logs
 ```bash
 # View Agent Lambda logs
-aws logs tail /aws/lambda/xero-agent-dev-agent --follow
+aws logs tail /aws/lambda/zero-agent-dev-agent --follow
 
 # View MCP Lambda logs
-aws logs tail /aws/lambda/xero-agent-dev-mcp --follow
+aws logs tail /aws/lambda/zero-agent-dev-mcp --follow
 ```
 
 ### CloudWatch Metrics

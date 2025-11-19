@@ -1,8 +1,8 @@
-# Xero Agent - Claude Code Instructions
+# Zero Agent - Claude Code Instructions
 
 ## Project Overview
 
-Xero Agent is a Claude Code-like AI assistant built with the Claude Agent SDK that connects to Xero accounting software through a custom MCP server. The agent enables natural language interaction with Xero's API, allowing users to manage invoices, track expenses, generate financial reports, and perform bank reconciliation from any device.
+Zero Agent is a Claude Code-like AI assistant built with the Claude Agent SDK that connects to Xero accounting software through a custom MCP server. The agent enables natural language interaction with Xero's API, allowing users to manage invoices, track expenses, generate financial reports, and perform bank reconciliation from any device.
 
 ## Architecture
 
@@ -19,7 +19,7 @@ Xero Agent is a Claude Code-like AI assistant built with the Claude Agent SDK th
 ### Project Structure
 
 ```
-xero-agent/
+zero-agent/
 ├── packages/
 │   ├── mcp-xero-server/    # MCP server for Xero API
 │   ├── agent-core/         # Claude Agent SDK wrapper

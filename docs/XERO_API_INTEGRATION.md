@@ -28,7 +28,7 @@ npm install xero-node@^7.2.0
 
 ### 1. OAuth Flow Types
 
-**Standard OAuth 2.0 (User Authorization)** - Recommended for Xero Agent:
+**Standard OAuth 2.0 (User Authorization)** - Recommended for Zero Agent:
 ```typescript
 import { XeroClient } from 'xero-node';
 
@@ -61,7 +61,7 @@ const xero = new XeroClient({
 
 ### 2. OAuth Scopes
 
-| Scope | Purpose | Required for Xero Agent? |
+| Scope | Purpose | Required for Zero Agent? |
 |-------|---------|--------------------------|
 | `openid` | OIDC authentication | ✅ Yes |
 | `profile` | User profile info | ✅ Yes |
@@ -93,7 +93,7 @@ async function handleOAuthCallback(req: Request) {
 
   // Store token set in AWS Secrets Manager
   await secretsManager.putSecretValue({
-    SecretId: `xero-agent/tokens/${userId}`,
+    SecretId: `zero-agent/tokens/${userId}`,
     SecretString: JSON.stringify({
       access_token: tokenSet.access_token,
       refresh_token: tokenSet.refresh_token,
@@ -105,7 +105,7 @@ async function handleOAuthCallback(req: Request) {
 
   // Store metadata in DynamoDB
   await dynamoDB.put({
-    TableName: 'xero-agent-main',
+    TableName: 'zero-agent-main',
     Item: {
       PK: `USER#${userId}`,
       SK: `TOKEN#${xeroTenantId}`,
@@ -132,7 +132,7 @@ async function handleOAuthCallback(req: Request) {
 async function getValidTokenSet(userId: string): Promise<TokenSet> {
   // 1. Load token set from Secrets Manager
   const secret = await secretsManager.getSecretValue({
-    SecretId: `xero-agent/tokens/${userId}`,
+    SecretId: `zero-agent/tokens/${userId}`,
   });
 
   const tokenSet = JSON.parse(secret.SecretString);
@@ -151,7 +151,7 @@ async function getValidTokenSet(userId: string): Promise<TokenSet> {
 
     // 4. Update Secrets Manager
     await secretsManager.putSecretValue({
-      SecretId: `xero-agent/tokens/${userId}`,
+      SecretId: `zero-agent/tokens/${userId}`,
       SecretString: JSON.stringify({
         access_token: newTokenSet.access_token,
         refresh_token: newTokenSet.refresh_token,
@@ -163,7 +163,7 @@ async function getValidTokenSet(userId: string): Promise<TokenSet> {
 
     // 5. Update DynamoDB metadata
     await dynamoDB.update({
-      TableName: 'xero-agent-main',
+      TableName: 'zero-agent-main',
       Key: {
         PK: `USER#${userId}`,
         SK: `TOKEN#${xeroTenantId}`,
@@ -651,7 +651,7 @@ async function getCachedInvoices(
 
   // Check cache
   const cached = await dynamoDB.get({
-    TableName: 'xero-agent-main',
+    TableName: 'zero-agent-main',
     Key: { PK: cacheKey, SK: 'DATA' },
   });
 
@@ -664,7 +664,7 @@ async function getCachedInvoices(
 
   // Store in cache (5-minute TTL)
   await dynamoDB.put({
-    TableName: 'xero-agent-main',
+    TableName: 'zero-agent-main',
     Item: {
       PK: cacheKey,
       SK: 'DATA',

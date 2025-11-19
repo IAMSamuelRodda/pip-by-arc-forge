@@ -10,7 +10,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {
-        name: 'Xero Agent',
+        name: 'Zero Agent',
         short_name: 'XeroAgent',
         description: 'AI-powered accounting assistant for Xero',
         theme_color: '#13B5EA',

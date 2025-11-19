@@ -1,4 +1,4 @@
-# Xero Agent
+# Zero Agent
 
 > **Purpose**: Project introduction and quick start guide
 > **Lifecycle**: Stable (update when fundamentals change)
@@ -11,7 +11,7 @@ AI-powered accounting assistant for Xero, built with Claude Agent SDK and Model 
 
 ## Overview
 
-Xero Agent is a mobile-first Progressive Web App (PWA) that brings natural language interaction to Xero accounting software. Manage invoices, track expenses, generate financial reports, and reconcile bank accounts through conversational AI powered by Claude.
+Zero Agent is a mobile-first Progressive Web App (PWA) that brings natural language interaction to Xero accounting software. Manage invoices, track expenses, generate financial reports, and reconcile bank accounts through conversational AI powered by Claude.
 
 **Key Features:**
 - **Conversational Invoicing** - Create, update, and manage invoices with natural language
@@ -25,21 +25,47 @@ Xero Agent is a mobile-first Progressive Web App (PWA) that brings natural langu
 
 ## Quick Start
 
+### Chat with Zero Agent (CLI)
+
+The quickest way to try Zero Agent:
+
+```bash
+# 1. Clone and setup
+git clone <repository-url>
+cd zero-agent
+pnpm install
+
+# 2. Configure environment
+cp .env.example .env
+# Edit .env with your Xero and Anthropic credentials
+
+# 3. Connect to Xero (one-time setup)
+pnpm --filter @zero-agent/oauth-server dev
+# Visit http://localhost:3000/auth/xero and authorize
+
+# 4. Start chatting!
+pnpm chat
+```
+
+See [`CHAT_GUIDE.md`](./CHAT_GUIDE.md) for detailed usage instructions.
+
+### Full Development Setup
+
 **For Developers:**
 ```bash
 # Clone and setup
 git clone <repository-url>
-cd xero-agent
+cd zero-agent
 pnpm install
 
 # Configure environment
 cp .env.example .env
 # Edit .env with your Xero API credentials and AWS settings
 
-# Configure AWS CLI
+# Configure AWS CLI (for deployment)
 aws configure  # Set region, credentials
 
-# Initialize Terraform
+# Initialize Terraform (for AWS deployment)
 cd infrastructure/terraform
 terraform init
 

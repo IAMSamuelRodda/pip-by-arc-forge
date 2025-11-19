@@ -9,7 +9,7 @@ resource "aws_secretsmanager_secret" "api_keys" {
   count = 1
 
   name        = var.environment == "dev" ? "shared/${var.environment}/api-keys" : "${var.project_name}/${var.environment}/api-keys"
-  description = "Shared API keys for external services (Anthropic, OpenAI, Stripe)"
+  description = "Shared API keys for external services"
 
   kms_key_id = var.environment == "prod" ? aws_kms_key.secrets[0].id : null
 
@@ -17,7 +17,7 @@ resource "aws_secretsmanager_secret" "api_keys" {
     var.tags,
     {
       Name        = var.environment == "dev" ? "shared-${var.environment}-api-keys" : "${var.project_name}-${var.environment}-api-keys"
-      Description = "Shared external API keys (dev) or app-specific (prod)"
+      Description = "Shared external API keys"
     }
   )
 }

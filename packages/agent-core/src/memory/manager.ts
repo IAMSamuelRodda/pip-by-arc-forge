@@ -2,19 +2,24 @@
  * Memory Manager - Core and Extended Memory
  *
  * Implements ADR-007: Memory persistence and relationship building
+ * Uses the database abstraction layer (SQLite, DynamoDB, or PostgreSQL)
  */
 
+import type { DatabaseProvider, Milestone } from '@zero-agent/core';
 import type { CoreMemory, ExtendedMemory } from '../types.js';
 
 export class MemoryManager {
+  private db: DatabaseProvider;
+
+  constructor(db: DatabaseProvider) {
+    this.db = db;
+  }
+
   /**
    * Get core memory (always available, free tier)
    */
   async getCoreMemory(userId: string): Promise<CoreMemory | null> {
-    // TODO: Retrieve from DynamoDB
-    // PK: USER#<userId>
-    // SK: MEMORY#CORE
-    return null;
+    return await this.db.getCoreMemory(userId);
   }
 
   /**
@@ -24,7 +29,10 @@ export class MemoryManager {
     userId: string,
     updates: Partial<CoreMemory>
   ): Promise<void> {
-    // TODO: Update in DynamoDB
+    await this.db.upsertCoreMemory({
+      userId,
+      ...updates,
+    });
   }
 
   /**
@@ -34,7 +42,19 @@ export class MemoryManager {
     type: string;
     description: string;
   }): Promise<void> {
-    // TODO: Append to keyMilestones array in DynamoDB
+    const existing = await this.db.getCoreMemory(userId);
+    const currentMilestones = existing?.keyMilestones || [];
+
+    await this.db.upsertCoreMemory({
+      userId,
+      keyMilestones: [
+        ...currentMilestones,
+        {
+          ...milestone,
+          timestamp: Date.now(),
+        } as Milestone,
+      ],
+    });
   }
 
   /**
@@ -44,18 +64,21 @@ export class MemoryManager {
     userId: string,
     stage: 'colleague' | 'partner' | 'friend'
   ): Promise<void> {
-    // TODO: Update relationshipStage in DynamoDB
-    // Also update GSI2PK for cohort analysis
+    await this.db.upsertCoreMemory({
+      userId,
+      relationshipStage: stage,
+    });
   }
 
   /**
    * Get extended memory (paid tier, semantic search)
    */
   async getExtendedMemory(userId: string, limit: number = 10): Promise<ExtendedMemory[]> {
-    // TODO: Query DynamoDB
-    // PK: USER#<userId>
-    // SK: begins_with MEMORY#CONVERSATION#
-    return [];
+    return await this.db.listExtendedMemories({
+      userId,
+      limit,
+      sortOrder: "desc", // Most recent first
+    });
   }
 
   /**
@@ -63,19 +86,18 @@ export class MemoryManager {
    */
   async addExtendedMemory(
     userId: string,
-    memory: Omit<ExtendedMemory, 'userId' | 'createdAt'>
+    memory: Omit<ExtendedMemory, 'userId' | 'createdAt' | 'memoryId'>
   ): Promise<void> {
-    // TODO: Store in DynamoDB with TTL
-    // Only if user has paid tier subscription
+    await this.db.createExtendedMemory({
+      userId,
+      ...memory,
+    });
   }
 
   /**
    * Semantic search across extended memory (premium feature)
    */
-  async searchMemory(userId: string, query: string, limit: number = 5): Promise<ExtendedMemory[]> {
-    // TODO: Generate embedding for query
-    // TODO: Search vector database (OpenSearch or Pinecone)
-    // TODO: Return most relevant memories
-    return [];
+  async searchMemory(userId: string, embedding: number[], limit: number = 5): Promise<ExtendedMemory[]> {
+    return await this.db.searchMemories(userId, embedding, limit);
   }
 }

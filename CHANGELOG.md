@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Xero Agent will be documented in this file.
+All notable changes to Zero Agent will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **CLI Chat Interface** - Interactive REPL for conversational Xero queries (`pnpm chat`)
+- **Native Tool Calling** - Anthropic Claude tool use integration for automatic Xero API access
+- **Chat History Viewer** - View conversation history from SQLite database
+- **Documentation**:
+  - CHAT_GUIDE.md - Complete CLI usage guide
+  - Updated README.md with quick start instructions
 - AWS-based serverless architecture (Lambda, DynamoDB, Cognito, S3/CloudFront)
 - Terraform infrastructure-as-code definitions
 - DynamoDB single-table design for sessions, users, cache, and memory
@@ -34,6 +40,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Usage tracking (voice minutes, agent requests)
 
 ### Changed
+- **BREAKING**: Project renamed from "Xero Agent" to "Zero Agent"
+  - All package names updated: `@xero-agent/*` → `@zero-agent/*`
+  - All import statements and dependencies updated
+  - All documentation updated (README, ARCHITECTURE, CLAUDE, STATUS)
+- **Tool Calling Approach**: Switched from JSON parsing to native Anthropic tool use
+  - More reliable tool detection and execution
+  - Automatic parameter extraction and validation
 - **BREAKING**: Migrated from Firebase to AWS infrastructure
 - Updated all documentation to reflect AWS architecture
 - Architecture decision records updated:
@@ -70,5 +83,5 @@ Initial project setup with documentation structure and architectural planning.
 
 ---
 
-[Unreleased]: https://github.com/your-org/xero-agent/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/your-org/xero-agent/releases/tag/v0.1.0
+[Unreleased]: https://github.com/your-org/zero-agent/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/your-org/zero-agent/releases/tag/v0.1.0

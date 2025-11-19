@@ -52,3 +52,11 @@ firestore-debug.log
 .cache/
 temp/
 tmp/
+
+# Lambda build artifacts
+*.zip
+
+# SQLite databases
+*.db
+*.db-shm
+*.db-wal

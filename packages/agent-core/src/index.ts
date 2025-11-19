@@ -4,8 +4,8 @@
  * Main agent orchestrator that:
  * - Manages conversation flow with users
  * - Delegates tasks to specialized sub-agents
- * - Maintains context in DynamoDB sessions
- * - Invokes MCP tools via Lambda
+ * - Maintains context in database sessions
+ * - Invokes Xero API via OAuth
  * - Handles memory persistence and retrieval
  *
  * Agent Architecture:
@@ -20,6 +20,11 @@ export { AgentOrchestrator } from './orchestrator.js';
 export { SessionManager } from './session/manager.js';
 export { MemoryManager } from './memory/manager.js';
 export * from './types.js';
+
+// Xero integration
+export { XeroClient } from './xero/client.js';
+export { createXeroTools } from './tools/xero-tools.js';
+export type { Tool } from './tools/xero-tools.js';
 
 // Re-export sub-agents
 export { InvoiceAgent } from './agents/invoice-agent.js';

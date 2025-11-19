@@ -1,19 +1,33 @@
 /**
- * Session Manager - DynamoDB session persistence
+ * Session Manager - Database-backed session persistence
+ *
+ * Uses the database abstraction layer (SQLite, DynamoDB, or PostgreSQL)
  */
 
+import type { DatabaseProvider } from '@zero-agent/core';
 import type { Session } from '../types.js';
 
 export class SessionManager {
+  private db: DatabaseProvider;
+
+  constructor(db: DatabaseProvider) {
+    this.db = db;
+  }
+
   /**
    * Create a new session
    */
   async createSession(userId: string): Promise<string> {
     const sessionId = crypto.randomUUID();
+    const expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000; // 30 days
 
-    // TODO: Store in DynamoDB
-    // PK: USER#<userId>
-    // SK: SESSION#<sessionId>
+    await this.db.createSession({
+      sessionId,
+      userId,
+      messages: [],
+      agentContext: {},
+      expiresAt,
+    });
 
     return sessionId;
   }
@@ -22,8 +36,7 @@ export class SessionManager {
    * Get existing session
    */
   async getSession(userId: string, sessionId: string): Promise<Session | null> {
-    // TODO: Retrieve from DynamoDB
-    return null;
+    return await this.db.getSession(userId, sessionId);
   }
 
   /**
@@ -34,21 +47,24 @@ export class SessionManager {
     sessionId: string,
     updates: Partial<Session>
   ): Promise<void> {
-    // TODO: Update in DynamoDB
+    await this.db.updateSession(userId, sessionId, updates);
   }
 
   /**
    * Delete session
    */
   async deleteSession(userId: string, sessionId: string): Promise<void> {
-    // TODO: Delete from DynamoDB
+    await this.db.deleteSession(userId, sessionId);
   }
 
   /**
    * List user sessions
    */
-  async listSessions(userId: string): Promise<Session[]> {
-    // TODO: Query DynamoDB with PK=USER#<userId>, SK begins_with SESSION#
-    return [];
+  async listSessions(userId: string, limit: number = 10): Promise<Session[]> {
+    return await this.db.listSessions({
+      userId,
+      limit,
+      sortOrder: "desc", // Most recent first
+    });
   }
 }

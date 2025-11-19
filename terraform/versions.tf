@@ -11,7 +11,7 @@ terraform {
   # Backend configuration for remote state (S3 + DynamoDB for locking)
   # Uncomment and configure when ready for team collaboration
   # backend "s3" {
-  #   bucket         = "xero-agent-terraform-state"
+  #   bucket         = "zero-agent-terraform-state"
   #   key            = "prod/terraform.tfstate"
   #   region         = "us-east-1"
   #   encrypt        = true
@@ -24,7 +24,7 @@ provider "aws" {
 
   default_tags {
     tags = {
-      Project     = "xero-agent"
+      Project     = "zero-agent"
       Environment = var.environment
       ManagedBy   = "terraform"
     }

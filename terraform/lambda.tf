@@ -1,4 +1,4 @@
-# Lambda Functions for Xero Agent
+# Lambda Functions for Zero Agent
 # Three functions: Agent (orchestrator), MCP (Xero tools), Auth (OAuth)
 
 # Agent Lambda Function
@@ -6,7 +6,7 @@ resource "aws_lambda_function" "agent" {
   count = 1
 
   function_name = "${var.project_name}-${var.environment}-agent"
-  description   = "Claude Agent orchestrator for Xero Agent"
+  description   = "Claude Agent orchestrator for Zero Agent"
 
   filename         = "${path.module}/../functions/agent/agent-lambda.zip"
   source_code_hash = filebase64sha256("${path.module}/../functions/agent/agent-lambda.zip")
@@ -24,7 +24,6 @@ resource "aws_lambda_function" "agent" {
       ANTHROPIC_API_KEY = try(jsondecode(aws_secretsmanager_secret_version.api_keys[0].secret_string)["anthropic_api_key"], "")
       MCP_LAMBDA_ARN    = try(aws_lambda_function.mcp[0].arn, "")
       DYNAMODB_TABLE    = aws_dynamodb_table.main[0].name
-      AWS_REGION        = var.aws_region
       ENVIRONMENT       = var.environment
     }
   }
@@ -73,7 +72,6 @@ resource "aws_lambda_function" "mcp" {
   environment {
     variables = {
       DYNAMODB_TABLE  = aws_dynamodb_table.main[0].name
-      AWS_REGION      = var.aws_region
       ENVIRONMENT     = var.environment
       MCP_SERVER_PATH = "/opt/nodejs/mcp-xero-server/dist/index.js"
     }
@@ -120,7 +118,6 @@ resource "aws_lambda_function" "auth" {
       FRONTEND_URL           = var.domain_name != "" ? "https://${var.domain_name}" : "http://localhost:5173"
       COGNITO_USER_POOL_ID   = aws_cognito_user_pool.main[0].id
       DYNAMODB_TABLE         = aws_dynamodb_table.main[0].name
-      AWS_REGION             = var.aws_region
       ENVIRONMENT            = var.environment
     }
   }

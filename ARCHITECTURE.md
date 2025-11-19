@@ -1,4 +1,4 @@
-# Xero Agent - Architecture
+# Zero Agent - Architecture
 
 > **Purpose**: Technical reference for system design, database schema, and architectural decisions
 > **Lifecycle**: Living (update as architecture evolves)
@@ -9,7 +9,7 @@
 
 ## System Overview
 
-Xero Agent uses a **multi-tier serverless architecture** on AWS with clear separation of concerns:
+Zero Agent uses a **multi-tier serverless architecture** on AWS with clear separation of concerns:
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -52,7 +52,7 @@ Xero Agent uses a **multi-tier serverless architecture** on AWS with clear separ
 
 **Structure**: Monorepo with packages + infrastructure
 ```
-xero-agent/
+zero-agent/
 ├── packages/
 │   ├── mcp-xero-server/     # MCP server (Lambda)
 │   ├── agent-core/          # Agent orchestrator (Lambda)
@@ -750,7 +750,7 @@ Deploy to Production (terraform apply)
 **Development Environment (< 50 users):**
 - **Secrets Manager**: $0.80/month (2 secrets: API keys + Xero OAuth)
   - `shared/dev/api-keys` - Shared across all dev apps
-  - `xero-agent/dev/xero-oauth` - App-specific Xero credentials
+  - `zero-agent/dev/xero-oauth` - App-specific Xero credentials
 - **Lambda**: $0 (< 1M requests/month)
 - **DynamoDB**: $0 (< 25GB storage, includes user tokens)
 - **API Gateway**: $0 (< 1M requests/month, first 12 months)
@@ -808,7 +808,7 @@ Deploy to Production (terraform apply)
 
 ### Overview
 
-Project tracked in GitHub: https://github.com/IAMSamuelRodda/xero-agent/projects/8
+Project tracked in GitHub: https://github.com/IAMSamuelRodda/zero-agent/projects/8
 
 **Total Timeline**: 20.6 days (2.9 weeks) with AI-calibrated speedup (22.8x)
 **Structure**: 9 epics, 34 features, 103 tasks, 146 GitHub issues
@@ -893,7 +893,7 @@ Voice Integration + Subscription (parallel)
 - **Advanced Analytics**: Usage dashboards, financial insights
 - **Mobile Native Apps**: iOS/Android (PWA serves as MVP)
 
-For detailed task breakdown and current progress, see the [GitHub Project board](https://github.com/IAMSamuelRodda/xero-agent/projects/8).
+For detailed task breakdown and current progress, see the [GitHub Project board](https://github.com/IAMSamuelRodda/zero-agent/projects/8).
 
 ---
 
@@ -921,7 +921,7 @@ For detailed task breakdown and current progress, see the [GitHub Project board]
 
 **Secrets Manager Usage (Final):**
 1. `shared/dev/api-keys` - Anthropic API key (shared across all apps)
-2. `xero-agent/dev/xero-oauth` - Xero client ID/secret (per-app)
+2. `zero-agent/dev/xero-oauth` - Xero client ID/secret (per-app)
 
 **See:** `docs/COST_OPTIMIZATION_MULTI_APP.md` for multi-app scaling strategy
 

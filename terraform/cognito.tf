@@ -1,4 +1,4 @@
-# Cognito User Pool for Xero Agent authentication
+# Cognito User Pool for Zero Agent authentication
 # Provides user sign-up, sign-in, and JWT token management
 
 # User Pool

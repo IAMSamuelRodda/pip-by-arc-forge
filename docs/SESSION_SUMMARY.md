@@ -8,7 +8,7 @@
 
 ## Overview
 
-This session established the complete foundation for the Xero Agent project, implementing AWS infrastructure as code, initializing three TypeScript packages, and integrating with the Xero API.
+This session established the complete foundation for the Zero Agent project, implementing AWS infrastructure as code, initializing three TypeScript packages, and integrating with the Xero API.
 
 ---
 
@@ -39,7 +39,7 @@ This session established the complete foundation for the Xero Agent project, imp
 
 ### 2. TypeScript Package Ecosystem (2,464 lines)
 
-**MCP Xero Server** (`@xero-agent/mcp-xero-server`):
+**MCP Xero Server** (`@zero-agent/mcp-xero-server`):
 - 14 MCP tool definitions across 4 categories
 - Complete invoice handlers with Xero API integration
 - Token management wrapper (Secrets Manager + DynamoDB)
@@ -47,14 +47,14 @@ This session established the complete foundation for the Xero Agent project, imp
 - Retry logic with exponential backoff for rate limits
 - Actionable error messages following MCP best practices
 
-**Agent Core** (`@xero-agent/agent-core`):
+**Agent Core** (`@zero-agent/agent-core`):
 - Main orchestrator using Claude Agent SDK
 - 4 specialized sub-agents (Invoice, Reconciliation, Reporting, Expense)
 - Session manager for DynamoDB persistence
 - Memory manager implementing ADR-007 (core + extended memory)
 - Relationship progression system (colleague → partner → friend)
 
-**PWA App** (`@xero-agent/pwa-app`):
+**PWA App** (`@zero-agent/pwa-app`):
 - React 18 + Vite 6 + TypeScript 5
 - Progressive Web App with offline support
 - TailwindCSS for mobile-first responsive design

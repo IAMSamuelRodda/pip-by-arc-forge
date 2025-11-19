@@ -1,6 +1,6 @@
-# Xero Agent - Terraform Infrastructure
+# Zero Agent - Terraform Infrastructure
 
-AWS infrastructure for Xero Agent using Terraform.
+AWS infrastructure for Zero Agent using Terraform.
 
 ## Quick Start
 
@@ -33,7 +33,7 @@ AWS infrastructure for Xero Agent using Terraform.
 2. **Edit terraform.tfvars** with your values:
    ```bash
    # Required fields
-   aws_region            = "us-east-1"  # Change based on user location
+   aws_region            = "ap-southeast-2"  # Sydney (default) - see Region Selection below
    xero_client_id        = "your-client-id"
    xero_client_secret    = "your-client-secret"
    anthropic_api_key     = "your-api-key"
@@ -76,13 +76,15 @@ enable_cloudfront  = true   # Keep enabled (within free tier)
 
 ### Region Selection
 
-**IMPORTANT**: Choose AWS region based on user location to minimize latency:
+**Default: `ap-southeast-2` (Sydney)** - Optimized for Australian market (70%+ of Xero users)
 
-- **US users**: `us-east-1` (default) or `us-west-2`
+**Alternative regions** (if deploying outside Australia):
+- **New Zealand**: `ap-southeast-2` (Sydney - closest, ~30ms)
+- **US users**: `us-east-1` (N. Virginia) or `us-west-2` (Oregon)
 - **EU users**: `eu-west-1` (Ireland) or `eu-central-1` (Frankfurt)
-- **APAC users**: `ap-southeast-2` (Sydney) or `ap-northeast-1` (Tokyo)
+- **Asia**: `ap-northeast-1` (Tokyo) or `ap-southeast-1` (Singapore)
 
-See CLAUDE.md for details on latency impact.
+**Latency impact**: Using `us-east-1` for Australian users adds 200-300ms per request. See CLAUDE.md for details.
 
 ## Architecture
 
@@ -153,18 +155,18 @@ For team collaboration, configure S3 backend in `versions.tf`:
 
 1. **Create S3 bucket and DynamoDB table** (one-time):
    ```bash
-   aws s3 mb s3://xero-agent-terraform-state --region us-east-1
+   aws s3 mb s3://zero-agent-terraform-state --region us-east-1
    # DynamoDB table created by Terraform (see dynamodb.tf)
    ```
 
 2. **Uncomment backend config** in `versions.tf`:
    ```hcl
    backend "s3" {
-     bucket         = "xero-agent-terraform-state"
+     bucket         = "zero-agent-terraform-state"
      key            = "prod/terraform.tfstate"
      region         = "us-east-1"
      encrypt        = true
-     dynamodb_table = "xero-agent-terraform-state-lock"
+     dynamodb_table = "zero-agent-terraform-state-lock"
    }
    ```
 
@@ -188,17 +190,17 @@ terraform apply -target=aws_lambda_function.mcp
 ```bash
 # Manual rotation via AWS Console or CLI
 aws secretsmanager rotate-secret \
-  --secret-id xero-agent/dev/xero-tokens
+  --secret-id zero-agent/dev/xero-tokens
 ```
 
 ### View Logs
 
 ```bash
 # Agent logs
-aws logs tail /aws/lambda/xero-agent-dev-agent --follow
+aws logs tail /aws/lambda/zero-agent-dev-agent --follow
 
 # MCP logs
-aws logs tail /aws/lambda/xero-agent-dev-mcp --follow
+aws logs tail /aws/lambda/zero-agent-dev-mcp --follow
 ```
 
 ### Destroy Infrastructure

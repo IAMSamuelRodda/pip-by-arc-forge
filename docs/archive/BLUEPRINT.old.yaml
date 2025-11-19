@@ -1,5 +1,5 @@
 project_overview:
-  brief: "Xero Agent is an AI-powered accounting assistant that brings natural language interaction to Xero accounting software. It's a mobile-first Progressive Web App (PWA) that allows users to manage invoices, track expenses, generate reports, and reconcile accounts through conversational AI powered by Claude."
+  brief: "Zero Agent is an AI-powered accounting assistant that brings natural language interaction to Xero accounting software. It's a mobile-first Progressive Web App (PWA) that allows users to manage invoices, track expenses, generate reports, and reconcile accounts through conversational AI powered by Claude."
   core_objectives:
     - "Deliver a production-ready PWA enabling natural language accounting operations with Xero integration"
     - "Achieve sub-3s conversation latency with offline-capable architecture (Lighthouse 95+, LCP <2.5s)"
@@ -109,7 +109,7 @@ milestones:
               composite: 2.2
             estimated_days: 1
             deliverables:
-              - "Root tsconfig.json with paths for @xero-agent/* aliases"
+              - "Root tsconfig.json with paths for @zero-agent/* aliases"
               - "Package-specific tsconfig.json extending root config"
               - "Type declaration files for shared interfaces"
 

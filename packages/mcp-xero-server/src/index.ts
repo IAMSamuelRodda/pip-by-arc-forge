@@ -31,7 +31,7 @@ import { expenseTools } from './tools/expenses.js';
 // Create MCP server
 const server = new Server(
   {
-    name: '@xero-agent/mcp-xero-server',
+    name: '@zero-agent/mcp-xero-server',
     version: '0.1.0',
   },
   {

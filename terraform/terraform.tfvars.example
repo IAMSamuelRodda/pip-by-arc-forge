@@ -3,8 +3,8 @@
 # DO NOT commit terraform.tfvars to version control
 
 # Core Configuration
-aws_region  = "us-east-1"  # Change based on user location (see CLAUDE.md)
-environment = "dev"        # dev, staging, or prod
+aws_region  = "ap-southeast-2"  # Sydney - optimal for Australian market (see README.md for other regions)
+environment = "dev"             # dev, staging, or prod
 project_name = "xero-agent"
 
 # Application Configuration

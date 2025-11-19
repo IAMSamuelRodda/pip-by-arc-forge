@@ -323,7 +323,7 @@ async function storeTokens(userId: string, tenantId: string, tokens: {
   expiresAt: string;
   tokenType: string;
 }): Promise<void> {
-  const secretName = `xero-agent/oauth/${userId}`;
+  const secretName = `zero-agent/oauth/${userId}`;
 
   const secretValue = JSON.stringify({
     tenantId,
@@ -349,7 +349,7 @@ async function getTokens(userId: string): Promise<{
   expiresAt: string;
   tokenType: string;
 } | null> {
-  const secretName = `xero-agent/oauth/${userId}`;
+  const secretName = `zero-agent/oauth/${userId}`;
 
   try {
     const command = new GetSecretValueCommand({
@@ -374,7 +374,7 @@ async function getTokens(userId: string): Promise<{
  * Get Xero client secret from Secrets Manager
  */
 async function getXeroClientSecret(): Promise<string> {
-  const secretName = process.env.XERO_CLIENT_SECRET_ARN || 'xero-agent/xero-client-secret';
+  const secretName = process.env.XERO_CLIENT_SECRET_ARN || 'zero-agent/xero-client-secret';
 
   const command = new GetSecretValueCommand({
     SecretId: secretName,

@@ -1,10 +1,10 @@
-# Xero Agent - Architecture Documentation
+# Zero Agent - Architecture Documentation
 
 ## System Architecture
 
 ### High-Level Overview
 
-Xero Agent follows a multi-tier architecture with clear separation of concerns:
+Zero Agent follows a multi-tier architecture with clear separation of concerns:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐

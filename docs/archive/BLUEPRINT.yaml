@@ -1,5 +1,5 @@
 project_overview:
-  brief: "Xero Agent is an AI-powered accounting assistant that connects to Xero via MCP, providing natural language invoice management, expense tracking, financial reporting, and voice interaction. Built with Claude Agent SDK, deployed on AWS serverless infrastructure with DynamoDB for memory persistence and relationship progression."
+  brief: "Zero Agent is an AI-powered accounting assistant that connects to Xero via MCP, providing natural language invoice management, expense tracking, financial reporting, and voice interaction. Built with Claude Agent SDK, deployed on AWS serverless infrastructure with DynamoDB for memory persistence and relationship progression."
   core_objectives:
     - "Launch free tier (text-only, 50 requests/month) with core invoice and expense management by Week 8"
     - "Launch Pro tier ($29/month) with voice integration (1000 min), extended memory, and relationship progression by Week 14"
@@ -398,7 +398,7 @@ milestones:
             acceptance_criteria:
               - "Verification email sent within 1 minute of signup"
               - "Password policy rejects weak passwords"
-              - "Email templates branded with Xero Agent logo"
+              - "Email templates branded with Zero Agent logo"
 
           task_2_1_3:
             name: "MFA Configuration"

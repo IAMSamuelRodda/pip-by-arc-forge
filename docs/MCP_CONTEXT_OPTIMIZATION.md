@@ -17,7 +17,7 @@
 7. [ResourceLink Pattern for Large Datasets](#resourcelink-pattern-for-large-datasets)
 8. [Implementation Guidelines](#implementation-guidelines)
 9. [Performance Metrics](#performance-metrics)
-10. [Application to Xero Agent](#application-to-xero-agent)
+10. [Application to Zero Agent](#application-to-zero-agent)
 
 ---
 
@@ -70,13 +70,13 @@ const invoiceTools = await loadToolsForCategory('invoices'); // 5,000 tokens
 **Example**:
 ```typescript
 // ❌ BAD: Monolithic server
-@xero-agent/everything-server
+@zero-agent/everything-server
   - invoices, bank-transactions, reporting, expenses, contacts, inventory...
 
 // ✅ GOOD: Domain-specific servers
-@xero-agent/invoice-server      // Only invoice operations
-@xero-agent/reporting-server    // Only reporting tools
-@xero-agent/banking-server      // Only bank transactions
+@zero-agent/invoice-server      // Only invoice operations
+@zero-agent/reporting-server    // Only reporting tools
+@zero-agent/banking-server      // Only bank transactions
 ```
 
 ### 3. Workflow-Oriented Tools
@@ -981,11 +981,11 @@ class MetricsCollector {
 
 ---
 
-## Application to Xero Agent
+## Application to Zero Agent
 
 ### Current Architecture Assessment
 
-**Xero Agent MCP Server** (`packages/mcp-xero-server/`):
+**Zero Agent MCP Server** (`packages/mcp-xero-server/`):
 - 14 tools across 4 categories (invoices, banking, reporting, expenses)
 - Single monolithic server
 - Full API responses returned (not optimized)

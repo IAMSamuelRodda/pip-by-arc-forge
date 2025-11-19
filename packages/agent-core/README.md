@@ -1,6 +1,6 @@
 # Agent Core
 
-Claude Agent SDK orchestrator for Xero Agent.
+Claude Agent SDK orchestrator for Zero Agent.
 
 ## Overview
 
@@ -79,7 +79,7 @@ pnpm test
 ## Usage
 
 ```typescript
-import { AgentOrchestrator } from '@xero-agent/agent-core';
+import { AgentOrchestrator } from '@zero-agent/agent-core';
 
 const orchestrator = new AgentOrchestrator();
 
@@ -102,8 +102,8 @@ Environment variables:
 
 ```bash
 AWS_REGION=us-east-1
-DYNAMODB_TABLE_NAME=xero-agent-dev-main
-LAMBDA_MCP_FUNCTION_NAME=xero-agent-dev-mcp
+DYNAMODB_TABLE_NAME=zero-agent-dev-main
+LAMBDA_MCP_FUNCTION_NAME=zero-agent-dev-mcp
 ANTHROPIC_API_KEY=sk-...
 ```
 

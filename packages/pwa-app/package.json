@@ -1,7 +1,7 @@
 {
-  "name": "@xero-agent/pwa-app",
+  "name": "@zero-agent/pwa-app",
   "version": "0.1.0",
-  "description": "Progressive Web App for Xero Agent",
+  "description": "Progressive Web App for Zero Agent",
   "type": "module",
   "scripts": {
     "dev": "vite",
