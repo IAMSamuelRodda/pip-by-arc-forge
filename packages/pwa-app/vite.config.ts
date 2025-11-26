@@ -11,7 +11,7 @@ export default defineConfig({
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {
         name: 'Zero Agent',
-        short_name: 'XeroAgent',
+        short_name: 'ZeroAgent',
         description: 'AI-powered accounting assistant for Xero',
         theme_color: '#13B5EA',
         background_color: '#ffffff',

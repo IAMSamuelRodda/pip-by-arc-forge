@@ -3,10 +3,42 @@
 > **Purpose**: Current work, active bugs, and recent changes (2-week rolling window)
 > **Lifecycle**: Living (update daily/weekly during active development)
 
-**Last Updated**: 2025-11-18
+**Last Updated**: 2025-11-26
 **Current Phase**: CLI Chat Interface Ready! 🎉 Native tool calling working perfectly
 **Version**: 0.1.0-alpha (Pre-release)
 **AWS Status**: All resources cleaned up - ready for deployment with full stack
+
+---
+
+## Business Direction (2025-11-26)
+
+### Upcoming Validation
+- **Demo scheduled**: Thursday 10am (next week) with dental practice owner
+- **Purpose**: Validate product-market fit, gather feedback, identify missing features
+- **Key questions**: Does it solve the pain? What's missing? What would they pay?
+
+### Target Market Exploration
+Primary segments under consideration:
+1. **Healthcare Practice Owners** (dentists, physios, GPs) - HIGH priority (direct validation path)
+2. **Small Business Owners** (general Xero users) - MEDIUM priority
+3. **Web3/Crypto Businesses** - MEDIUM priority (may require wallet integration)
+4. **Accountants/Bookkeepers** - LOW priority (B2B, longer sales cycle)
+
+### Distribution Strategy
+| Platform | Priority | Status | Notes |
+|----------|----------|--------|-------|
+| PWA (web) | HIGH | Scaffolded | ✅ `display: standalone` configured - native-like experience |
+| Self-hosted (Docker) | HIGH | Pending | Week 2 target |
+| Managed service | HIGH | Ready to deploy | $20/month tier |
+| iOS App Store | MEDIUM | Future | Required for scale |
+| Google Play Store | MEDIUM | Future | Broader Android reach |
+| F-Droid | LOW | Future | Privacy-conscious users |
+
+**Note**: PWA with `display: standalone` in manifest provides near-native experience without app store overhead. Evaluate native app investment after 6 months based on adoption data.
+
+### Strategic Documents
+- Business orchestration: `~/repos/arcforge-business-planning/strategic-direction-finance-2025.md`
+- Avatar research: `~/repos/arcforge-business-planning/avatar-investigation-2025.md`
 
 ---
 
