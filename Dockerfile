@@ -16,6 +16,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/core/package.json ./packages/core/
 COPY packages/agent-core/package.json ./packages/agent-core/
 COPY packages/server/package.json ./packages/server/
+COPY packages/pwa-app/package.json ./packages/pwa-app/
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile
@@ -25,11 +26,13 @@ COPY tsconfig.json ./
 COPY packages/core/ ./packages/core/
 COPY packages/agent-core/ ./packages/agent-core/
 COPY packages/server/ ./packages/server/
+COPY packages/pwa-app/ ./packages/pwa-app/
 
-# Build all packages
+# Build all packages (including PWA)
 RUN pnpm --filter @zero-agent/core run build && \
     pnpm --filter @zero-agent/agent-core run build && \
-    pnpm --filter @zero-agent/server run build
+    pnpm --filter @zero-agent/server run build && \
+    pnpm --filter @zero-agent/pwa-app run build
 
 # ============================================
 # Stage 2: Production
@@ -58,6 +61,7 @@ RUN pnpm install --frozen-lockfile --prod
 COPY --from=builder /app/packages/core/dist ./packages/core/dist
 COPY --from=builder /app/packages/agent-core/dist ./packages/agent-core/dist
 COPY --from=builder /app/packages/server/dist ./packages/server/dist
+COPY --from=builder /app/packages/pwa-app/dist ./packages/pwa-app/dist
 
 # Create data directory for SQLite
 RUN mkdir -p /app/data && chown -R zero-agent:nodejs /app/data
