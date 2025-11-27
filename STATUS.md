@@ -94,6 +94,7 @@ Status: Pending validation at Thursday demo
 - **Deep Dive Competitors**: "Deep Dive: XBert & Zapier+ChatGPT Competitive Analysis"
 - **Naming Research**: "Rebranding Research: Naming Trends & Directions"
 - **Beta Marketing**: "Beta Marketing & Disclaimer Drafts"
+- **Claude Agent SDK**: "Claude Agent SDK - How It Works" (Quick Capture)
 - Code/docs: `~/repos/arcforge-business-planning/`
 
 ---
@@ -334,6 +335,19 @@ Status: Pending validation at Thursday demo
   - Updated PROGRESS.md with full blueprint extraction
   - Updated ISSUES.md with flagged items, spikes, risks
   - Updated skills: blueprint-creation, github-project-infrastructure
+- ✅ **Context Management Research** (`docs/CONTEXT_MANAGEMENT_RESEARCH.md` - 757 lines)
+  - Four-tier memory architecture analysis (from star-atlas-agent)
+  - RAG implementation strategy with SQLite vector storage
+  - Embedding options for VPS (Ollama nomic-embed-text recommended)
+  - Progressive compression strategy (95% storage reduction)
+  - **Decision**: Hybrid approach - RAG-ready schema, simple retrieval for demo
+- ✅ **Claude Agent SDK Analysis**
+  - Researched Anthropic's production agent framework
+  - Key feature: Automatic context compaction (84% token reduction)
+  - Built-in tools: File ops, Bash, Web Search, Memory
+  - Multi-agent support with parallel subagents
+  - **Decision**: Not yet for Pip - evaluate post-RAG implementation
+  - Joplin note created: "Claude Agent SDK - How It Works" (Quick Capture)
 
 **Next Up (Demo Critical Path):**
 1. **feature_1_1**: Document Ingestion & Storage (7 days)
