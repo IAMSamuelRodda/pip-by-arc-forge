@@ -318,15 +318,16 @@
 
 ## Known Issues
 
-### Critical
-None currently.
+See **ISSUES.md** for detailed issue tracking.
 
-### High Priority
-None currently.
+**Summary**: 0 Critical | 0 High | 2 Medium | 1 Low
 
-### Minor
-- PWA "Connect to Xero" button needs better loading state
-- Chat interface could use message timestamps
+Active improvements:
+- `issue_001`: PWA Connect button loading state (P2)
+- `issue_002`: Chat message timestamps (P3)
+
+Technical debt:
+- `debt_001`: No formal test coverage (P2)
 
 ---
 

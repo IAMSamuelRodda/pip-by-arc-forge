@@ -235,20 +235,23 @@ None currently.
 
 ## Legacy GitHub Issues
 
-**Note**: GitHub Issues #117-157 are legacy from the AWS infrastructure blueprint that has been replaced by VPS deployment. These issues reference:
+**Status**: All legacy GitHub Issues (#1-157) have been closed as of 2025-11-27.
+
+These issues were from the original AWS Lambda/DynamoDB blueprint that has been replaced by VPS deployment. They referenced:
 - Lambda functions (replaced by Express server)
 - DynamoDB (replaced by SQLite)
 - Terraform infrastructure (removed)
 - Voice integration (deferred to future)
 - Stripe billing (deferred to future)
 
-**Recommendation**: Close or archive legacy issues and use PROGRESS.md as the source of truth for current work.
+**Current tracking**: Use PROGRESS.md for project tracking and ISSUES.md for bug/improvement tracking.
 
 ---
 
 ## References
 
 - **STATUS.md**: Current 2-week rolling snapshot
+- **ISSUES.md**: Dynamic issue tracking (bugs, improvements, technical debt)
 - **ARCHITECTURE.md**: Technical design and ADRs
 - **docs/TODO-mcp-distribution-research.md**: MCP research spike
 - **docs/DEMO_TALKING_POINTS.md**: User demo preparation

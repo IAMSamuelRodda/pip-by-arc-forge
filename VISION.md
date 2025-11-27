@@ -1,7 +1,12 @@
 # Agent Zero (Zero Agent) - Vision
 
-**The open source bookkeeper.**
-Supercharging your bookkeeping - connect with a helper that takes the mundane and complexity away. Clean and crystal clear books and one impressed happy accountant. 
+**Your AI bookkeeping assistant.**
+
+Ask questions about your business finances and get plain-English answers instantly. Stop digging through accounting software—just ask.
+
+*Currently supports Xero. MYOB and QuickBooks planned (modular MCP architecture).*
+
+> **Rebrand note**: "Zero" sounds like "Xero" when spoken—brand collision risk. Keep name through validation, rebrand after. 
 
 ## Philosophy
 
@@ -86,6 +91,6 @@ MIT - Maximum freedom to use, modify, and distribute.
 
 ---
 
-**Built for accountants, bookkeepers, and finance teams who value privacy, flexibility, and ownership.**
+**Built for small business owners who'd rather run their business than manage their books.**
 
-*Last updated: 2025-11-17*
+*Last updated: 2025-11-27*
