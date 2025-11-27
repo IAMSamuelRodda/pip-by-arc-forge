@@ -81,14 +81,22 @@ Primary segments under consideration:
 | Docker config | ✅ Done | Dockerfile, docker-compose.yml |
 | VPS integration | ✅ Done | Memory-limited config (384MB) for do-vps-prod |
 | DNS record | ✅ Done | `zero.rodda.xyz` → 170.64.169.203 |
-| Deploy container | 🔵 Next | Clone, build, start on VPS |
-| Caddy config | ⚪ Pending | Add to VPS Caddyfile |
+| Deploy container | ✅ Done | Built and running on VPS |
+| Caddy config | ✅ Done | Reverse proxy configured, auto-HTTPS |
+| Health check | ✅ Done | https://zero.rodda.xyz/health responding |
+| API keys | ⚠️ **Required** | ANTHROPIC_API_KEY not set |
 | Xero OAuth | ⚪ Pending | Add callback URL to Xero app |
-| Health check | ⚪ Pending | Verify https://zero.rodda.xyz/health |
 
-**Target URL**: https://zero.rodda.xyz
+**Live URL**: https://zero.rodda.xyz
+**Health Status**: ✅ Healthy (server running, chat needs API key)
 **VPS**: production-syd1 (170.64.169.203) - shared with Nextcloud, Joplin, etc.
 **Memory Budget**: 384MB (of ~2.3GB available)
+
+**To complete setup:**
+1. Add `ZERO_AGENT_ANTHROPIC_KEY` to `/opt/docker/droplet/.env`
+2. Add Xero callback URL: `https://zero.rodda.xyz/auth/callback`
+3. Add `ZERO_AGENT_XERO_CLIENT_ID` and `ZERO_AGENT_XERO_CLIENT_SECRET` to `.env`
+4. Restart: `cd /opt/docker/droplet && docker compose -f docker-compose.zero-agent.yml up -d`
 
 ---
 
