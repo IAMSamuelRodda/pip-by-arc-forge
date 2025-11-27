@@ -1,33 +1,21 @@
 # Zero Agent - Deployment Guide
 
-## Quick Start: Deploy to AWS
+## Quick Start: Deploy to VPS
 
-This guide will get your Zero Agent deployed and ready for manual testing in ~15 minutes.
+This guide will get your Zero Agent deployed and ready for use.
 
-**Cost:** $0.80/month (2 Secrets Manager secrets)
+**Cost:** $0/month (using existing VPS) or ~$6/month (new droplet)
 
 ---
 
 ## Prerequisites
 
-### 1. AWS Account Setup
+### 1. VPS with Docker
 
-```bash
-# Install AWS CLI (if not installed)
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip awscliv2.zip
-sudo ./aws/install
-
-# Configure AWS credentials
-aws configure
-# AWS Access Key ID: <your-key>
-# AWS Secret Access Key: <your-secret>
-# Default region: us-east-1
-# Default output format: json
-
-# Verify
-aws sts get-caller-identity
-```
+You need a VPS with:
+- Docker and Docker Compose installed
+- Caddy or nginx for reverse proxy
+- A domain pointing to your VPS
 
 ### 2. Xero Developer Account
 
@@ -35,14 +23,13 @@ aws sts get-caller-identity
 2. Sign up / Log in
 3. Click "My Apps" → "New App"
 4. Fill in:
-   - **App name:** Zero Agent Dev
+   - **App name:** Zero Agent
    - **Integration type:** Web app
-   - **Company/App URL:** https://yourdomain.com (can be localhost for dev)
-   - **Redirect URI:** https://API_GATEWAY_URL/auth/xero/callback
-     - ⚠️ **Note:** You'll update this after Terraform creates the API Gateway
+   - **Company/App URL:** https://yourdomain.com
+   - **Redirect URI:** https://yourdomain.com/auth/xero/callback
 5. Save your:
-   - **Client ID:** (e.g., `ABC123...`)
-   - **Client Secret:** (click "Generate a secret")
+   - **Client ID**
+   - **Client Secret** (click "Generate a secret")
 
 ### 3. Anthropic API Key
 
@@ -53,398 +40,197 @@ aws sts get-caller-identity
 
 ---
 
-## Step 1: Configure Terraform Variables
+## Step 1: Clone Repository
 
 ```bash
-cd terraform
+ssh root@your-vps-ip
 
-# Copy example config
-cp terraform.tfvars.example terraform.tfvars
-
-# Edit with your values
-nano terraform.tfvars
+# Clone to /opt
+cd /opt
+git clone https://github.com/IAMSamuelRodda/zero-agent.git
+cd zero-agent
 ```
 
-**terraform.tfvars:**
-```hcl
-# AWS Configuration
-aws_region  = "us-east-1"  # or your preferred region
-environment = "dev"
-project_name = "zero-agent"
+---
 
-# Xero OAuth (from Xero Developer Portal)
-xero_client_id     = "YOUR_XERO_CLIENT_ID"
-xero_client_secret = "YOUR_XERO_CLIENT_SECRET"
+## Step 2: Configure Environment
 
-# Anthropic API Key (from Anthropic Console)
-anthropic_api_key = "sk-ant-YOUR_KEY_HERE"
+```bash
+# Create .env file
+cat > .env << 'EOF'
+# Anthropic
+ANTHROPIC_API_KEY=sk-ant-your-key-here
 
-# Optional: Custom domain (leave empty for dev)
-domain_name = ""
+# Xero OAuth
+XERO_CLIENT_ID=your-client-id
+XERO_CLIENT_SECRET=your-client-secret
+XERO_REDIRECT_URI=https://yourdomain.com/auth/xero/callback
 
-# Tags for cost tracking
-tags = {
-  Project     = "zero-agent"
-  Environment = "dev"
-  ManagedBy   = "terraform"
+# Server
+NODE_ENV=production
+PORT=3000
+DATABASE_PROVIDER=sqlite
+DATABASE_PATH=/app/data/zero-agent.db
+EOF
+
+# Secure the file
+chmod 600 .env
+```
+
+---
+
+## Step 3: Configure Caddy
+
+Add to your Caddyfile (typically `/opt/docker/droplet/Caddyfile`):
+
+```
+yourdomain.com {
+    reverse_proxy zero-agent:3000
 }
 ```
 
-**⚠️ Security:**
+---
+
+## Step 4: Build and Deploy
+
 ```bash
-# Ensure tfvars is gitignored (already done)
-chmod 600 terraform.tfvars
+# Build Docker image
+docker build -t zero-agent .
+
+# Start with docker-compose
+docker compose up -d
+
+# Check logs
+docker logs zero-agent -f
 ```
 
 ---
 
-## Step 2: Initialize Terraform
+## Step 5: Verify Deployment
 
 ```bash
-# Install providers and modules
-terraform init
+# Health check
+curl https://yourdomain.com/health
 
-# Expected output:
-# Terraform has been successfully initialized!
+# Expected response:
+# {"status":"ok","timestamp":"..."}
 ```
 
 ---
 
-## Step 3: Review Infrastructure Plan
+## Step 6: Connect Xero
 
-```bash
-# See what will be created
-terraform plan
-
-# Expected resources (40+):
-# - 1 DynamoDB table
-# - 3 Lambda functions
-# - 1 API Gateway
-# - 1 Cognito User Pool
-# - 2 Secrets Manager secrets
-# - IAM roles and policies
-# - CloudWatch log groups
-```
-
-**Cost estimate:** $0.80/month (all other services in free tier)
+1. Visit `https://yourdomain.com/auth/xero`
+2. Authorize with your Xero account
+3. You'll be redirected back to the app
 
 ---
 
-## Step 4: Deploy Infrastructure
+## Backup Configuration
+
+Set up daily SQLite backups:
 
 ```bash
-# Create all resources
-terraform apply
+# Create backup script
+cat > /opt/backups/backup-zero-agent.sh << 'EOF'
+#!/bin/bash
+BACKUP_DIR=/opt/backups/zero-agent
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 
-# Review the plan, then type: yes
+mkdir -p $BACKUP_DIR
 
-# Deployment takes ~3-5 minutes
-```
+# Copy database from container
+docker cp zero-agent:/app/data/zero-agent.db "$BACKUP_DIR/zero-agent_$TIMESTAMP.db"
 
-**Expected output:**
-```
-Apply complete! Resources: 42 added, 0 changed, 0 destroyed.
+# Keep only last 7 days
+find $BACKUP_DIR -name "zero-agent_*.db" -mtime +7 -delete
 
-Outputs:
+echo "Backup completed: zero-agent_$TIMESTAMP.db"
+EOF
 
-api_gateway_url = "https://abc123.execute-api.us-east-1.amazonaws.com/dev"
-cognito_user_pool_id = "us-east-1_XYZ123"
-cognito_user_pool_client_id = <sensitive>
-dynamodb_table_name = "zero-agent-dev-main"
-lambda_agent_function_name = "zero-agent-dev-agent"
-lambda_mcp_function_name = "zero-agent-dev-mcp"
+chmod +x /opt/backups/backup-zero-agent.sh
 
-environment_summary = {
-  "api_url" = "https://abc123.execute-api.us-east-1.amazonaws.com/dev"
-  "cognito_user_pool" = "us-east-1_XYZ123"
-  "dynamodb_table" = "zero-agent-dev-main"
-  "environment" = "dev"
-  "project" = "zero-agent"
-  "pwa_url" = ""
-  "region" = "us-east-1"
-}
-```
-
-**Copy the `api_gateway_url`** - you'll need it for the next step!
-
----
-
-## Step 5: Update Xero OAuth Redirect URI
-
-1. Go back to https://developer.xero.com/myapps
-2. Click your app
-3. Update **Redirect URI** to:
-   ```
-   https://YOUR_API_GATEWAY_URL/auth/xero/callback
-   ```
-   Example: `https://abc123.execute-api.us-east-1.amazonaws.com/dev/auth/xero/callback`
-4. Save
-
----
-
-## Step 6: Create Test User in Cognito
-
-```bash
-# Get the Cognito User Pool ID from terraform output
-POOL_ID=$(terraform output -raw cognito_user_pool_id)
-
-# Create a test user
-aws cognito-idp admin-create-user \
-  --user-pool-id $POOL_ID \
-  --username testuser@example.com \
-  --user-attributes Name=email,Value=testuser@example.com Name=email_verified,Value=true \
-  --temporary-password "TempPass123!" \
-  --message-action SUPPRESS
-
-# Set permanent password
-aws cognito-idp admin-set-user-password \
-  --user-pool-id $POOL_ID \
-  --username testuser@example.com \
-  --password "YourSecurePass123!" \
-  --permanent
-
-echo "✅ Test user created: testuser@example.com / YourSecurePass123!"
-```
-
----
-
-## Step 7: Test the API Endpoints
-
-### Test 1: Health Check (API Gateway)
-
-```bash
-API_URL=$(terraform output -raw api_gateway_url)
-
-# This should return 404 (expected - no root route)
-curl $API_URL
-
-# Expected: {"message":"Missing Authentication Token"}
-# This means API Gateway is working ✅
-```
-
-### Test 2: Xero OAuth Flow
-
-```bash
-# Get Cognito credentials first
-POOL_ID=$(terraform output -raw cognito_user_pool_id)
-CLIENT_ID=$(terraform output -raw cognito_user_pool_client_id)
-
-# Sign in to get JWT token
-aws cognito-idp initiate-auth \
-  --auth-flow USER_PASSWORD_AUTH \
-  --client-id $CLIENT_ID \
-  --auth-parameters USERNAME=testuser@example.com,PASSWORD=YourSecurePass123! \
-  > auth_response.json
-
-# Extract ID token
-ID_TOKEN=$(cat auth_response.json | jq -r '.AuthenticationResult.IdToken')
-
-# Test Xero OAuth initiation
-curl -H "Authorization: Bearer $ID_TOKEN" \
-  $API_URL/auth/xero/login
-
-# Expected: Redirect URL to Xero authorization page
-# {"authUrl":"https://login.xero.com/identity/connect/authorize?..."}
-```
-
-### Test 3: Create Session
-
-```bash
-# Create a new agent session
-curl -X POST \
-  -H "Authorization: Bearer $ID_TOKEN" \
-  -H "Content-Type: application/json" \
-  $API_URL/sessions
-
-# Expected: {"sessionId":"uuid-here"}
-```
-
-### Test 4: Send Message to Agent
-
-```bash
-# Send a message to the agent
-SESSION_ID="<session-id-from-above>"
-
-curl -X POST \
-  -H "Authorization: Bearer $ID_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"message":"Hello! Can you help me with Xero?","sessionId":"'$SESSION_ID'"}' \
-  $API_URL/chat
-
-# Expected: Agent response with message
-```
-
----
-
-## Step 8: Monitor Logs
-
-```bash
-# Watch Agent Lambda logs
-aws logs tail /aws/lambda/zero-agent-dev-agent --follow
-
-# In another terminal: Watch MCP Lambda logs
-aws logs tail /aws/lambda/zero-agent-dev-mcp --follow
-
-# In another terminal: Watch Auth Lambda logs
-aws logs tail /aws/lambda/zero-agent-dev-auth --follow
+# Add to cron (daily at 3am)
+echo "0 3 * * * /opt/backups/backup-zero-agent.sh" | crontab -
 ```
 
 ---
 
 ## Troubleshooting
 
-### Issue: Terraform apply fails with "Secret already exists"
+### Container won't start
 
-**Solution:**
+Check logs:
 ```bash
-# Delete existing secrets (if any)
-aws secretsmanager delete-secret --secret-id shared/dev/api-keys --force-delete-without-recovery
-aws secretsmanager delete-secret --secret-id zero-agent/dev/xero-oauth --force-delete-without-recovery
-
-# Retry
-terraform apply
+docker logs zero-agent
 ```
 
-### Issue: Lambda functions return "Internal Server Error"
+Common issues:
+- Missing environment variables
+- Port already in use
+- Network not found
 
-**Check CloudWatch Logs:**
-```bash
-aws logs tail /aws/lambda/zero-agent-dev-agent --since 10m
+### Xero OAuth fails
 
-# Common causes:
-# - Missing environment variables
-# - IAM permission issues
-# - Lambda timeout (increase in terraform/variables.tf)
-```
+1. Verify redirect URI matches exactly in Xero app settings
+2. Check XERO_CLIENT_ID and XERO_CLIENT_SECRET are correct
+3. Ensure no trailing slash in redirect URI
 
-### Issue: Cognito authentication fails
-
-**Verify user exists:**
-```bash
-POOL_ID=$(terraform output -raw cognito_user_pool_id)
-
-aws cognito-idp admin-get-user \
-  --user-pool-id $POOL_ID \
-  --username testuser@example.com
-```
-
-### Issue: Xero OAuth callback fails
-
-**Verify redirect URI:**
-1. Check Xero Developer Portal → Your App → Redirect URIs
-2. Must exactly match: `https://YOUR_API_GATEWAY_URL/auth/xero/callback`
-3. No trailing slash!
-
----
-
-## Cost Monitoring
-
-### Set up billing alert:
+### Database errors
 
 ```bash
-# Create a budget for $5/month
-aws budgets create-budget \
-  --account-id $(aws sts get-caller-identity --query Account --output text) \
-  --budget file://budget.json
+# Check if database directory exists
+docker exec zero-agent ls -la /app/data
 
-# budget.json:
-{
-  "BudgetName": "XeroAgentDevBudget",
-  "BudgetLimit": {
-    "Amount": "5",
-    "Unit": "USD"
-  },
-  "TimeUnit": "MONTHLY",
-  "BudgetType": "COST"
-}
-```
-
-### Check current costs:
-
-```bash
-# View cost for last 7 days
-aws ce get-cost-and-usage \
-  --time-period Start=2025-11-07,End=2025-11-14 \
-  --granularity DAILY \
-  --metrics BlendedCost \
-  --group-by Type=SERVICE
-
-# Expected services with costs:
-# - Secrets Manager: $0.80/month
-# - All others: $0 (free tier)
+# Restart container
+docker compose restart zero-agent
 ```
 
 ---
 
-## Next Steps
-
-Once deployed and tested:
-
-1. **Build PWA Frontend**
-   - See `packages/pwa-app/README.md`
-   - Run locally: `pnpm --filter @zero-agent/pwa-app dev`
-   - Connect to API Gateway URL
-
-2. **Test Full OAuth Flow**
-   - Sign up in PWA
-   - Connect Xero account
-   - Create invoice via chat
-
-3. **Production Deployment**
-   - Create `prod` workspace: `terraform workspace new prod`
-   - Update `terraform.tfvars` with prod values
-   - Deploy: `terraform apply`
-
----
-
-## Cleanup (Delete Everything)
-
-**⚠️ This deletes all resources and data!**
+## Updating
 
 ```bash
-cd terraform
+cd /opt/zero-agent
 
-# Destroy all infrastructure
-terraform destroy
+# Pull latest changes
+git pull
 
-# Type: yes
-
-# Verify secrets are deleted
-aws secretsmanager list-secrets --query 'SecretList[?Name==`shared/dev/api-keys`]'
+# Rebuild and restart
+docker build -t zero-agent .
+docker compose up -d
 ```
-
-**Cost after cleanup:** $0/month
 
 ---
 
-## Architecture Summary
+## Resource Usage
 
-```
-┌─────────────────────────────────────────────────────────┐
-│ User → API Gateway → Lambda (Agent) → Lambda (MCP)     │
-│          ↓              ↓                  ↓             │
-│       Cognito      DynamoDB         Xero API            │
-│                         ↓                                │
-│                  Secrets Manager                        │
-│                  (2 secrets = $0.80/month)              │
-└─────────────────────────────────────────────────────────┘
-```
-
-**Secrets Storage:**
-- ✅ Shared API keys → Secrets Manager ($0.40)
-- ✅ Xero OAuth credentials → Secrets Manager ($0.40)
-- ✅ User tokens → DynamoDB encrypted (free)
-- ✅ User profiles → Cognito (free)
+- **Memory**: ~100-200MB typical, 384MB allocated
+- **CPU**: Minimal (mostly idle, spikes during LLM calls)
+- **Disk**: ~50MB Docker image + database size
 
 ---
 
-## Support
+## API Endpoints
 
-- **Documentation:** `docs/`
-- **Architecture:** `ARCHITECTURE.md`
-- **Status/Issues:** `STATUS.md`
-- **Development:** `DEVELOPMENT.md`
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check |
+| `/api/chat` | POST | Chat with agent |
+| `/api/sessions` | GET | List chat sessions |
+| `/auth/xero` | GET | Initiate Xero OAuth |
+| `/auth/xero/callback` | GET | OAuth callback |
+| `/auth/status` | GET | Check Xero connection |
 
 ---
 
-**Last Updated:** 2025-11-14
+## Security Notes
+
+- Run container as non-root user (configured in Dockerfile)
+- Store secrets in environment variables (not in code)
+- Use HTTPS via Caddy auto-TLS
+- Regular backups of SQLite database
+
+---
+
+**Last Updated:** 2025-11-27

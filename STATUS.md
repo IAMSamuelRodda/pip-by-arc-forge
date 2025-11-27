@@ -4,7 +4,7 @@
 > **Lifecycle**: Living (update daily/weekly during active development)
 
 **Last Updated**: 2025-11-27
-**Current Phase**: VPS Deployment 🚀 Deploying to zero.rodda.xyz
+**Current Phase**: ✅ Production - Live at https://zero.rodda.xyz
 **Version**: 0.1.0-alpha (Pre-release)
 **Infrastructure**: DigitalOcean VPS (shared with do-vps-prod services)
 
@@ -27,9 +27,9 @@ Primary segments under consideration:
 ### Distribution Strategy
 | Platform | Priority | Status | Notes |
 |----------|----------|--------|-------|
-| PWA (web) | HIGH | Scaffolded | ✅ `display: standalone` configured - native-like experience |
-| Self-hosted (Docker) | HIGH | 🔵 Deploying | Docker + systemd configs ready |
-| VPS (zero.rodda.xyz) | HIGH | 🔵 Deploying | DNS configured, deployment in progress |
+| PWA (web) | HIGH | ✅ Live | https://zero.rodda.xyz - functional chat interface |
+| Self-hosted (Docker) | HIGH | ✅ Ready | Docker configs in repo, docs available |
+| VPS (zero.rodda.xyz) | HIGH | ✅ Live | Fully operational with Xero integration |
 | iOS App Store | MEDIUM | Future | Required for scale |
 | Google Play Store | MEDIUM | Future | Broader Android reach |
 | F-Droid | LOW | Future | Privacy-conscious users |
@@ -47,13 +47,15 @@ Primary segments under consideration:
 | Aspect | Status | Notes |
 |--------|--------|-------|
 | Architecture | 🟢 | Open source platform, LLM + database agnostic |
-| Infrastructure | 🔵 | **Migrating to VPS** - AWS terminated, `packages/server` created |
+| Infrastructure | 🟢 | **VPS Live** - https://zero.rodda.xyz |
 | LLM Abstraction | 🟢 | Provider-agnostic interface (Anthropic + Ollama) |
 | Database Abstraction | 🟢 | SQLite (default) + DynamoDB providers |
-| Agent Foundation | 🟢 | Native tool calling + CLI chat interface working |
-| VPS Server | 🟢 | `packages/server` - unified Express server ready |
+| Agent Foundation | 🟢 | Native tool calling + Xero integration working |
+| VPS Server | 🟢 | `packages/server` - Express server deployed |
+| PWA Frontend | 🟢 | React chat interface live at root URL |
 | CLI Chat Interface | 🟢 | Interactive REPL ready - `pnpm chat` to start |
-| Self-Hosting | 🔵 | Server package ready, deployment docs pending |
+| Self-Hosting | 🟢 | Docker configs ready, deployment docs available |
+| SQLite Backups | 🟢 | Daily automated backups at 3am UTC |
 | Test Coverage | ⚪ | No formal tests yet (manual testing only) |
 | Known Bugs | 🟢 | None |
 
@@ -261,87 +263,35 @@ Primary segments under consideration:
   - ✅ Built chat history viewer (`examples/view-history.ts`)
   - ✅ Verified conversation persistence in SQLite
 
-**In Progress:**
-- ⚪ **Next Phase**: PWA Frontend or Docker Compose self-hosting setup
+**Completed This Week (2025-11-27):**
+- ✅ VPS deployment with Docker + Caddy
+- ✅ PWA frontend with chat interface
+- ✅ Xero OAuth integration working
+- ✅ SQLite backup automation (daily at 3am UTC)
+- ✅ AWS cleanup (removed terraform/ and functions/ directories)
 
-**Next Up (Priority Order):**
-1. **Test & Integrate LLM Abstraction** ✅ COMPLETE
-   - [x] Create `packages/core/llm/LLMProvider.ts` interface ✅
-   - [x] Implement Anthropic adapter (MVP - cheapest for testing) ✅
-   - [x] Implement Ollama adapter (local, free) ✅
-   - [x] Test with example script (Anthropic + Ollama) ✅
-   - [x] Update agent-core package to use new abstraction ✅
-   - [ ] Add OpenAI, Google, Grok adapters (optional - later)
-   - [ ] Add provider selection to config system
-
-2. **Implement Database Abstraction** ✅ COMPLETE
-   - [x] Create `packages/core/database/DatabaseProvider.ts` interface ✅
-   - [x] Implement SQLite adapter (self-host default) ✅
-   - [x] Implement DynamoDB adapter (managed service) ✅
-   - [x] Integrate into SessionManager and MemoryManager ✅
-   - [ ] Add PostgreSQL adapter (optional - deferred)
-
-3. **Xero OAuth Integration** ✅ COMPLETE
-   - [x] User: Register Xero app at https://developer.xero.com/app/manage ✅
-   - [x] User: Get XERO_CLIENT_ID and XERO_CLIENT_SECRET ✅
-   - [x] User: Add credentials to .env file ✅
-   - [x] Implement OAuth flow (Express server for local testing) ✅
-   - [x] Test token storage and refresh cycle ✅
-   - [x] Build XeroClient wrapper with auto-refresh ✅
-   - [x] Create tool definitions for agent ✅
-   - [x] Test end-to-end with real Xero data ✅
-
-4. **Self-Hosting Setup** (Week 2)
-   - [ ] Create `docker-compose.yml` for self-hosting
-   - [ ] Write `docs/self-hosting.md` guide
-   - [ ] Test local deployment with Ollama + SQLite
-   - [ ] Add environment variable configuration
-
-5. **Xero OAuth Proxy** (Week 2)
-   - [ ] Design OAuth relay service for self-hosted users
-   - [ ] Implement proxy API (Lambda or Express)
-   - [ ] Document OAuth modes (own app vs proxy)
-
-5. **Managed Service Deployment** (Week 3)
-   - [ ] Obtain Xero OAuth credentials
-   - [ ] Deploy to Sydney region (terraform apply)
-   - [ ] Test end-to-end with managed infrastructure
-   - [ ] Set up billing (Stripe integration)
-
-6. **Open Source Launch** (Week 4)
-   - [ ] Update LICENSE to MIT
-   - [ ] Polish README.md for GitHub
-   - [ ] Create CONTRIBUTING.md
-   - [ ] Set up GitHub Discussions
-   - [ ] Launch on HN, Reddit, Twitter
+**Next Up:**
+1. **User Demo** - Thursday 10am next week
+2. **PWA Improvements** - Better error handling, loading states
+3. **Additional Xero Tools** - Expenses, bank reconciliation
+4. **User Authentication** - Multi-user support
 
 ---
 
 ## Deployment Status
 
-### Self-Hosted (Community)
-- **Status**: Not yet available (Week 2 target)
-- **Cost**: $0 (user runs own infrastructure)
-- **Requirements**: Docker + Docker Compose, or manual setup
-- **LLM Options**: User's API keys OR local Ollama
-- **Database**: SQLite (default) or PostgreSQL
-- **Support**: GitHub Discussions (community)
+### Production (VPS)
+- **Status**: ✅ Live
+- **URL**: https://zero.rodda.xyz
+- **VPS**: DigitalOcean Sydney (170.64.169.203)
+- **Container**: Docker with Caddy reverse proxy
+- **Database**: SQLite with daily backups
+- **Cost**: $0/month (shared droplet)
 
-### Managed - Development (dev branch → AWS Sydney)
-- **Status**: ALL RESOURCES DELETED - Clean slate for refactor
-- **Region**: ap-southeast-2 (Sydney) - ready for fresh deployment
-- **URL**: None (will be created on next terraform apply)
-- **Cost**: $0/month (all resources deleted)
-- **Purpose**: Will be deployed after LLM abstraction layer complete
-- **Last Activity**: 2025-11-17 (cleanup completed)
-- **Next Deploy**: After LLM + DB abstraction implementation
-
-### Managed - Production
-- **Status**: Not yet configured (post-MVP)
-- **Region**: ap-southeast-2 (Sydney)
-- **Target**: After open source launch + 50 users
-- **URL**: TBD
-- **Last Deployed**: N/A
+### Self-Hosted
+- **Status**: ✅ Available
+- **Requirements**: Docker + Docker Compose
+- **Guide**: See `specs/DEPLOYMENT.md`
 
 ---
 
@@ -353,103 +303,62 @@ None currently.
 ### High Priority
 None currently.
 
-### Architecture Debt (Post-Pivot)
-1. **LLM Provider Hardcoded**: Currently tightly coupled to Anthropic
-   - Need to implement abstraction layer before deploying
-   - Target: Week 1 completion
-
-2. **Database Hardcoded**: Currently assumes DynamoDB
-   - Need SQLite adapter for self-hosting
-   - Target: Week 1 completion
-
-3. **No Self-Hosting Docs**: Docker Compose not yet created
-   - Target: Week 2 completion
+### Minor
+- PWA "Connect to Xero" button needs better loading state
+- Chat interface could use message timestamps
 
 ---
 
 ## Recent Achievements (Last 2 Weeks)
 
-**Architecture Pivot to Open Source Platform** ✅
-- Completed: 2025-11-17
-- Researched LLM OAuth capabilities (Google Gemini available now)
-- Designed LLM abstraction layer supporting 6+ providers
-- Designed database abstraction for multi-backend support
-- Created VISION.md - Platform philosophy
-- Created ADR-012 - Complete open source architecture
-- Migrated default region to Sydney (ap-southeast-2)
+**VPS Deployment Complete** ✅
+- Completed: 2025-11-27
+- Migrated from AWS Lambda to DigitalOcean VPS
+- Express server with SQLite database
+- PWA frontend with chat interface
+- Xero OAuth integration working
+- Daily automated backups configured
 
-**Infrastructure Foundation** ✅
-- Completed: 2025-11-14
-- Built complete AWS infrastructure (79 Terraform resources)
-- Implemented all 14 MCP tools with 95% token optimization
-- Created Lambda deployment packages (Agent, MCP, Auth)
-- Validated Terraform plan (ready to deploy after LLM refactor)
+**AWS Cleanup** ✅
+- Completed: 2025-11-27
+- Removed terraform/ directory (25 files)
+- Removed functions/ directory (10 files)
+- Cost reduced from ~$120/month to $0/month
 
-**Documentation Foundation** ✅
-- Completed: 2025-11-12
-- Established 7-document structure
-- Created BLUEPRINT.yaml for project roadmap
-- 10+ ADRs documenting key decisions
+**Core Features Complete** ✅
+- LLM abstraction layer (Anthropic + Ollama)
+- Database abstraction (SQLite + DynamoDB)
+- Native tool calling integration
+- Conversation persistence
 
 ---
 
 ## Next Steps (Priority Order)
 
-1. **Package Structure Setup**
-   - Create monorepo with pnpm workspaces
-   - Initialize packages: mcp-xero-server, agent-core, pwa-app
-   - Create functions directory for Lambda handlers
-   - Set up shared TypeScript configuration
+1. **User Demo Preparation**
+   - Prepare demo script for dental practice owner
+   - Test common accounting queries
+   - Document feedback gathering process
 
-2. **AWS Infrastructure (Terraform)**
-   - Define DynamoDB single-table design
-   - Configure Lambda functions (agent, MCP, auth)
-   - Set up API Gateway (REST + Cognito authorizer)
-   - Configure S3 + CloudFront for PWA hosting
-   - Set up Secrets Manager for Xero tokens
-   - Configure Cognito user pool
-   - Set up IAM roles and policies
+2. **PWA Improvements**
+   - Better loading states for OAuth flow
+   - Message timestamps in chat
+   - Error handling improvements
 
-3. **Xero API Integration**
-   - Register Xero developer application
-   - Configure OAuth 2.0 flow (Cognito + Xero)
-   - Implement token storage in Secrets Manager
-   - Create Lambda function for OAuth callback
+3. **Additional Xero Tools**
+   - Expense tracking
+   - Bank reconciliation
+   - Reporting enhancements
 
-4. **MCP Server Implementation (Lambda)**
-   - Define Xero tool schemas with Zod
-   - Implement invoice management tools
-   - Implement bank transaction tools
-   - Implement reporting tools
-   - Configure Lambda packaging and deployment
+4. **User Authentication** (Future)
+   - Multi-user support
+   - Session management
+   - User preferences storage
 
-5. **Agent Core Development (Lambda)**
-   - Set up Claude Agent SDK in Lambda
-   - Create main orchestrator agent
-   - Define specialized sub-agents
-   - Implement DynamoDB session management
-   - Configure Lambda cold start optimization
-
-6. **Memory & Relationship System (Future Phase)**
-   - Implement core memory persistence (always free)
-   - Build extended memory with semantic search
-   - Create relationship progression logic (colleague → partner → friend)
-   - Vector embeddings integration (OpenSearch or Pinecone)
-   - **Spike Required**: GDPR compliance, data export, retention policies
-
-7. **Voice Integration (Premium Feature - Phase 2)**
-   - Set up WebSocket infrastructure for streaming audio
-   - Integrate AWS Transcribe for speech-to-text
-   - Implement Amazon Polly or ElevenLabs for TTS
-   - Build voice session tracking and billing
-   - Optimize for < 2s latency
-
-8. **Subscription & Billing (Phase 2)**
-   - Integrate Stripe for payment processing
-   - Implement subscription tier enforcement
-   - Build usage tracking (voice minutes, agent requests)
-   - Create graceful degradation for expired subscriptions
-   - Implement 90-day extended memory retention for lapsed users
+5. **Premium Features** (Future)
+   - Extended memory with semantic search
+   - Voice-to-voice integration
+   - Subscription management
 
 ---
 

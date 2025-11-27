@@ -3,34 +3,34 @@
 > **Purpose**: Technical reference for system design, database schema, and architectural decisions
 > **Lifecycle**: Living (update as architecture evolves)
 
-**Last Updated**: 2025-11-12
+**Last Updated**: 2025-11-27
 
 ---
 
 ## System Overview
 
-Zero Agent uses a **multi-tier serverless architecture** on AWS with clear separation of concerns:
+Zero Agent uses a **monolithic VPS architecture** for cost efficiency and simplicity:
 
 ```
 ┌─────────────────────────────────────────────────────┐
 │ Presentation Layer: PWA (React + Vite)              │
 │  - Mobile-first responsive UI                       │
 │  - Service workers for offline support              │
-│  - S3 + CloudFront distribution                     │
+│  - Served from Express static middleware            │
 └────────────────┬────────────────────────────────────┘
-                 │ HTTPS/WebSocket (API Gateway)
+                 │ HTTPS (Caddy reverse proxy)
 ┌────────────────▼────────────────────────────────────┐
-│ Application Layer: Agent Core (Claude Agent SDK)   │
-│  - Lambda functions for agent orchestration         │
-│  - Main agent + specialized sub-agents              │
-│  - Session management via DynamoDB                  │
+│ Application Layer: Express Server + Agent Core      │
+│  - Single Node.js process with API routes           │
+│  - Agent orchestration with native tool calling     │
+│  - Session management via SQLite                    │
 └────────────────┬────────────────────────────────────┘
-                 │ MCP Protocol (JSON-RPC)
+                 │ Direct integration (in-process)
 ┌────────────────▼────────────────────────────────────┐
-│ Integration Layer: MCP Server                       │
-│  - Lambda functions for Xero operations             │
-│  - OAuth token management (Secrets Manager)         │
+│ Integration Layer: Xero Client                      │
+│  - OAuth token management (SQLite)                  │
 │  - xero-node SDK wrapper                            │
+│  - Automatic token refresh                          │
 └────────────────┬────────────────────────────────────┘
                  │ REST API (HTTPS)
 ┌────────────────▼────────────────────────────────────┐
@@ -38,9 +38,8 @@ Zero Agent uses a **multi-tier serverless architecture** on AWS with clear separ
 └─────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────┐
-│ AWS Services Layer                                  │
-│  DynamoDB | Cognito | Lambda | Secrets Manager     │
-│  S3 | CloudFront | API Gateway | EventBridge       │
+│ VPS Infrastructure (DigitalOcean)                   │
+│  Docker | Caddy | SQLite | cron (backups)          │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -48,22 +47,23 @@ Zero Agent uses a **multi-tier serverless architecture** on AWS with clear separ
 
 ## Architecture Pattern
 
-**Pattern**: Multi-tier serverless with Orchestrator-Worker agents
+**Pattern**: Monolithic server with embedded agent orchestration
 
-**Structure**: Monorepo with packages + infrastructure
+**Structure**: Monorepo with packages
 ```
 zero-agent/
 ├── packages/
-│   ├── mcp-xero-server/     # MCP server (Lambda)
-│   ├── agent-core/          # Agent orchestrator (Lambda)
-│   └── pwa-app/             # Progressive Web App
-├── functions/
-│   ├── auth/                # Cognito triggers + OAuth
-│   ├── agent/               # Agent API handlers
-│   └── mcp/                 # MCP tool implementations
-└── infrastructure/
-    ├── terraform/           # IaC for AWS resources
-    └── cdk/                 # Alternative: AWS CDK (TypeScript)
+│   ├── core/                # LLM + Database abstractions
+│   ├── agent-core/          # Agent orchestrator + Xero tools
+│   ├── server/              # Express API server
+│   ├── pwa-app/             # Progressive Web App (React)
+│   └── mcp-xero-server/     # MCP server (legacy/unused)
+├── examples/
+│   ├── chat.ts              # CLI chat interface
+│   └── view-history.ts      # Session history viewer
+├── docker-compose.yml       # VPS deployment config
+├── Dockerfile               # Multi-stage production build
+└── Caddyfile                # Reverse proxy config
 ```
 
 ---
@@ -75,180 +75,102 @@ zero-agent/
 |------------|---------|---------|
 | React | 18+ | UI framework |
 | TypeScript | 5+ | Type safety |
-| Vite | 5+ | Build tool |
-| Zustand | 4+ | State management |
+| Vite | 6+ | Build tool |
+| Zustand | 5+ | State management |
 | TailwindCSS | 3+ | Styling |
-| shadcn/ui | Latest | UI components |
+| React Router | 7+ | Client-side routing |
+| Vite PWA Plugin | 0.21+ | PWA features |
 
 ### Backend/Server
 | Technology | Version | Purpose |
 |------------|---------|---------|
-| Claude Agent SDK | Latest | Agent orchestration |
-| @modelcontextprotocol/sdk | Latest | MCP server |
-| xero-node | Latest | Xero API client |
-| AWS Lambda | Node 20+ | Serverless compute |
-| AWS SDK v3 | Latest | AWS service integration |
+| Express | 4+ | HTTP server |
+| Anthropic SDK | Latest | LLM provider |
+| xero-node | 13+ | Xero API client |
+| better-sqlite3 | Latest | SQLite database |
+| helmet | 8+ | Security headers |
+| cors | 2+ | CORS middleware |
 
-### Infrastructure (AWS)
-| Service | Purpose |
-|---------|---------|
-| **S3 + CloudFront** | PWA hosting and global CDN |
-| **DynamoDB** | NoSQL database (sessions, users, cache) |
-| **Cognito** | User authentication and authorization |
-| **Lambda** | Serverless compute for agents and APIs |
-| **API Gateway** | HTTP/WebSocket APIs |
-| **Secrets Manager** | OAuth token encryption and storage |
-| **EventBridge** | Scheduled tasks (token cleanup) |
-| **CloudWatch** | Logging and monitoring |
+### Infrastructure (VPS)
+| Component | Purpose |
+|-----------|---------|
+| **Docker** | Container runtime |
+| **Caddy** | Reverse proxy with auto-HTTPS |
+| **SQLite** | Persistent database |
+| **cron** | Scheduled backups (daily) |
+| **DigitalOcean** | VPS hosting (shared droplet) |
 
 ---
 
-## Database Schema (DynamoDB)
+## Database Schema (SQLite)
+
+The database uses SQLite for simplicity and zero operational cost. Schema defined in `packages/core/src/database/sqlite.ts`.
 
 ### Tables
 
-**users**
-```typescript
-{
-  PK: "USER#<uid>",
-  SK: "PROFILE",
-  uid: string,
-  email: string,
-  displayName: string,
-  organizationId: string,
-  createdAt: number,      // Unix timestamp
-  lastLoginAt: number,
-  GSI1PK: "ORG#<organizationId>",
-  GSI1SK: "USER#<uid>"
-}
-```
-
-**organizations**
-```typescript
-{
-  PK: "ORG#<id>",
-  SK: "METADATA",
-  id: string,
-  name: string,
-  xeroTenantId: string,
-  settings: object,
-  createdAt: number
-}
-```
-
 **sessions**
-```typescript
-{
-  PK: "USER#<userId>",
-  SK: "SESSION#<sessionId>",
-  sessionId: string,
-  userId: string,
-  agentContext: object,
-  conversationHistory: Message[],
-  createdAt: number,
-  updatedAt: number,
-  expiresAt: number,       // TTL for DynamoDB
-  GSI1PK: "SESSION#<sessionId>",
-  GSI1SK: "ACTIVE"
-}
+```sql
+CREATE TABLE sessions (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  messages TEXT NOT NULL,  -- JSON array of messages
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  expires_at INTEGER
+);
+CREATE INDEX idx_sessions_user ON sessions(user_id);
 ```
 
-**tokens** (stored in DynamoDB with encryption at rest)
-```typescript
-{
-  PK: "USER#<userId>",
-  SK: "TOKEN#<organizationId>",
-  userId: string,
-  organizationId: string,
-  xeroTenantId: string,
-  accessToken: string,     // Encrypted at rest by DynamoDB
-  refreshToken: string,    // Encrypted at rest by DynamoDB
-  expiresAt: number,       // Access token expiry (30 minutes)
-  refreshExpiresAt: number, // Refresh token expiry (30 days)
-  scopes: string[],
-  createdAt: number,
-  updatedAt: number
-}
+**core_memory**
+```sql
+CREATE TABLE core_memory (
+  user_id TEXT PRIMARY KEY,
+  preferences TEXT NOT NULL,  -- JSON object
+  relationship_stage TEXT DEFAULT 'colleague',
+  key_milestones TEXT,        -- JSON array
+  critical_context TEXT,      -- JSON array
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
 ```
 
-**cache**
-```typescript
-{
-  PK: "CACHE#<key>",
-  SK: "DATA",
-  key: string,
-  data: object,
-  ttl: number,             // DynamoDB TTL
-  createdAt: number
-}
+**oauth_tokens**
+```sql
+CREATE TABLE oauth_tokens (
+  user_id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL,
+  tenant_name TEXT,
+  access_token TEXT NOT NULL,
+  refresh_token TEXT NOT NULL,
+  expires_at INTEGER NOT NULL,
+  scope TEXT,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
 ```
 
-**user_memory** (Core + Extended)
-```typescript
-// Core Memory (permanent)
-{
-  PK: "USER#<uid>",
-  SK: "MEMORY#CORE",
-  preferences: {
-    xeroOrg: string,
-    reportingPreferences: object,
-    communicationStyle: string,
-    timezone: string
-  },
-  relationshipStage: "colleague" | "partner" | "friend",
-  relationshipStartDate: number,
-  keyMilestones: Array<{
-    type: string,
-    description: string,
-    timestamp: number
-  }>,
-  criticalContext: string[]
-}
-
-// Extended Memory (subscription-gated)
-{
-  PK: "USER#<uid>",
-  SK: "MEMORY#CONVERSATION#<timestamp>",
-  conversationSummary: string,
-  embedding: number[],         // Vector for semantic search
-  learnedPatterns: object,
-  emotionalContext: string,
-  topics: string[],
-  ttl: number,                 // Expires if subscription lapses
-  createdAt: number
-}
+**extended_memory** (future)
+```sql
+CREATE TABLE extended_memory (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  conversation_summary TEXT,
+  embedding BLOB,            -- Vector for semantic search
+  topics TEXT,               -- JSON array
+  created_at INTEGER NOT NULL,
+  expires_at INTEGER         -- TTL for subscription tier
+);
+CREATE INDEX idx_extended_memory_user ON extended_memory(user_id);
 ```
 
-**voice_sessions** (Premium tier tracking)
-```typescript
-{
-  PK: "USER#<uid>",
-  SK: "VOICE#SESSION#<sessionId>",
-  sessionId: string,
-  audioTranscript: string,
-  voiceSettings: {
-    preferredVoice: string,
-    speed: number,
-    language: string
-  },
-  durationMinutes: number,
-  cost: number,                // Track usage for billing
-  createdAt: number
-}
-```
+### Database Location
+- **Development**: `./data/zero-agent.db`
+- **Production (Docker)**: `/app/data/zero-agent.db` (mounted volume)
 
-### Access Patterns
-
-**GSI1** (Global Secondary Index):
-- `GSI1PK` + `GSI1SK` for organization → users lookup
-- `GSI1PK` + `GSI1SK` for active session queries
-
-**GSI2** (Relationship Stage Index):
-- `GSI2PK: "RELATIONSHIP#<stage>"` + `GSI2SK: "USER#<uid>"` for cohort analysis
-
-**TTL Attribute**:
-- `expiresAt` on sessions and cache for automatic cleanup
-- `ttl` on extended memory for subscription-based retention
+### Backup Strategy
+- Daily automated backups via cron at 3am UTC
+- 7-day retention with automatic cleanup
+- Backup script: `/opt/backups/backup-zero-agent.sh` on VPS
 
 ---
 
@@ -280,67 +202,62 @@ zero-agent/
 
 ## Authentication Flow
 
-### Cognito + Xero OAuth 2.0
+### Xero OAuth 2.0
 
-**Initial User Authentication:**
-1. User signs up/logs in via Cognito (email/password or social)
-2. Cognito issues JWT tokens (ID token, access token, refresh token)
-3. Frontend stores Cognito tokens securely
+**Current Implementation** (single-user mode):
+- No user authentication required (MVP)
+- Xero OAuth tokens stored in SQLite
+- Single organization per deployment
 
 **Xero OAuth Integration:**
-1. User initiates Xero connection in PWA
-2. Redirect to Xero authorization endpoint
+1. User clicks "Connect to Xero" in PWA
+2. Server redirects to Xero authorization endpoint
 3. User grants permissions to Xero organization
-4. Callback receives authorization code
-5. Backend Lambda exchanges code for Xero tokens
-6. Store tokens in DynamoDB (encrypted at rest with AWS managed KMS)
-7. Tokens associated with userId + organizationId composite key
-
-**API Requests:**
-1. Frontend sends request with Cognito JWT
-2. API Gateway validates JWT via Cognito authorizer
-3. Lambda retrieves user tokens from DynamoDB (userId from JWT)
-4. Check expiration (30 minutes for Xero access tokens)
-5. Refresh if expired using Xero refresh token (stored in same DynamoDB row)
-6. Update tokens in DynamoDB if refreshed
-7. Make Xero API call with valid access token
+4. Callback receives authorization code at `/auth/xero/callback`
+5. Server exchanges code for Xero tokens
+6. Store tokens in SQLite `oauth_tokens` table
+7. Redirect user back to PWA
 
 **Token Refresh:**
 - Xero access tokens: 30-minute expiration
-- Xero refresh tokens: 30-day validity
+- Xero refresh tokens: 60-day validity (Xero extended from 30 days)
 - Requires `offline_access` scope
-- Cognito tokens: 1-hour expiration (configurable)
+- Automatic refresh on API calls via XeroClient wrapper
+
+**API Requests:**
+1. Frontend sends request to Express API
+2. Server retrieves tokens from SQLite
+3. Check expiration, refresh if needed
+4. Make Xero API call with valid access token
+5. Return response to frontend
 
 ---
 
 ## Security
 
 ### Token Security
-- **Storage**: User OAuth tokens encrypted in DynamoDB (AWS managed KMS)
-- **Shared Secrets**: Anthropic API key + Xero client credentials in Secrets Manager
-- **Access Control**: IAM policies with least-privilege access
-- **Rotation**: Automatic Xero token refresh via Lambda (30-day refresh tokens)
-- **Cognito Tokens**: Short-lived JWTs with secure refresh flow
-- **Cost Optimization**: DynamoDB storage scales to millions of users at $0/month (free tier)
+- **Storage**: OAuth tokens in SQLite database file
+- **Secrets**: Environment variables for API keys (`.env` file)
+- **Access Control**: VPS filesystem permissions (600 for .env)
+- **Rotation**: Automatic Xero token refresh via XeroClient wrapper
 
 ### Data Protection
-- **In Transit**: TLS 1.3 (enforced by CloudFront + API Gateway)
-- **At Rest**:
-  - DynamoDB encryption enabled (AWS managed keys)
-  - Secrets Manager encryption (KMS customer managed keys)
-- **Application Layer**: Additional field-level encryption for PII
+- **In Transit**: TLS 1.3 via Caddy auto-HTTPS (Let's Encrypt)
+- **At Rest**: SQLite file on encrypted VPS volume
+- **Backups**: Daily encrypted backups with 7-day retention
 
-### IAM Policies
-- Principle of least privilege for all Lambda functions
-- Separate roles for agent, MCP server, and auth functions
-- DynamoDB fine-grained access control via IAM conditions
+### Server Security
+- Helmet.js for security headers
+- CORS configured for production domain
+- Rate limiting on API endpoints
+- Non-root Docker user (uid 1001)
 
-### Content Security Policy
+### Content Security Policy (via Helmet)
 ```
 default-src 'self';
 script-src 'self' 'unsafe-inline';
 style-src 'self' 'unsafe-inline';
-connect-src 'self' https://api.xero.com https://<api-id>.execute-api.<region>.amazonaws.com;
+connect-src 'self' https://api.xero.com;
 img-src 'self' data: https:;
 ```
 
@@ -348,20 +265,33 @@ img-src 'self' data: https:;
 
 ## Agent Architecture
 
-### Main Agent (Orchestrator)
-- Runs in Lambda (invoked via API Gateway)
-- Coordinates conversation flow
-- Decomposes user requests into tasks
-- Delegates to specialized sub-agents
-- Maintains context in DynamoDB session table
+### Orchestrator Pattern
+- Single `AgentOrchestrator` class in `packages/agent-core`
+- Lazy initialization (server starts without API key)
+- Native Claude tool calling (no JSON parsing)
+- Automatic conversation context management
 
-### Sub-Agents (Workers)
-1. **Invoice Agent** - Invoice CRUD operations
-2. **Reconciliation Agent** - Bank transaction matching
-3. **Reporting Agent** - Financial report generation
-4. **Expense Agent** - Expense tracking and categorization
+### Tool Integration
+Tools defined in `packages/agent-core/src/tools/`:
+1. **Xero Tools** - Organization info, invoices, contacts, reports
+2. **Future**: Bank reconciliation, expense tracking
 
-**Execution Pattern**: Step Functions for complex multi-agent workflows (optional)
+### Conversation Flow
+```
+User Message → Orchestrator → LLM (Claude)
+                    ↓              ↓
+              Session Store   Tool Calls
+                    ↓              ↓
+              History Update   Xero API
+                    ↓              ↓
+              Response ← Tool Results
+```
+
+### LLM Abstraction
+Provider-agnostic interface in `packages/core/src/llm/`:
+- **Anthropic Provider**: Claude 4.5 Sonnet, 3.7 Sonnet, 3.5 Haiku
+- **Ollama Provider**: Local models (free, private)
+- Factory pattern for easy provider switching
 
 ---
 
@@ -637,154 +567,78 @@ User Voice → WebRTC/WebSocket → Lambda (Transcribe) → Agent → Lambda (Po
 
 ## Deployment Architecture
 
-### CloudFront + S3
-- PWA static assets served from S3
-- CloudFront global CDN with edge locations
-- HTTPS enforced (ACM certificates)
-- Cache invalidation on deployments
+### VPS Configuration
+- **Provider**: DigitalOcean (shared droplet)
+- **Location**: Sydney (syd1) for AU/NZ users
+- **Memory**: 384MB allocated (of ~2.3GB available)
+- **Storage**: Docker volume for SQLite persistence
 
-### API Gateway
-- REST API for agent interactions
-- WebSocket API for real-time updates (optional)
-- Cognito authorizer for JWT validation
-- Request/response validation
-- Throttling and rate limiting
+### Caddy Reverse Proxy
+- Auto-HTTPS via Let's Encrypt
+- HTTP/2 support
+- Automatic certificate renewal
+- Domain: `zero.rodda.xyz`
 
-### Lambda Configuration
-- **Runtime**: Node.js 20.x
-- **Memory**: 1024 MB (agent), 512 MB (MCP tools)
-- **Timeout**: 30s (agent), 15s (MCP tools)
-- **Provisioned Concurrency**: 2 for agent orchestrator (reduce cold starts)
-- **Environment Variables**: Encrypted via KMS
+### Docker Configuration
+- Multi-stage build for minimal image size
+- Node.js 20 Alpine base
+- Non-root user (uid 1001) for security
+- Health check endpoint at `/health`
 
-### CI/CD Pipeline
+### Deployment Process
 ```
-GitHub Push → GitHub Actions
+Local Development → Git Push → SSH to VPS
   ↓
-Build & Test (TypeScript, unit tests, linting)
+git pull on VPS
   ↓
-Security Scan (dependency audit, secret scanning, Checkov)
+docker build -t zero-agent .
   ↓
-Terraform Plan (staging)
+docker compose up -d
   ↓
-Deploy to Staging (terraform apply)
-  ↓
-E2E Tests (staging)
-  ↓
-Manual Approval
-  ↓
-Terraform Plan (production)
-  ↓
-Deploy to Production (terraform apply)
+Health check verification
 ```
+
+### API Endpoints
+- `GET /health` - Health check
+- `POST /api/chat` - Chat with agent
+- `GET /api/sessions` - List sessions
+- `GET /auth/xero` - Initiate Xero OAuth
+- `GET /auth/xero/callback` - OAuth callback
+- `GET /auth/status` - Check Xero connection
 
 ---
 
-## Subscription Model & Pricing
+## Cost Analysis
 
-### Pricing Tiers
+### Current Infrastructure Cost
 
-**Free Tier** ($0/month)
-- Text-only agent interaction (unlimited)
-- Core memory persistence (user preferences, milestones)
-- Basic Xero integration (invoices, expenses, reports)
-- 50 agent requests/month
-- Community support
+**VPS Deployment (Shared Droplet):**
+- **Zero Agent allocation**: $0/month (shared with other services)
+- **Anthropic API**: Usage-based (~$0.003/chat interaction)
+- **Domain**: Included in existing DNS
+- **Total**: **~$0/month** fixed + API usage
 
-**Pro Tier** ($29/month)
-- Everything in Free +
-- Voice-to-voice interaction (1000 minutes/month)
-- Extended memory (full conversation history, semantic search)
-- Relationship progression (colleague → partner → friend)
-- Priority support
-- 1000 agent requests/month
-- Advanced reporting and analytics
+### Cost Comparison (AWS vs VPS)
 
-**Enterprise Tier** (Custom pricing)
-- Everything in Pro +
-- Unlimited voice minutes
-- Custom voice cloning (brand voice)
-- Multi-organization support
-- Dedicated support + SLA
-- SSO integration
-- Custom integrations
-- Unlimited requests
+| Aspect | AWS (Previous) | VPS (Current) |
+|--------|----------------|---------------|
+| Fixed Cost | $0.80/month (Secrets Manager) | $0/month |
+| Scaling | Pay-per-use | Fixed capacity |
+| Cold Starts | Yes (Lambda) | No |
+| Complexity | High (40+ resources) | Low (1 container) |
+| Migration Time | ~4 hours | 30 minutes |
 
-### Subscription Management
+### API Cost Estimates (Anthropic)
 
-**DynamoDB Schema Addition:**
-```typescript
-{
-  PK: "USER#<uid>",
-  SK: "SUBSCRIPTION",
-  tier: "free" | "pro" | "enterprise",
-  status: "active" | "cancelled" | "past_due",
-  stripeCustomerId: string,
-  stripeSubscriptionId: string,
-  currentPeriodStart: number,
-  currentPeriodEnd: number,
-  voiceMinutesUsed: number,
-  agentRequestsUsed: number,
-  createdAt: number
-}
-```
+Using Claude 3.5 Sonnet:
+- **Input**: $3.00 per 1M tokens
+- **Output**: $15.00 per 1M tokens
+- **Typical chat**: ~500 input + ~200 output tokens = ~$0.003
 
-**Graceful Degradation:**
-- Pro → Free: Extended memory enters read-only mode (no new memories), voice disabled
-- User retains core memory indefinitely
-- Re-subscribing restores extended memory (if within 90 days)
-
-### Cost Optimization
-
-#### AWS Free Tier Considerations
-- **Lambda**: 1M free requests/month + 400,000 GB-seconds ✅
-- **DynamoDB**: 25 GB storage + 25 RCU/WCU (includes encrypted tokens) ✅
-- **S3**: 5 GB storage + 20,000 GET requests ✅
-- **CloudFront**: 1 TB data transfer out ✅
-- **Cognito**: 50,000 MAUs free ✅
-- **Secrets Manager**: $0.40/secret/month (no free tier) ⚠️
-- **API Gateway**: 1M requests/month free (first 12 months) ✅
-
-#### Estimated Infrastructure Costs
-
-**Development Environment (< 50 users):**
-- **Secrets Manager**: $0.80/month (2 secrets: API keys + Xero OAuth)
-  - `shared/dev/api-keys` - Shared across all dev apps
-  - `zero-agent/dev/xero-oauth` - App-specific Xero credentials
-- **Lambda**: $0 (< 1M requests/month)
-- **DynamoDB**: $0 (< 25GB storage, includes user tokens)
-- **API Gateway**: $0 (< 1M requests/month, first 12 months)
-- **Cognito**: $0 (< 50k MAUs)
-- **CloudWatch Logs**: $0 (< 5GB)
-- **Total**: **$0.80/month** ✅
-
-**Scalability:**
-- 1 user: $0.80/month
-- 100 users: $0.80/month (same cost!)
-- 10,000 users: $0.80/month (still same!)
-- 50,000 users: $0.80/month (Cognito free tier limit)
-
-**Key Insight:** User tokens in DynamoDB (free, encrypted) instead of Secrets Manager
-- Old design: 100 users × $0.40 = $40/month ❌
-- New design: 100 users × $0 = $0.80/month ✅
-
-**Production Environment (Per Profitable App):**
-- Secrets Manager: $0.80/month (shared API keys + app OAuth)
-- Lambda: $5-10/month (depends on usage)
-- DynamoDB: $2-5/month (on-demand pricing)
-- API Gateway: $3.50 per million requests
-- CloudWatch: $1-2/month
-- **Total**: ~$10-20/month per production app
-
-**Multi-App Strategy:**
-- Shared `shared/dev/api-keys` secret across all dev apps
-- Only 1 additional secret per app ($0.40) for app-specific OAuth
-- See `docs/COST_OPTIMIZATION_MULTI_APP.md` for details
-
-**Example: 20 Apps in Development**
-- Old approach: 20 apps × 3 secrets × $0.40 = $24/month
-- New approach: 1 shared secret + 20 OAuth secrets = $8.80/month
-- Savings: $15.20/month (63% reduction)
+**Monthly Estimates:**
+- 100 chats/month: ~$0.30
+- 1,000 chats/month: ~$3.00
+- 10,000 chats/month: ~$30.00
 
 ---
 
@@ -797,146 +651,102 @@ Deploy to Production (terraform apply)
 - **Cumulative Layout Shift (CLS)**: < 0.1
 
 ### API Latency
-- **Agent Response**: < 3s (p95, cold start < 5s)
+- **Agent Response**: < 5s (p95, depends on LLM response time)
 - **Xero API Calls**: < 1s (p95)
 - **Token Refresh**: < 500ms
-- **Lambda Cold Start**: < 1s (with provisioned concurrency: ~100ms)
+- **Health Check**: < 50ms
 
 ---
 
-## Implementation Roadmap
+## Implementation Status
 
-### Overview
+### Completed (v0.1.0-alpha)
 
-Project tracked in GitHub: https://github.com/IAMSamuelRodda/zero-agent/projects/8
+**Core Infrastructure** ✅
+- VPS deployment with Docker + Caddy
+- SQLite database with automatic backups
+- Express server with API routes
+- PWA frontend with chat interface
 
-**Total Timeline**: 20.6 days (2.9 weeks) with AI-calibrated speedup (22.8x)
-**Structure**: 9 epics, 34 features, 103 tasks, 146 GitHub issues
-**Milestones**: 2 releases (v1.0 MVP Free Tier → v1.1 Premium Pro Tier)
+**LLM Integration** ✅
+- Provider-agnostic abstraction layer
+- Anthropic provider (Claude 3.5 Sonnet)
+- Ollama provider (local models)
+- Native tool calling support
 
-### Phase 1: v1.0 MVP - Free Tier Release (Week 1-2)
+**Xero Integration** ✅
+- OAuth 2.0 flow with token refresh
+- Organization info retrieval
+- Invoice queries (list, unpaid)
+- Contact management
 
-**Epic 1: Infrastructure Foundation**
-- Terraform AWS core (VPC, IAM, Lambda, API Gateway)
-- DynamoDB single-table design with helper SDK
-- CloudWatch logging and monitoring
+**Database Layer** ✅
+- SQLite provider (default)
+- DynamoDB provider (available)
+- Session persistence
+- OAuth token storage
 
-**Epic 2: Authentication and Authorization**
-- Cognito user pool with MFA
-- Xero OAuth 2.0 integration with token refresh
-- JWT authentication middleware
+### Future Development
 
-**Epic 3: MCP Xero Server**
-- Invoice, expense, bank transaction, reporting tools
-- Error handling and retry logic
-- Unit and integration tests
+**Phase 2: Enhanced Features**
+- User authentication (multi-user support)
+- Extended memory with semantic search
+- Additional Xero tools (expenses, reconciliation)
+- Reporting and analytics
 
-**Epic 4: Agent Core (Claude Agent SDK)**
-- Agent orchestrator with session management
-- Sub-agent architecture (Invoice, Expense, Reconciliation, Reporting)
-- Conversation history persistence and context compaction
-- Tool permission management
-
-**Epic 5: Core Memory Persistence**
-- Core memory storage (preferences, relationship stage, milestones)
-- Relationship progression: colleague → partner → friend
-- Automatic memory updates and retrieval
-
-**Epic 6: PWA Frontend (MVP)**
-- React + Vite + TypeScript + TailwindCSS + shadcn/ui
-- Authentication UI (sign-up, sign-in, password reset)
-- Chat interface with message rendering
-- Xero OAuth connection UI
-- Basic data visualization (invoices, expenses, reports)
-
-### Phase 2: v1.1 Premium - Pro Tier Release (Week 3-5)
-
-**Epic 7: Extended Memory and Semantic Search**
-- Vector embedding generation (OpenAI API)
-- Vector database setup (OpenSearch Serverless or Pinecone)
-- Semantic search implementation
-- Extended memory TTL and graceful degradation
-
-**Epic 8: Voice Integration**
-- WebSocket API Gateway for audio streaming
-- AWS Transcribe integration (speech-to-text)
-- Amazon Polly integration (text-to-speech)
-- Voice session tracking and usage metering
-- <2s latency optimization
-
-**Epic 9: Subscription Management and Billing**
-- Stripe integration (checkout, webhooks)
-- Tier enforcement at API Gateway
-- Subscription management UI (upgrade, cancel, billing history)
-
-### Critical Path Dependencies
-
-```
-Infrastructure Foundation
-  ↓
-Authentication & MCP Server (parallel)
-  ↓
-Agent Core
-  ↓
-Core Memory + PWA Frontend (parallel)
-  ↓ [v1.0 MVP Release]
-Extended Memory (Phase 2)
-  ↓
-Voice Integration + Subscription (parallel)
-  ↓ [v1.1 Premium Release]
-```
-
-### Deferred to Future Phases
-
-- **GDPR Compliance**: Data export, retention policies, right to deletion
-- **Multi-tenancy**: Organization-level accounts with team access
-- **Advanced Analytics**: Usage dashboards, financial insights
-- **Mobile Native Apps**: iOS/Android (PWA serves as MVP)
-
-For detailed task breakdown and current progress, see the [GitHub Project board](https://github.com/IAMSamuelRodda/zero-agent/projects/8).
+**Phase 3: Premium Features**
+- Voice-to-voice integration
+- Subscription management
+- Multi-organization support
 
 ---
 
 ## Recent Architecture Changes
 
-### 2025-11-14: Cost Optimization - Token Storage Migration
+### 2025-11-27: AWS to VPS Migration
 
-**Change:** Migrated user OAuth tokens from Secrets Manager to DynamoDB
+**Change:** Migrated from AWS serverless to DigitalOcean VPS
 
 **Reason:**
-- Secrets Manager costs $0.40/secret/month with no free tier
-- Per-user tokens would cost $40/month for 100 users (not scalable)
-- DynamoDB provides free encryption at rest with AWS managed KMS
+- AWS cost was ~$4/day even with minimal usage
+- Cold starts added latency to Lambda functions
+- Complexity of managing 40+ AWS resources
+- VPS provides simpler deployment model
 
 **Impact:**
-- Monthly cost: $1.20 → $0.80 (33% reduction)
-- Scalability: Cost stays flat regardless of user count
-- Security: No compromise - DynamoDB encryption equivalent to Secrets Manager for this use case
+- Monthly cost: ~$120/month → $0/month (shared VPS)
+- Latency: Eliminated cold starts
+- Complexity: 40+ resources → 1 Docker container
+- Deployment: Terraform → git pull + docker build
 
 **Implementation:**
-- User tokens stored in DynamoDB with `PK: USER#<userId>, SK: TOKEN#<organizationId>`
-- Tokens encrypted at rest automatically with AWS managed KMS keys
-- IAM policies restrict access to Lambda functions only
-- Automatic expiration via DynamoDB TTL (30 days for refresh tokens)
+- Express server replaces API Gateway + Lambda
+- SQLite replaces DynamoDB (with DynamoDB still available)
+- Caddy replaces CloudFront + ACM
+- Environment variables replace Secrets Manager
+- Daily cron backups replace DynamoDB TTL
 
-**Secrets Manager Usage (Final):**
-1. `shared/dev/api-keys` - Anthropic API key (shared across all apps)
-2. `zero-agent/dev/xero-oauth` - Xero client ID/secret (per-app)
+### 2025-11-17: Open Source Platform Pivot
 
-**See:** `docs/COST_OPTIMIZATION_MULTI_APP.md` for multi-app scaling strategy
+**Change:** Pivoted from proprietary SaaS to open source platform
+
+**Impact:**
+- LLM abstraction layer (any provider)
+- Database abstraction (SQLite or DynamoDB)
+- Self-hosting support via Docker
+- MIT license
 
 ---
 
 ## References
 
-- **Detailed Firebase Architecture**: See `docs/archive/ARCHITECTURE.old.md` (deprecated)
-- [AWS Lambda Best Practices](https://docs.aws.amazon.com/lambda/latest/dg/best-practices.html)
-- [DynamoDB Single-Table Design](https://www.alexdebrie.com/posts/dynamodb-single-table/)
-- [Claude Agent SDK Documentation](https://docs.claude.com/en/api/agent-sdk/overview)
-- [Model Context Protocol Specification](https://modelcontextprotocol.io/)
+- [Anthropic API Documentation](https://docs.anthropic.com/)
 - [Xero API Reference](https://developer.xero.com/documentation/api/accounting/overview)
-- [Terraform AWS Provider](https://registry.terraform.io/providers/hashicorp/aws/latest/docs)
+- [xero-node SDK](https://github.com/XeroAPI/xero-node)
+- [Express.js Documentation](https://expressjs.com/)
+- [Caddy Web Server](https://caddyserver.com/)
+- [better-sqlite3](https://github.com/WiseLibs/better-sqlite3)
 
 ---
 
-**Last Updated**: 2025-11-14
+**Last Updated**: 2025-11-27
