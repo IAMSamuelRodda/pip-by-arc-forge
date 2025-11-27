@@ -17,24 +17,45 @@
 - **Purpose**: Validate product-market fit, gather feedback, identify missing features
 - **Key questions**: Does it solve the pain? What's missing? What would they pay?
 
-### Target Market Exploration
-Primary segments under consideration:
-1. **Healthcare Practice Owners** (dentists, physios, GPs) - HIGH priority (direct validation path)
-2. **Small Business Owners** (general Xero users) - MEDIUM priority
-3. **Web3/Crypto Businesses** - MEDIUM priority (may require wallet integration)
-4. **Accountants/Bookkeepers** - LOW priority (B2B, longer sales cycle)
+### Target Avatar (Refined 2025-11-27)
+**Primary**: Small business owner managing own books
+
+| Attribute | Definition |
+|-----------|------------|
+| Who | Owner-operator, 0-5 employees |
+| Revenue | $100k-$500k/year (too small for full-time bookkeeper) |
+| Current state | Using Xero, doing books themselves, stressed about BAS/GST |
+| Core pain | "I didn't start this business to do bookkeeping" |
+| Time reality | 3-5 hours/week on books (resents every minute) |
+| Money reality | Bookkeeper = $400-800/month (can't justify yet) |
+| Fear | Tax surprise, ATO letter, cash flow blindness |
+
+**One-liner**: "Zero Agent is your AI bookkeeping assistant—ask questions about your business finances and get plain-English answers instantly."
+
+**Platform note**: Currently supports Xero. MYOB and QuickBooks planned.
+
+**Rebrand needed**: "Zero" sounds like "Xero" when spoken—brand collision risk. Keep name until validation complete, then rebrand.
+
+### Beta Strategy (25 Users)
+| Aspect | Decision |
+|--------|----------|
+| Size | Max 25 Xero connects |
+| Price | Free (token costs absorbed) |
+| Distribution | Manual approval only |
+| Liability | Clear disclaimer: no liability for mistakes/corrupted data |
+| Purpose | Validate usefulness, collect feedback, refine product |
 
 ### Distribution Strategy
 | Platform | Priority | Status | Notes |
 |----------|----------|--------|-------|
 | PWA (web) | HIGH | ✅ Live | https://zero.rodda.xyz - functional chat interface |
 | Self-hosted (Docker) | HIGH | ✅ Ready | Docker configs in repo, docs available |
-| VPS (zero.rodda.xyz) | HIGH | ✅ Live | Fully operational with Xero integration |
-| iOS App Store | MEDIUM | Future | Required for scale |
-| Google Play Store | MEDIUM | Future | Broader Android reach |
-| F-Droid | LOW | Future | Privacy-conscious users |
+| **MCP Server** | HIGH | 🔵 Research | Distribute via MCP standard for Claude/AI clients |
+| **ChatGPT GPT** | MEDIUM | Future | GPT Store distribution after beta validation |
+| iOS App Store | LOW | Future | Evaluate after 6 months based on adoption |
+| Google Play Store | LOW | Future | Evaluate after 6 months based on adoption |
 
-**Note**: PWA with `display: standalone` in manifest provides near-native experience without app store overhead. Evaluate native app investment after 6 months based on adoption data.
+**MCP Research Required**: Deep dive into making zero-agent available as MCP server. This enables distribution to Claude Code users, other MCP-compatible AI assistants. See `docs/TODO-mcp-distribution-research.md`.
 
 ### Strategic Documents
 - Business orchestration: `~/repos/arcforge-business-planning/strategic-direction-finance-2025.md`
@@ -350,12 +371,17 @@ None currently.
    - Bank reconciliation
    - Reporting enhancements
 
-4. **User Authentication** (Future)
+4. **MCP Distribution Research** (Future)
+   - Research: Make Zero Agent available as MCP server for Claude Code users
+   - See `docs/TODO-mcp-distribution-research.md` for full research spike
+   - Key questions: OAuth flow in MCP context, token costs, distribution
+
+5. **User Authentication** (Future)
    - Multi-user support
    - Session management
    - User preferences storage
 
-5. **Premium Features** (Future)
+6. **Premium Features** (Future)
    - Extended memory with semantic search
    - Voice-to-voice integration
    - Subscription management
