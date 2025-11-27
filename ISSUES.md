@@ -35,6 +35,18 @@ None currently.
 
 ### Improvements
 
+#### issue_000: Business Context Layer
+- **Status**: 🔴 Open
+- **Priority**: P1
+- **Component**: `packages/agent-core`
+- **Description**: Add business context ingestion so agent can answer questions requiring both financial data AND business knowledge
+- **Acceptance Criteria**:
+  - [ ] Document upload/ingestion mechanism
+  - [ ] Context storage per user/business
+  - [ ] Agent considers business context when reasoning
+  - [ ] Can answer: "Can I afford to hire?", "Am I on track for goals?"
+- **Notes**: Core differentiator vs JAX (Xero AI). May need blueprint-creation skill for architecture. See Joplin: `Competitive Analysis & Unique Value Proposition`
+
 #### issue_001: PWA Connect Button Loading State
 - **Status**: 🔴 Open
 - **Priority**: P2

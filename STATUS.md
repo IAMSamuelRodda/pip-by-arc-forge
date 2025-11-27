@@ -34,7 +34,13 @@
 
 **Platform note**: Currently supports Xero. MYOB and QuickBooks planned.
 
-**Rebrand needed**: "Zero" sounds like "Xero" when spoken—brand collision risk. Keep name until validation complete, then rebrand.
+**Working name**: "Pip" (not finalized - market testing required)
+- Approachable, friendly, non-threatening
+- Pippin (LOTR) vibes - loyal, curious, learns as you go
+- Star Atlas connection (future Web3 tie-in)
+- Easy: "I'll ask Pip about my cash flow"
+
+**Rebrand from Zero**: "Zero" sounds like "Xero" when spoken—brand collision risk.
 
 ### Beta Strategy (25 Users)
 | Aspect | Decision |
@@ -57,9 +63,13 @@
 
 **MCP Research Required**: Deep dive into making zero-agent available as MCP server. This enables distribution to Claude Code users, other MCP-compatible AI assistants. See `docs/TODO-mcp-distribution-research.md`.
 
-### Strategic Documents
-- Business orchestration: `~/repos/arcforge-business-planning/strategic-direction-finance-2025.md`
-- Avatar research: `~/repos/arcforge-business-planning/avatar-investigation-2025.md`
+### Strategic Documents (Joplin: Arc Forge Business Planning)
+- **Avatar Profile**: "Primary Avatar Profile: Small Business Owner (Self-Managing)"
+- **Competitive Analysis**: "Competitive Analysis & Unique Value Proposition"
+- **Deep Dive Competitors**: "Deep Dive: XBert & Zapier+ChatGPT Competitive Analysis"
+- **Naming Research**: "Rebranding Research: Naming Trends & Directions"
+- **Beta Marketing**: "Beta Marketing & Disclaimer Drafts"
+- Code/docs: `~/repos/arcforge-business-planning/`
 
 ---
 
@@ -320,9 +330,10 @@
 
 See **ISSUES.md** for detailed issue tracking.
 
-**Summary**: 0 Critical | 0 High | 2 Medium | 1 Low
+**Summary**: 0 Critical | 1 High | 2 Medium | 1 Low
 
 Active improvements:
+- `issue_000`: Business Context Layer (P1) ⚠️
 - `issue_001`: PWA Connect button loading state (P2)
 - `issue_002`: Chat message timestamps (P3)
 
@@ -362,7 +373,16 @@ Technical debt:
    - Test common accounting queries
    - Document feedback gathering process
 
-2. **PWA Improvements**
+2. **Business Context Layer** ⚠️ HIGH PRIORITY
+   - Core differentiator: "JAX knows your numbers. We know your business."
+   - Document ingestion (plans, KPIs, strategy, history)
+   - Context storage per user/business
+   - Combined reasoning (financial data + business context)
+   - Enables questions like: "Can I afford to hire?", "Am I on track for goals?"
+   - **Note**: May require blueprint-creation skill for full architectural planning
+   - See Joplin notes: `Competitive Analysis & Unique Value Proposition`
+
+3. **PWA Improvements**
    - Better loading states for OAuth flow
    - Message timestamps in chat
    - Error handling improvements
