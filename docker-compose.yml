@@ -1,0 +1,74 @@
+# Zero Agent - Docker Compose Configuration
+# Usage: docker compose up -d
+
+services:
+  # ===========================================
+  # Zero Agent Server
+  # ===========================================
+  zero-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: zero-agent
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      # Persist SQLite database
+      - zero-agent-data:/app/data
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_PROVIDER=sqlite
+      - DATABASE_PATH=/app/data/zero-agent.db
+      # Required: Set these in .env file or environment
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - XERO_CLIENT_ID=${XERO_CLIENT_ID}
+      - XERO_CLIENT_SECRET=${XERO_CLIENT_SECRET}
+      - BASE_URL=${BASE_URL:-http://localhost:3000}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - zero-agent-network
+
+  # ===========================================
+  # Caddy Reverse Proxy (Optional - for HTTPS)
+  # ===========================================
+  caddy:
+    image: caddy:2-alpine
+    container_name: zero-agent-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+    depends_on:
+      zero-agent:
+        condition: service_healthy
+    networks:
+      - zero-agent-network
+    profiles:
+      - with-caddy  # Only starts with: docker compose --profile with-caddy up
+
+volumes:
+  zero-agent-data:
+    name: zero-agent-data
+  caddy-data:
+    name: zero-agent-caddy-data
+  caddy-config:
+    name: zero-agent-caddy-config
+
+networks:
+  zero-agent-network:
+    name: zero-agent-network
+    driver: bridge

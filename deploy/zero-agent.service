@@ -1,0 +1,60 @@
+# Zero Agent - systemd Service File
+#
+# Installation:
+#   sudo cp deploy/zero-agent.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable zero-agent
+#   sudo systemctl start zero-agent
+#
+# Logs:
+#   sudo journalctl -u zero-agent -f
+
+[Unit]
+Description=Zero Agent - AI Accounting Assistant
+Documentation=https://github.com/IAMSamuelRodda/zero-agent
+After=network.target
+
+[Service]
+Type=simple
+User=zero-agent
+Group=zero-agent
+
+# Working directory (adjust path as needed)
+WorkingDirectory=/opt/zero-agent
+
+# Node.js executable (adjust if using nvm or different path)
+ExecStart=/usr/bin/node packages/server/dist/index.js
+
+# Environment file with secrets
+EnvironmentFile=/opt/zero-agent/.env
+
+# Environment variables
+Environment=NODE_ENV=production
+Environment=PORT=3000
+
+# Restart policy
+Restart=always
+RestartSec=10
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ReadWritePaths=/opt/zero-agent/data
+
+# Resource limits
+MemoryMax=512M
+CPUQuota=100%
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=zero-agent
+
+[Install]
+WantedBy=multi-user.target

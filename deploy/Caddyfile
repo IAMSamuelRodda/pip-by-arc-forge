@@ -1,0 +1,91 @@
+# Zero Agent - Caddyfile
+#
+# Caddy automatically handles:
+# - HTTPS certificates (Let's Encrypt)
+# - Certificate renewal
+# - HTTP → HTTPS redirect
+# - HTTP/2 and HTTP/3
+#
+# Usage with docker-compose:
+#   DOMAIN=zero-agent.example.com docker compose --profile with-caddy up -d
+#
+# Standalone usage:
+#   caddy run --config /path/to/Caddyfile
+
+# Replace with your domain, or use {$DOMAIN} for environment variable
+{$DOMAIN:localhost} {
+    # API routes - proxy to Zero Agent server
+    handle /api/* {
+        reverse_proxy zero-agent:3000 {
+            # Health checks
+            health_uri /health
+            health_interval 30s
+
+            # Headers
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # Auth routes - proxy to Zero Agent server
+    handle /auth/* {
+        reverse_proxy zero-agent:3000
+    }
+
+    # Health check endpoint
+    handle /health* {
+        reverse_proxy zero-agent:3000
+    }
+
+    # PWA static files (if serving from Caddy)
+    # Uncomment if you want Caddy to serve the PWA instead of the Express server
+    # handle {
+    #     root * /var/www/zero-agent/dist
+    #     try_files {path} /index.html
+    #     file_server
+    # }
+
+    # Default: proxy everything else to the server
+    handle {
+        reverse_proxy zero-agent:3000
+    }
+
+    # Security headers
+    header {
+        # HSTS
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        # Prevent clickjacking
+        X-Frame-Options "DENY"
+        # XSS protection
+        X-Content-Type-Options "nosniff"
+        X-XSS-Protection "1; mode=block"
+        # Referrer policy
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+
+    # Logging
+    log {
+        output file /var/log/caddy/zero-agent.log {
+            roll_size 10mb
+            roll_keep 5
+        }
+        format json
+    }
+}
+
+# Standalone Caddy configuration (without Docker)
+# Uncomment below and comment out the section above if running Caddy standalone
+
+# {$DOMAIN:localhost} {
+#     reverse_proxy localhost:3000 {
+#         health_uri /health
+#         health_interval 30s
+#     }
+#
+#     header {
+#         Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+#         X-Frame-Options "DENY"
+#         X-Content-Type-Options "nosniff"
+#     }
+# }
