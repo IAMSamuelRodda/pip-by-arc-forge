@@ -28,8 +28,8 @@ services:
       - ANTHROPIC_API_KEY=${ZERO_AGENT_ANTHROPIC_KEY}
       - XERO_CLIENT_ID=${ZERO_AGENT_XERO_CLIENT_ID}
       - XERO_CLIENT_SECRET=${ZERO_AGENT_XERO_CLIENT_SECRET}
-      - BASE_URL=https://${ZERO_AGENT_DOMAIN}
-      - FRONTEND_URL=https://${ZERO_AGENT_DOMAIN}
+      - BASE_URL=https://${ZERO_AGENT_DOMAIN:-zero.rodda.xyz}
+      - FRONTEND_URL=https://${ZERO_AGENT_DOMAIN:-zero.rodda.xyz}
     deploy:
       resources:
         limits:
