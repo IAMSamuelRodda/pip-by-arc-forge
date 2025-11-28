@@ -29,9 +29,8 @@ export function createChatRoutes(db: DatabaseProvider): Router {
         });
       }
 
-      // For now, use a default user ID
-      // TODO: Get from auth middleware when authentication is implemented
-      const userId = req.headers['x-user-id'] as string || 'default-user';
+      // Get userId from auth middleware
+      const userId = req.userId!;
 
       // Create session if not provided
       let activeSessionId = sessionId;

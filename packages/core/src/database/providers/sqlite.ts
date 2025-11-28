@@ -19,6 +19,8 @@ import type {
   OAuthTokens,
   SessionFilter,
   MemoryFilter,
+  User,
+  InviteCode,
 } from "../types.js";
 import {
   ConnectionError,
@@ -163,6 +165,34 @@ export class SQLiteProvider implements DatabaseProvider {
       );
       CREATE INDEX IF NOT EXISTS idx_context_user ON business_context(user_id);
       CREATE INDEX IF NOT EXISTS idx_context_type ON business_context(user_id, doc_type);
+    `);
+
+    // Users table
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY,
+        email TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        name TEXT,
+        is_admin INTEGER DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        last_login_at INTEGER
+      );
+      CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+    `);
+
+    // Invite codes table
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS invite_codes (
+        code TEXT PRIMARY KEY,
+        created_by TEXT,
+        used_by TEXT,
+        created_at INTEGER NOT NULL,
+        used_at INTEGER,
+        expires_at INTEGER
+      );
+      CREATE INDEX IF NOT EXISTS idx_invite_codes_used_by ON invite_codes(used_by);
     `);
   }
 
@@ -943,6 +973,262 @@ export class SQLiteProvider implements DatabaseProvider {
     } catch (error) {
       throw new DatabaseError(
         `Failed to list business documents for user: ${userId}`,
+        this.name,
+        error as Error
+      );
+    }
+  }
+
+  // ============================================================================
+  // User Operations
+  // ============================================================================
+
+  async createUser(user: {
+    email: string;
+    passwordHash: string;
+    name?: string;
+    isAdmin?: boolean;
+  }): Promise<User> {
+    if (!this.db) throw new DatabaseError("Database not connected", this.name);
+
+    try {
+      const id = crypto.randomUUID();
+      const now = Date.now();
+
+      const stmt = this.db.prepare(`
+        INSERT INTO users (id, email, password_hash, name, is_admin, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `);
+
+      stmt.run(
+        id,
+        user.email.toLowerCase(),
+        user.passwordHash,
+        user.name || null,
+        user.isAdmin ? 1 : 0,
+        now,
+        now
+      );
+
+      return {
+        id,
+        email: user.email.toLowerCase(),
+        passwordHash: user.passwordHash,
+        name: user.name,
+        isAdmin: user.isAdmin || false,
+        createdAt: now,
+        updatedAt: now,
+      };
+    } catch (error: any) {
+      if (error.code === "SQLITE_CONSTRAINT_UNIQUE") {
+        throw new DatabaseError("Email already registered", this.name, error);
+      }
+      throw new DatabaseError(
+        `Failed to create user: ${user.email}`,
+        this.name,
+        error as Error
+      );
+    }
+  }
+
+  async getUserByEmail(email: string): Promise<User | null> {
+    if (!this.db) throw new DatabaseError("Database not connected", this.name);
+
+    try {
+      const stmt = this.db.prepare(`
+        SELECT * FROM users WHERE email = ?
+      `);
+
+      const row = stmt.get(email.toLowerCase()) as any;
+
+      if (!row) return null;
+
+      return {
+        id: row.id,
+        email: row.email,
+        passwordHash: row.password_hash,
+        name: row.name,
+        isAdmin: row.is_admin === 1,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        lastLoginAt: row.last_login_at,
+      };
+    } catch (error) {
+      throw new DatabaseError(
+        `Failed to get user by email: ${email}`,
+        this.name,
+        error as Error
+      );
+    }
+  }
+
+  async getUserById(id: string): Promise<User | null> {
+    if (!this.db) throw new DatabaseError("Database not connected", this.name);
+
+    try {
+      const stmt = this.db.prepare(`
+        SELECT * FROM users WHERE id = ?
+      `);
+
+      const row = stmt.get(id) as any;
+
+      if (!row) return null;
+
+      return {
+        id: row.id,
+        email: row.email,
+        passwordHash: row.password_hash,
+        name: row.name,
+        isAdmin: row.is_admin === 1,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        lastLoginAt: row.last_login_at,
+      };
+    } catch (error) {
+      throw new DatabaseError(
+        `Failed to get user by id: ${id}`,
+        this.name,
+        error as Error
+      );
+    }
+  }
+
+  async updateUser(id: string, updates: Partial<User>): Promise<User> {
+    if (!this.db) throw new DatabaseError("Database not connected", this.name);
+
+    try {
+      const existing = await this.getUserById(id);
+      if (!existing) {
+        throw new RecordNotFoundError(this.name, "User", id);
+      }
+
+      const now = Date.now();
+      const stmt = this.db.prepare(`
+        UPDATE users
+        SET name = ?, is_admin = ?, updated_at = ?, last_login_at = ?
+        WHERE id = ?
+      `);
+
+      stmt.run(
+        updates.name ?? existing.name ?? null,
+        updates.isAdmin !== undefined ? (updates.isAdmin ? 1 : 0) : (existing.isAdmin ? 1 : 0),
+        now,
+        updates.lastLoginAt ?? existing.lastLoginAt ?? null,
+        id
+      );
+
+      return {
+        ...existing,
+        ...updates,
+        updatedAt: now,
+      };
+    } catch (error) {
+      if (error instanceof RecordNotFoundError) throw error;
+      throw new DatabaseError(
+        `Failed to update user: ${id}`,
+        this.name,
+        error as Error
+      );
+    }
+  }
+
+  // ============================================================================
+  // Invite Code Operations
+  // ============================================================================
+
+  async createInviteCode(
+    code: string,
+    createdBy?: string,
+    expiresAt?: number
+  ): Promise<void> {
+    if (!this.db) throw new DatabaseError("Database not connected", this.name);
+
+    try {
+      const stmt = this.db.prepare(`
+        INSERT INTO invite_codes (code, created_by, created_at, expires_at)
+        VALUES (?, ?, ?, ?)
+      `);
+
+      stmt.run(code, createdBy || null, Date.now(), expiresAt || null);
+    } catch (error) {
+      throw new DatabaseError(
+        `Failed to create invite code: ${code}`,
+        this.name,
+        error as Error
+      );
+    }
+  }
+
+  async getInviteCode(code: string): Promise<InviteCode | null> {
+    if (!this.db) throw new DatabaseError("Database not connected", this.name);
+
+    try {
+      const stmt = this.db.prepare(`
+        SELECT * FROM invite_codes WHERE code = ?
+      `);
+
+      const row = stmt.get(code) as any;
+
+      if (!row) return null;
+
+      return {
+        code: row.code,
+        createdBy: row.created_by,
+        usedBy: row.used_by,
+        createdAt: row.created_at,
+        usedAt: row.used_at,
+        expiresAt: row.expires_at,
+      };
+    } catch (error) {
+      throw new DatabaseError(
+        `Failed to get invite code: ${code}`,
+        this.name,
+        error as Error
+      );
+    }
+  }
+
+  async useInviteCode(code: string, userId: string): Promise<void> {
+    if (!this.db) throw new DatabaseError("Database not connected", this.name);
+
+    try {
+      const stmt = this.db.prepare(`
+        UPDATE invite_codes
+        SET used_by = ?, used_at = ?
+        WHERE code = ?
+      `);
+
+      stmt.run(userId, Date.now(), code);
+    } catch (error) {
+      throw new DatabaseError(
+        `Failed to use invite code: ${code}`,
+        this.name,
+        error as Error
+      );
+    }
+  }
+
+  async listInviteCodes(): Promise<InviteCode[]> {
+    if (!this.db) throw new DatabaseError("Database not connected", this.name);
+
+    try {
+      const stmt = this.db.prepare(`
+        SELECT * FROM invite_codes ORDER BY created_at DESC
+      `);
+
+      const rows = stmt.all() as any[];
+
+      return rows.map((row) => ({
+        code: row.code,
+        createdBy: row.created_by,
+        usedBy: row.used_by,
+        createdAt: row.created_at,
+        usedAt: row.used_at,
+        expiresAt: row.expires_at,
+      }));
+    } catch (error) {
+      throw new DatabaseError(
+        "Failed to list invite codes",
         this.name,
         error as Error
       );

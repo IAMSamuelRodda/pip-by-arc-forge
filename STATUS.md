@@ -3,9 +3,9 @@
 > **Purpose**: Current work, active bugs, and recent changes (2-week rolling window)
 > **Lifecycle**: Living (update daily/weekly during active development)
 
-**Last Updated**: 2025-11-28
+**Last Updated**: 2025-11-28 (evening)
 **Current Phase**: ✅ Production - Live at https://zero.rodda.xyz
-**Version**: 0.2.0-alpha (Business Context Layer)
+**Version**: 0.2.1-alpha (Arc Forge Theme + UX Improvements)
 **Infrastructure**: DigitalOcean VPS (shared with do-vps-prod services)
 
 ---
@@ -126,9 +126,9 @@ Status: Pending validation at Thursday demo
 | Compute | Lambda x3 | Express server | ✅ Created `packages/server` |
 | Database | DynamoDB | SQLite | ✅ Already supported |
 | API Gateway | AWS API GW | Express routes | ✅ Implemented |
-| Auth | Cognito | Session/JWT | 🔵 Basic (needs expansion) |
+| Auth | Cognito | Session/JWT | 🔵 Plan ready (`specs/PLAN-user-authentication.md`) |
 | OAuth | Lambda | Express routes | ✅ Implemented |
-| CDN | CloudFront | Caddy | 🔵 DNS configured |
+| CDN | CloudFront | Caddy | ✅ Working |
 
 **Cost Savings**: ~$120/month → ~$0/month (shared VPS, no additional cost)
 
@@ -379,7 +379,25 @@ Status: Pending validation at Thursday demo
 - ✅ Added markdown rendering for assistant messages (react-markdown)
 - ✅ Created comprehensive demo test cases (`docs/DEMO_TEST_CASES.md`)
 - ✅ Added sample dental business plan for testing
-- 🔵 VPS deployment pending (manual step required)
+- ✅ VPS deployment complete
+
+**UX & Theme Improvements** (2025-11-28 evening):
+- ✅ Fixed OAuth callback hang (PWA service worker was intercepting `/auth/callback`)
+- ✅ Added `navigateFallbackDenylist` for `/auth/*`, `/api/*`, `/health` routes
+- ✅ Added elapsed time counter to loading indicator ("Pip is thinking... (Xs)")
+- ✅ Fixed invoice tool: clarified AUTHORISED = unpaid, added `isOverdue` and `daysOverdue`
+- ✅ Fixed P&L and Balance Sheet tools to parse Xero report data correctly
+- ✅ **Applied Arc Forge dark theme** to entire PWA:
+  - Dark backgrounds (#0a0e14, #0f1419, #1a1f29)
+  - Sage green accent (#7eb88e)
+  - Monospace font (JetBrains Mono)
+  - Terminal-style input with `>` prefix
+  - Updated header branding with "Pip by Arc Forge"
+
+**Security Planning** (2025-11-28):
+- 🔵 User authentication plan created (`specs/PLAN-user-authentication.md`)
+- Approach: Email + Password with invite codes for beta access
+- Enables 25 beta users with isolated accounts, Xero connections, documents
 
 ---
 
@@ -473,9 +491,14 @@ Technical debt:
 | Test with real business plan | HIGH | ⚪ Pending |
 | PWA polish (loading states, error handling) | MEDIUM | ⚪ Pending |
 
+### Immediate Priority: User Authentication
+- 🔵 **Plan ready**: `specs/PLAN-user-authentication.md`
+- Method: Email + Password with invite codes
+- Enables: 25 beta users with isolated accounts
+- Estimated: 2-3 days implementation
+
 ### Future (Post-Milestone 2)
 - MCP Distribution Research
-- User Authentication (multi-user)
 - Premium Features (subscriptions)
 - RAG with embeddings (Phase 2)
 

@@ -814,4 +814,44 @@ export class DynamoDBProvider implements DatabaseProvider {
       );
     }
   }
+
+  // ============================================================================
+  // User Operations (Not implemented - use SQLite for now)
+  // ============================================================================
+
+  async createUser(_user: { email: string; passwordHash: string; name?: string; isAdmin?: boolean }): Promise<any> {
+    throw new Error("User operations not implemented in DynamoDB provider. Use SQLite.");
+  }
+
+  async getUserByEmail(_email: string): Promise<any> {
+    throw new Error("User operations not implemented in DynamoDB provider. Use SQLite.");
+  }
+
+  async getUserById(_id: string): Promise<any> {
+    throw new Error("User operations not implemented in DynamoDB provider. Use SQLite.");
+  }
+
+  async updateUser(_id: string, _updates: any): Promise<any> {
+    throw new Error("User operations not implemented in DynamoDB provider. Use SQLite.");
+  }
+
+  // ============================================================================
+  // Invite Code Operations (Not implemented - use SQLite for now)
+  // ============================================================================
+
+  async createInviteCode(_code: string, _createdBy?: string, _expiresAt?: number): Promise<void> {
+    throw new Error("Invite code operations not implemented in DynamoDB provider. Use SQLite.");
+  }
+
+  async getInviteCode(_code: string): Promise<any> {
+    throw new Error("Invite code operations not implemented in DynamoDB provider. Use SQLite.");
+  }
+
+  async useInviteCode(_code: string, _userId: string): Promise<void> {
+    throw new Error("Invite code operations not implemented in DynamoDB provider. Use SQLite.");
+  }
+
+  async listInviteCodes(): Promise<any[]> {
+    throw new Error("Invite code operations not implemented in DynamoDB provider. Use SQLite.");
+  }
 }

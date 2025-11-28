@@ -86,6 +86,34 @@ export interface OAuthTokens {
   updatedAt: number;
 }
 
+/**
+ * User Account
+ * Stores user authentication and profile information
+ */
+export interface User {
+  id: string;
+  email: string;
+  passwordHash: string;
+  name?: string;
+  isAdmin?: boolean;
+  createdAt: number;
+  updatedAt: number;
+  lastLoginAt?: number;
+}
+
+/**
+ * Invite Code
+ * Controls beta access - users need a valid code to sign up
+ */
+export interface InviteCode {
+  code: string;
+  createdBy?: string;
+  usedBy?: string;
+  createdAt: number;
+  usedAt?: number;
+  expiresAt?: number;
+}
+
 // ============================================================================
 // Query Filters
 // ============================================================================
@@ -180,6 +208,18 @@ export interface DatabaseProvider {
   getOAuthTokens(userId: string, provider: string): Promise<OAuthTokens | null>;
   updateOAuthTokens(userId: string, provider: string, updates: Partial<OAuthTokens>): Promise<void>;
   deleteOAuthTokens(userId: string, provider: string): Promise<void>;
+
+  // User operations
+  createUser(user: { email: string; passwordHash: string; name?: string; isAdmin?: boolean }): Promise<User>;
+  getUserByEmail(email: string): Promise<User | null>;
+  getUserById(id: string): Promise<User | null>;
+  updateUser(id: string, updates: Partial<User>): Promise<User>;
+
+  // Invite code operations
+  createInviteCode(code: string, createdBy?: string, expiresAt?: number): Promise<void>;
+  getInviteCode(code: string): Promise<InviteCode | null>;
+  useInviteCode(code: string, userId: string): Promise<void>;
+  listInviteCodes(): Promise<InviteCode[]>;
 }
 
 // ============================================================================

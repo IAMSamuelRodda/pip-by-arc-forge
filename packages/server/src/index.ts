@@ -24,10 +24,12 @@ import type { DatabaseProvider } from '@zero-agent/core';
 
 import { createChatRoutes } from './routes/chat.js';
 import { createAuthRoutes } from './routes/auth.js';
+import { createUserAuthRoutes } from './routes/user-auth.js';
 import { createSessionRoutes } from './routes/sessions.js';
 import { createHealthRoutes } from './routes/health.js';
 import { createDocumentRoutes } from './routes/documents.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { requireAuth } from './middleware/auth.js';
 
 // Load environment variables
 config();
@@ -87,11 +89,16 @@ async function createApp(db: DatabaseProvider): Promise<express.Application> {
     });
   }
 
-  // API Routes
-  app.use('/api/chat', createChatRoutes(db));
-  app.use('/api/sessions', createSessionRoutes(db));
-  app.use('/api/documents', createDocumentRoutes(db));
-  app.use('/auth', createAuthRoutes(db));
+  // API Routes (protected by auth)
+  app.use('/api/chat', requireAuth, createChatRoutes(db));
+  app.use('/api/sessions', requireAuth, createSessionRoutes(db));
+  app.use('/api/documents', requireAuth, createDocumentRoutes(db));
+
+  // Auth routes (public)
+  app.use('/auth', createUserAuthRoutes(db)); // signup, login, me
+  app.use('/auth', createAuthRoutes(db)); // Xero OAuth
+
+  // Health check (public)
   app.use('/health', createHealthRoutes(db));
 
   // Serve PWA static files (production)

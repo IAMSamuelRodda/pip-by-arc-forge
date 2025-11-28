@@ -129,7 +129,7 @@ export function createDocumentRoutes(db: DatabaseProvider): Router {
   router.post('/upload', upload.single('file'), async (req: Request, res: Response) => {
     try {
       const file = req.file;
-      const userId = req.headers['x-user-id'] as string || 'default-user';
+      const userId = req.userId!;
       const docTypeOverride = req.body.docType as string | undefined;
 
       if (!file) {
@@ -199,7 +199,7 @@ export function createDocumentRoutes(db: DatabaseProvider): Router {
    */
   router.get('/', async (req: Request, res: Response) => {
     try {
-      const userId = req.headers['x-user-id'] as string || 'default-user';
+      const userId = req.userId!;
 
       const documents = await (db as any).listBusinessDocuments(userId);
 
@@ -216,7 +216,7 @@ export function createDocumentRoutes(db: DatabaseProvider): Router {
    */
   router.get('/:docName', async (req: Request, res: Response) => {
     try {
-      const userId = req.headers['x-user-id'] as string || 'default-user';
+      const userId = req.userId!;
       const { docName } = req.params;
 
       const chunks = await (db as any).getBusinessContext(userId, { docName });
@@ -248,7 +248,7 @@ export function createDocumentRoutes(db: DatabaseProvider): Router {
    */
   router.delete('/:docName', async (req: Request, res: Response) => {
     try {
-      const userId = req.headers['x-user-id'] as string || 'default-user';
+      const userId = req.userId!;
       const { docName } = req.params;
 
       await (db as any).deleteBusinessContext(userId, docName);

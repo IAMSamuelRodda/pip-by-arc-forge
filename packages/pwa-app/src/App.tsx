@@ -1,19 +1,38 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { ChatPage } from './pages/ChatPage';
-import { AuthPage } from './pages/AuthPage';
-import { DashboardPage } from './pages/DashboardPage';
-import { SettingsPage } from './pages/SettingsPage';
+import { LoginPage } from './pages/LoginPage';
+import { SignupPage } from './pages/SignupPage';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { useAuthStore } from './store/authStore';
 
 function App() {
+  const checkAuth = useAuthStore((state) => state.checkAuth);
+
+  // Check auth on app load
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Routes>
-        <Route path="/" element={<ChatPage />} />
-        <Route path="/auth" element={<AuthPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-      </Routes>
-    </div>
+    <Routes>
+      {/* Public routes */}
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/signup" element={<SignupPage />} />
+
+      {/* Protected routes */}
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <ChatPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Redirect unknown routes to home */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
 

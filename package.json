@@ -16,6 +16,7 @@
     "clean": "turbo run clean && rm -rf node_modules",
     "deploy:dev": "cd terraform && terraform workspace select dev && terraform apply",
     "chat": "tsx examples/chat.ts",
+    "admin": "tsx examples/admin.ts",
     "server": "pnpm --filter @zero-agent/server run dev",
     "server:build": "pnpm --filter @zero-agent/server run build",
     "server:start": "pnpm --filter @zero-agent/server run start"

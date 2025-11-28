@@ -8,6 +8,8 @@
 import { Router } from 'express';
 import type { DatabaseProvider, OAuthTokens } from '@zero-agent/core';
 import crypto from 'crypto';
+import { requireAuth } from '../middleware/auth.js';
+import { verifyToken } from '../services/auth.js';
 
 interface XeroTokenResponse {
   access_token: string;
@@ -56,16 +58,38 @@ export function createAuthRoutes(db: DatabaseProvider): Router {
   /**
    * GET /auth/xero
    * Initiate OAuth flow - redirect to Xero
+   * Requires authentication - will link Xero to the logged-in user
+   * Accepts token via query param (for redirect flows)
    */
   router.get('/xero', (req, res) => {
+    // Check for token in query param (for redirect flows where headers can't be used)
+    const tokenFromQuery = req.query.token as string | undefined;
+    const tokenFromHeader = req.headers.authorization?.replace('Bearer ', '');
+    const token = tokenFromQuery || tokenFromHeader;
+
+    if (!token) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+
+    // Set userId from decoded token
+    const userId = decoded.userId;
     if (!XERO_CLIENT_ID) {
       return res.status(500).json({
         error: 'Xero OAuth not configured. Set XERO_CLIENT_ID and XERO_CLIENT_SECRET.',
       });
     }
 
-    const state = crypto.randomUUID(); // CSRF protection
-    // TODO: Store state in session for validation
+    // Encode user ID in state for the callback
+    const stateData = {
+      csrf: crypto.randomUUID(),
+      userId,
+    };
+    const state = Buffer.from(JSON.stringify(stateData)).toString('base64url');
 
     const authUrl = new URL(XERO_AUTH_URL);
     authUrl.searchParams.set('response_type', 'code');
@@ -74,7 +98,7 @@ export function createAuthRoutes(db: DatabaseProvider): Router {
     authUrl.searchParams.set('scope', SCOPES);
     authUrl.searchParams.set('state', state);
 
-    console.log(`🔐 Redirecting to Xero authorization...`);
+    console.log(`🔐 Redirecting to Xero authorization for user: ${userId}`);
     console.log(`   Redirect URI: ${REDIRECT_URI}`);
 
     res.redirect(authUrl.toString());
@@ -188,8 +212,21 @@ export function createAuthRoutes(db: DatabaseProvider): Router {
 
       console.log(`✅ Connected to tenant: ${tenant.tenantName}`);
 
+      // Extract user ID from state
+      let userId: string;
+      try {
+        const stateData = JSON.parse(Buffer.from(String(state), 'base64url').toString());
+        userId = stateData.userId;
+        if (!userId) {
+          throw new Error('No userId in state');
+        }
+      } catch (err) {
+        return showError('Invalid State', 'Could not verify authentication state. Please try again.');
+      }
+
+      console.log(`   Saving tokens for user: ${userId}`);
+
       // Save tokens to database
-      const userId = 'default-user';
       const tokens: OAuthTokens = {
         userId,
         provider: 'xero',
@@ -223,9 +260,9 @@ export function createAuthRoutes(db: DatabaseProvider): Router {
    * POST /auth/refresh
    * Manually refresh access token
    */
-  router.post('/refresh', async (req, res, next) => {
+  router.post('/refresh', requireAuth, async (req, res, next) => {
     try {
-      const userId = req.headers['x-user-id'] as string || 'default-user';
+      const userId = req.userId!;
       const tokens = await db.getOAuthTokens(userId, 'xero');
 
       if (!tokens) {
@@ -279,9 +316,9 @@ export function createAuthRoutes(db: DatabaseProvider): Router {
    * GET /auth/status
    * Check Xero authentication status
    */
-  router.get('/status', async (req, res, next) => {
+  router.get('/status', requireAuth, async (req, res, next) => {
     try {
-      const userId = req.headers['x-user-id'] as string || 'default-user';
+      const userId = req.userId!;
       const tokens = await db.getOAuthTokens(userId, 'xero');
 
       if (!tokens) {
@@ -309,9 +346,9 @@ export function createAuthRoutes(db: DatabaseProvider): Router {
    * DELETE /auth/disconnect
    * Disconnect Xero account
    */
-  router.delete('/disconnect', async (req, res, next) => {
+  router.delete('/disconnect', requireAuth, async (req, res, next) => {
     try {
-      const userId = req.headers['x-user-id'] as string || 'default-user';
+      const userId = req.userId!;
       await db.deleteOAuthTokens(userId, 'xero');
 
       res.json({ success: true });

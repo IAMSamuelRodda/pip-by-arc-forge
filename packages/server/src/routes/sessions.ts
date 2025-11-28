@@ -18,7 +18,7 @@ export function createSessionRoutes(db: DatabaseProvider): Router {
    */
   router.post('/', async (req, res, next) => {
     try {
-      const userId = req.headers['x-user-id'] as string || 'default-user';
+      const userId = req.userId!;
       const sessionId = await orchestrator.createSession(userId);
 
       res.status(201).json({
@@ -36,7 +36,7 @@ export function createSessionRoutes(db: DatabaseProvider): Router {
    */
   router.get('/', async (req, res, next) => {
     try {
-      const userId = req.headers['x-user-id'] as string || 'default-user';
+      const userId = req.userId!;
       const limit = parseInt(req.query.limit as string) || 20;
 
       const sessions = await db.listSessions({
@@ -66,7 +66,7 @@ export function createSessionRoutes(db: DatabaseProvider): Router {
    */
   router.get('/:id', async (req, res, next) => {
     try {
-      const userId = req.headers['x-user-id'] as string || 'default-user';
+      const userId = req.userId!;
       const { id: sessionId } = req.params;
 
       const history = await orchestrator.getHistory(userId, sessionId);
@@ -86,7 +86,7 @@ export function createSessionRoutes(db: DatabaseProvider): Router {
    */
   router.delete('/:id', async (req, res, next) => {
     try {
-      const userId = req.headers['x-user-id'] as string || 'default-user';
+      const userId = req.userId!;
       const { id: sessionId } = req.params;
 
       await db.deleteSession(userId, sessionId);

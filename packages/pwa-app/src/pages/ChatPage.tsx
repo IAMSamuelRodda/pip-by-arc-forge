@@ -4,8 +4,10 @@
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { useChatStore } from '../store/chatStore';
+import { useAuthStore } from '../store/authStore';
 import { api } from '../api/client';
 
 interface AuthStatus {
@@ -33,7 +35,14 @@ export function ChatPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const navigate = useNavigate();
   const { messages, isLoading, error, sendMessage, clearError } = useChatStore();
+  const { user, logout } = useAuthStore();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   // Timer for loading state
   useEffect(() => {
@@ -179,6 +188,19 @@ export function ChatPage() {
                 {isConnecting ? 'Connecting...' : 'Connect Xero'}
               </button>
             )}
+            {/* User menu */}
+            <div className="flex items-center gap-2 pl-2 border-l border-arc-border">
+              <span className="text-sm text-arc-text-secondary">
+                {user?.name || user?.email?.split('@')[0] || 'User'}
+              </span>
+              <button
+                onClick={handleLogout}
+                className="text-sm px-2 py-1 text-arc-text-dim hover:text-arc-text-secondary transition-colors"
+                title="Sign out"
+              >
+                Logout
+              </button>
+            </div>
           </div>
         </div>
       </header>
