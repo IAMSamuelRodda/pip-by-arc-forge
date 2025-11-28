@@ -371,8 +371,15 @@ Status: Pending validation at Thursday demo
 **Next Up (Demo Critical Path):**
 1. ✅ **feature_1_1**: Document Ingestion & Storage - COMPLETE
 2. ✅ **feature_1_3**: Context Injection into Prompts - COMPLETE
-3. 🔵 **task_1_4_2**: Demo Test Cases & Validation (2 days)
+3. ✅ **task_1_4_2**: Demo Test Cases & Validation - COMPLETE
 4. **User Demo** - Thursday 10am next week
+
+**Demo Enhancements** (2025-11-28):
+- ✅ Enhanced system prompt with structured response format
+- ✅ Added markdown rendering for assistant messages (react-markdown)
+- ✅ Created comprehensive demo test cases (`docs/DEMO_TEST_CASES.md`)
+- ✅ Added sample dental business plan for testing
+- 🔵 VPS deployment pending (manual step required)
 
 ---
 

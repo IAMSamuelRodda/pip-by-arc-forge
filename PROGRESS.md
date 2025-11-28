@@ -573,6 +573,22 @@ feature_3_2 (TTS)
 
 ## Progress Changelog
 
+### 2025-11-28 - Demo Preparation & UX Enhancements
+- **task_1_4_2 COMPLETE**: Demo Test Cases & Validation
+  - Created `docs/DEMO_TEST_CASES.md` with 7 demo scenarios
+  - Created `docs/samples/dental-business-plan.txt` for demo
+  - Added pre-demo checklist, post-demo questions, success metrics
+- **System Prompt Enhancement**
+  - Added structured response format for financial questions
+  - Added explicit instructions to combine Xero data + business context
+  - Added tool documentation in prompt
+- **PWA UX Improvements**
+  - Added react-markdown for assistant message rendering
+  - Custom markdown styling for lists, headings, bold text
+  - Assistant messages now render structured responses beautifully
+- **TypeScript Fixes**
+  - Fixed oauth-server type errors (XeroTokenResponse interface)
+
 ### 2025-11-28 - Business Context Layer Implementation & Deployment
 - **feature_1_1 COMPLETE**: Document Ingestion & Storage
   - Added `business_context` table to SQLite schema (RAG-ready with embedding BLOB)
