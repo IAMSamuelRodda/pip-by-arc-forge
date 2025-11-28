@@ -172,16 +172,67 @@ export function createXeroTools(xeroClient: XeroClient): Tool[] {
           toDate: params.toDate,
         });
 
-        // Simplify the complex report structure
+        // Parse the complex report structure to extract key figures
+        const rows = report?.Rows || [];
+        const sections: Record<string, any> = {};
+        let totalIncome = 0;
+        let totalExpenses = 0;
+        let grossProfit = 0;
+        let netProfit = 0;
+
+        for (const row of rows) {
+          if (row.RowType === "Section" && row.Title) {
+            const sectionName = row.Title;
+            const items: any[] = [];
+            let sectionTotal = 0;
+
+            // Parse rows within section
+            if (row.Rows) {
+              for (const dataRow of row.Rows) {
+                if (dataRow.RowType === "Row" && dataRow.Cells) {
+                  const cells = dataRow.Cells;
+                  const name = cells[0]?.Value;
+                  const value = parseFloat(cells[1]?.Value || "0");
+                  if (name && !isNaN(value)) {
+                    items.push({ name, value });
+                  }
+                } else if (dataRow.RowType === "SummaryRow" && dataRow.Cells) {
+                  sectionTotal = parseFloat(dataRow.Cells[1]?.Value || "0");
+                }
+              }
+            }
+
+            sections[sectionName] = { items: items.slice(0, 10), total: sectionTotal };
+
+            // Track key totals
+            if (sectionName.toLowerCase().includes("income") || sectionName.toLowerCase().includes("revenue")) {
+              totalIncome = sectionTotal;
+            } else if (sectionName.toLowerCase().includes("expense") || sectionName.toLowerCase().includes("cost")) {
+              totalExpenses += Math.abs(sectionTotal);
+            }
+          } else if (row.RowType === "Row" && row.Cells) {
+            // Handle summary rows like "Gross Profit", "Net Profit"
+            const label = row.Cells[0]?.Value?.toLowerCase() || "";
+            const value = parseFloat(row.Cells[1]?.Value || "0");
+            if (label.includes("gross profit")) {
+              grossProfit = value;
+            } else if (label.includes("net profit") || label.includes("net loss")) {
+              netProfit = value;
+            }
+          }
+        }
+
         return {
-          reportName: report.ReportName,
-          reportDate: report.ReportDate,
-          updatedDateUTC: report.UpdatedDateUTC,
+          reportName: report?.ReportName || "Profit & Loss",
+          period: `${params.fromDate || "start"} to ${params.toDate || "end"}`,
           summary: {
-            // Extract key figures from report rows
-            // This is simplified - real implementation would parse Rows array
-            message: "P&L report retrieved. Parse report.Rows for detailed breakdown.",
+            totalIncome,
+            totalExpenses,
+            grossProfit,
+            netProfit,
+            profitMargin: totalIncome > 0 ? ((netProfit / totalIncome) * 100).toFixed(1) + "%" : "N/A",
           },
+          sections,
         };
       },
     },
@@ -204,13 +255,58 @@ export function createXeroTools(xeroClient: XeroClient): Tool[] {
           params.date
         );
 
+        // Parse the balance sheet structure
+        const rows = report?.Rows || [];
+        const sections: Record<string, any> = {};
+        let totalAssets = 0;
+        let totalLiabilities = 0;
+        let totalEquity = 0;
+
+        for (const row of rows) {
+          if (row.RowType === "Section" && row.Title) {
+            const sectionName = row.Title;
+            const items: any[] = [];
+            let sectionTotal = 0;
+
+            if (row.Rows) {
+              for (const dataRow of row.Rows) {
+                if (dataRow.RowType === "Row" && dataRow.Cells) {
+                  const cells = dataRow.Cells;
+                  const name = cells[0]?.Value;
+                  const value = parseFloat(cells[1]?.Value || "0");
+                  if (name && !isNaN(value)) {
+                    items.push({ name, value });
+                  }
+                } else if (dataRow.RowType === "SummaryRow" && dataRow.Cells) {
+                  sectionTotal = parseFloat(dataRow.Cells[1]?.Value || "0");
+                }
+              }
+            }
+
+            sections[sectionName] = { items: items.slice(0, 10), total: sectionTotal };
+
+            // Track key totals
+            const lowerName = sectionName.toLowerCase();
+            if (lowerName.includes("asset")) {
+              totalAssets += sectionTotal;
+            } else if (lowerName.includes("liabilit")) {
+              totalLiabilities += Math.abs(sectionTotal);
+            } else if (lowerName.includes("equity")) {
+              totalEquity = sectionTotal;
+            }
+          }
+        }
+
         return {
-          reportName: report.ReportName,
-          reportDate: report.ReportDate,
-          updatedDateUTC: report.UpdatedDateUTC,
+          reportName: report?.ReportName || "Balance Sheet",
+          asOfDate: params.date || "current",
           summary: {
-            message: "Balance sheet retrieved. Parse report.Rows for detailed breakdown.",
+            totalAssets,
+            totalLiabilities,
+            totalEquity,
+            netAssets: totalAssets - totalLiabilities,
           },
+          sections,
         };
       },
     },
