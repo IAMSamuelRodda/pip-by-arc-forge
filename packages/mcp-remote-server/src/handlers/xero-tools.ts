@@ -449,20 +449,23 @@ export async function getAgedReceivables(
     const today = new Date();
     const reportDate = args.date || today.toISOString().split("T")[0];
 
-    // Get all unpaid invoices (AUTHORISED status = approved but not paid)
+    // Get all unpaid sales invoices (AUTHORISED status = approved but not paid)
+    // Use statuses array parameter for reliability, filter Type in code
     const response = await client.accountingApi.getInvoices(
       tenantId,
       undefined, // modifiedAfter
-      'Type=="ACCREC" AND Status=="AUTHORISED"', // where - ACCREC = Accounts Receivable (sales invoices)
+      'Type=="ACCREC"', // where - ACCREC = Accounts Receivable (sales invoices)
       undefined, // order
       undefined, // ids
       undefined, // invoiceNumbers
       undefined, // contactIDs
-      undefined, // statuses
-      100 // limit
+      ["AUTHORISED"] // statuses - only unpaid/approved invoices
     );
 
-    const invoices = response.body.invoices || [];
+    // Filter to only ACCREC (sales invoices) in case where clause didn't work
+    const invoices = (response.body.invoices || []).filter(
+      inv => String(inv.type || "") === "ACCREC" && String(inv.status || "") === "AUTHORISED"
+    );
 
     if (invoices.length === 0) {
       return successResult("No outstanding receivables! Nobody owes you money. 🎉");
@@ -548,19 +551,22 @@ export async function getAgedPayables(
     const reportDate = args.date || today.toISOString().split("T")[0];
 
     // Get all unpaid bills (AUTHORISED status = approved but not paid)
+    // Use statuses array parameter for reliability, filter Type in code
     const response = await client.accountingApi.getInvoices(
       tenantId,
       undefined, // modifiedAfter
-      'Type=="ACCPAY" AND Status=="AUTHORISED"', // where - ACCPAY = Accounts Payable (bills)
+      'Type=="ACCPAY"', // where - ACCPAY = Accounts Payable (bills)
       undefined, // order
       undefined, // ids
       undefined, // invoiceNumbers
       undefined, // contactIDs
-      undefined, // statuses
-      100 // limit
+      ["AUTHORISED"] // statuses - only unpaid/approved bills
     );
 
-    const invoices = response.body.invoices || [];
+    // Filter to only ACCPAY (bills) in case where clause didn't work
+    const invoices = (response.body.invoices || []).filter(
+      inv => String(inv.type || "") === "ACCPAY" && String(inv.status || "") === "AUTHORISED"
+    );
 
     if (invoices.length === 0) {
       return successResult("No outstanding payables! You don't owe anyone money. 🎉");
