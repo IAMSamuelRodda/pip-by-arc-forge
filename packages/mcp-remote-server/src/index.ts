@@ -611,7 +611,231 @@ app.get("/auth/xero/callback", async (req: Request, res: Response) => {
 });
 
 // ===========================================
+// Simple Token Login (for Claude.ai Custom Connector)
+// ===========================================
+
+/**
+ * Login page - generates a token URL for Claude.ai
+ * Since Claude.ai custom connectors don't support OAuth redirects,
+ * users login here and get a URL with their token to paste into Claude.ai
+ */
+app.get("/login", (req: Request, res: Response) => {
+  const error = req.query.error as string | undefined;
+  const tokenUrl = req.query.token_url as string | undefined;
+
+  const loginHtml = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connect Pip to Claude</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0e14;
+      color: #e6e6e6;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .container {
+      background: #1a1f29;
+      padding: 2rem;
+      border-radius: 12px;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    h1 {
+      color: #7eb88e;
+      margin-bottom: 0.5rem;
+      font-size: 1.5rem;
+    }
+    p {
+      color: #999;
+      margin-bottom: 1.5rem;
+      font-size: 0.9rem;
+    }
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: #ccc;
+      font-size: 0.85rem;
+    }
+    input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #333;
+      border-radius: 6px;
+      background: #0f1419;
+      color: #e6e6e6;
+      font-size: 1rem;
+    }
+    input:focus {
+      outline: none;
+      border-color: #7eb88e;
+    }
+    button {
+      width: 100%;
+      padding: 0.75rem;
+      background: #7eb88e;
+      color: #0a0e14;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 1rem;
+    }
+    button:hover {
+      background: #6aa87e;
+    }
+    .error {
+      color: #e57373;
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+      padding: 0.75rem;
+      background: rgba(229, 115, 115, 0.1);
+      border-radius: 6px;
+    }
+    .success {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background: rgba(126, 184, 142, 0.1);
+      border: 1px solid #7eb88e;
+      border-radius: 6px;
+    }
+    .success h3 {
+      color: #7eb88e;
+      margin-bottom: 0.5rem;
+      font-size: 1rem;
+    }
+    .token-url {
+      background: #0f1419;
+      padding: 0.75rem;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 0.8rem;
+      word-break: break-all;
+      margin: 0.5rem 0;
+      border: 1px solid #333;
+    }
+    .copy-btn {
+      margin-top: 0.5rem;
+      background: #333;
+      color: #e6e6e6;
+    }
+    .copy-btn:hover {
+      background: #444;
+    }
+    .instructions {
+      color: #999;
+      font-size: 0.8rem;
+      margin-top: 0.75rem;
+    }
+    .instructions ol {
+      margin-left: 1.25rem;
+      margin-top: 0.5rem;
+    }
+    .instructions li {
+      margin-bottom: 0.25rem;
+    }
+    .logo {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    .logo span {
+      font-size: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo"><span>🤖</span></div>
+    <h1>Connect Pip to Claude</h1>
+    <p>Sign in to get your personal connection URL for Claude.ai.</p>
+
+    ${error ? `<div class="error">${error === 'invalid_email' ? 'Please enter a valid email address.' : 'Login failed. Please try again.'}</div>` : ''}
+
+    ${tokenUrl ? `
+    <div class="success">
+      <h3>✅ Your Connection URL</h3>
+      <div class="token-url" id="tokenUrl">${tokenUrl}</div>
+      <button class="copy-btn" onclick="copyUrl()">Copy URL</button>
+      <div class="instructions">
+        <strong>How to connect:</strong>
+        <ol>
+          <li>Copy the URL above</li>
+          <li>In Claude.ai, go to Settings → Integrations</li>
+          <li>Click "Add custom integration"</li>
+          <li>Paste this URL and save</li>
+        </ol>
+      </div>
+    </div>
+    <script>
+      function copyUrl() {
+        navigator.clipboard.writeText(document.getElementById('tokenUrl').innerText);
+        document.querySelector('.copy-btn').innerText = 'Copied!';
+        setTimeout(() => document.querySelector('.copy-btn').innerText = 'Copy URL', 2000);
+      }
+    </script>
+    ` : `
+    <form method="POST" action="/login">
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required placeholder="you@example.com">
+      </div>
+      <button type="submit">Get Connection URL</button>
+    </form>
+    `}
+  </div>
+</body>
+</html>
+  `;
+
+  res.setHeader("Content-Type", "text/html");
+  res.send(loginHtml);
+});
+
+/**
+ * Login form submission - generates token and shows URL
+ */
+app.post("/login", express.urlencoded({ extended: true }), (req: Request, res: Response) => {
+  const { email } = req.body;
+
+  console.log("Login attempt:", { email });
+
+  if (!email || !email.includes("@")) {
+    res.redirect("/login?error=invalid_email");
+    return;
+  }
+
+  // Generate JWT token for this user
+  const token = jwt.sign(
+    { userId: email, type: "access" },
+    JWT_SECRET,
+    { expiresIn: "30d" } // Long-lived token for MCP
+  );
+
+  // Generate the SSE URL with token
+  const baseUrl = process.env.BASE_URL || "https://pip.arcforge.au";
+  const tokenUrl = `${baseUrl}/sse?token=${token}`;
+
+  console.log("Token generated for user:", email);
+
+  res.redirect(`/login?token_url=${encodeURIComponent(tokenUrl)}`);
+});
+
+// ===========================================
 // OAuth 2.0 for Claude.ai / ChatGPT Integration
+// (Kept for future use when Claude.ai supports OAuth)
 // ===========================================
 
 // OAuth configuration
