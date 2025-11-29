@@ -57,19 +57,29 @@ export async function getInvoices(
     const { client, tenantId } = xero;
     const limit = args.limit || 10;
 
+    // Use statuses array parameter for reliability (where clause can be unreliable)
+    const statusFilter = args.status ? [args.status.toUpperCase()] : undefined;
+
     const response = await client.accountingApi.getInvoices(
       tenantId,
       undefined, // modifiedAfter
-      args.status ? `Status=="${args.status}"` : undefined, // where
+      undefined, // where - don't use, unreliable with Xero API
       undefined, // order
       undefined, // ids
       undefined, // invoiceNumbers
       undefined, // contactIDs
-      undefined, // statuses
-      limit
+      statusFilter // statuses array - more reliable
     );
 
-    const invoices = response.body.invoices || [];
+    // Apply fallback filter in code for safety
+    let invoices = response.body.invoices || [];
+    if (args.status) {
+      const targetStatus = args.status.toUpperCase();
+      invoices = invoices.filter(inv => String(inv.status || "").toUpperCase() === targetStatus);
+    }
+
+    // Apply limit after filtering
+    invoices = invoices.slice(0, limit);
 
     if (invoices.length === 0) {
       return successResult(
@@ -109,7 +119,8 @@ export async function getInvoices(
     );
   } catch (error: any) {
     console.error("Error fetching invoices:", error);
-    return errorResult(`Failed to fetch invoices: ${error.message}`);
+    const message = error?.response?.body?.Message || error?.message || "Unknown error";
+    return errorResult(`Failed to fetch invoices: ${message}`);
   }
 }
 
@@ -184,7 +195,8 @@ export async function getProfitAndLoss(
     );
   } catch (error: any) {
     console.error("Error fetching P&L:", error);
-    return errorResult(`Failed to fetch profit and loss: ${error.message}`);
+    const message = error?.response?.body?.Message || error?.message || "Unknown error";
+    return errorResult(`Failed to fetch profit and loss: ${message}`);
   }
 }
 
@@ -252,7 +264,8 @@ export async function getBalanceSheet(
     );
   } catch (error: any) {
     console.error("Error fetching balance sheet:", error);
-    return errorResult(`Failed to fetch balance sheet: ${error.message}`);
+    const message = error?.response?.body?.Message || error?.message || "Unknown error";
+    return errorResult(`Failed to fetch balance sheet: ${message}`);
   }
 }
 
@@ -273,10 +286,13 @@ export async function getBankAccounts(userId: string): Promise<ToolResult> {
     const response = await client.accountingApi.getAccounts(
       tenantId,
       undefined,
-      "Type==\"BANK\""
+      'Type=="BANK"' // where clause for bank accounts
     );
 
-    const accounts = response.body.accounts || [];
+    // Fallback filter in code for safety (where clause can be unreliable)
+    const accounts = (response.body.accounts || []).filter(
+      acc => String(acc.type || "").toUpperCase() === "BANK"
+    );
 
     if (accounts.length === 0) {
       return successResult("No bank accounts found in Xero.");
@@ -292,7 +308,8 @@ export async function getBankAccounts(userId: string): Promise<ToolResult> {
     return successResult(`🏦 Bank Accounts:\n\n${summary}`);
   } catch (error: any) {
     console.error("Error fetching bank accounts:", error);
-    return errorResult(`Failed to fetch bank accounts: ${error.message}`);
+    const message = error?.response?.body?.Message || error?.message || "Unknown error";
+    return errorResult(`Failed to fetch bank accounts: ${message}`);
   }
 }
 
@@ -342,7 +359,8 @@ export async function getBankTransactions(
     return successResult(`💳 Recent Bank Transactions:\n\n${summary}`);
   } catch (error: any) {
     console.error("Error fetching bank transactions:", error);
-    return errorResult(`Failed to fetch bank transactions: ${error.message}`);
+    const message = error?.response?.body?.Message || error?.message || "Unknown error";
+    return errorResult(`Failed to fetch bank transactions: ${message}`);
   }
 }
 
@@ -389,7 +407,8 @@ export async function getContacts(
     return successResult(`👥 Contacts (${contacts.length}):\n\n${summary}`);
   } catch (error: any) {
     console.error("Error fetching contacts:", error);
-    return errorResult(`Failed to fetch contacts: ${error.message}`);
+    const message = error?.response?.body?.Message || error?.message || "Unknown error";
+    return errorResult(`Failed to fetch contacts: ${message}`);
   }
 }
 
@@ -425,7 +444,8 @@ export async function getOrganisation(userId: string): Promise<ToolResult> {
     );
   } catch (error: any) {
     console.error("Error fetching organisation:", error);
-    return errorResult(`Failed to fetch organisation: ${error.message}`);
+    const message = error?.response?.body?.Message || error?.message || "Unknown error";
+    return errorResult(`Failed to fetch organisation: ${message}`);
   }
 }
 
@@ -647,14 +667,18 @@ export async function searchContacts(
 
   try {
     const { client, tenantId } = xero;
+    const searchLower = args.searchTerm.toLowerCase();
 
     const response = await client.accountingApi.getContacts(
       tenantId,
       undefined,
-      `Name.Contains("${args.searchTerm}")`
+      `Name.Contains("${args.searchTerm}")` // where clause for name search
     );
 
-    const contacts = response.body.contacts || [];
+    // Fallback filter in code for safety (where clause can be unreliable)
+    const contacts = (response.body.contacts || []).filter(
+      c => (c.name || "").toLowerCase().includes(searchLower)
+    );
 
     if (contacts.length === 0) {
       return successResult(`No contacts found matching "${args.searchTerm}".`);
@@ -673,6 +697,7 @@ export async function searchContacts(
     );
   } catch (error: any) {
     console.error("Error searching contacts:", error);
-    return errorResult(`Failed to search contacts: ${error.message}`);
+    const message = error?.response?.body?.Message || error?.message || "Unknown error";
+    return errorResult(`Failed to search contacts: ${message}`);
   }
 }

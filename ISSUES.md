@@ -277,13 +277,31 @@ Risks identified during blueprint complexity assessment.
 
 ### 2025-11-29
 
+#### issue_fixed_004: Full Xero Tools Audit
+- **Status**: 🟢 Resolved
+- **Priority**: P1
+- **Component**: `packages/mcp-remote-server` (xero-tools.ts)
+- **Description**: Comprehensive audit of all 10 Xero tools after discovering filtering bugs
+- **Findings & Fixes**:
+  - `getInvoices`: Fixed - was using unreliable `where` clause for status filtering, now uses `statuses` array parameter + code fallback
+  - `getBankAccounts`: Added fallback filter for Type=="BANK" in code
+  - `searchContacts`: Added fallback filter for name search in code
+  - All tools: Improved error message extraction (now extracts `error.response.body.Message` from Xero API errors)
+- **Key Learning**: Xero API `where` clause is unreliable for filtering. Always use dedicated parameters (like `statuses` array) and add code-side fallback filters for safety.
+
 #### issue_fixed_003: Aged Receivables/Payables API Error
 - **Status**: 🟢 Resolved
 - **Priority**: P1
 - **Component**: `packages/mcp-remote-server` (xero-tools.ts)
 - **Description**: get_aged_receivables and get_aged_payables tools returned "undefined" error
-- **Root Cause**: Xero SDK methods `getReportAgedReceivablesByContact` and `getReportAgedPayablesByContact` were called with date parameter in contactId position, causing "contactId was not in the correct format" API error
-- **Resolution**: Rewrote both functions to use `getInvoices` endpoint with Type filters (ACCREC/ACCPAY) instead of reports API. More reliable and provides better error messages.
+- **Root Cause**:
+  1. Original: Xero SDK methods `getReportAgedReceivablesByContact` were called with date parameter in contactId position
+  2. After rewrite: Combined `where` clause (`Type=="ACCREC" AND Status=="AUTHORISED"`) wasn't being parsed correctly
+- **Resolution**:
+  1. Rewrote to use `getInvoices` endpoint with Type filters
+  2. Used `statuses` array parameter `["AUTHORISED"]` instead of where clause
+  3. Added fallback filter in code for extra safety
+- **Validated**: Successfully shows $1,500 overdue invoice from Embark Earthworks
 
 ### 2025-11-27
 

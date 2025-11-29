@@ -35,8 +35,8 @@
 | Sign In + Sign Up page | ✅ Done | Tabbed UI with invite code validation |
 | Password verification | ✅ Done | bcrypt against database |
 | Unified Xero OAuth | ✅ Done | Redirects to Xero if not connected |
-| Test with Claude.ai | 🔵 Testing | OAuth flow triggering correctly |
-| Xero tools via Claude | 🔵 Pending | Verify all 10 tools work |
+| Test with Claude.ai | ✅ Done | Full OAuth flow verified working |
+| Xero tools via Claude | ✅ Done | All 10 tools audited and working |
 | Document connection flow | ⚪ Pending | User guide for Claude.ai setup |
 
 #### ChatGPT Integration (Priority 2)
@@ -54,10 +54,10 @@
 | Aspect | Status | Notes |
 |--------|--------|-------|
 | **MCP Server** | 🟢 | Deployed at mcp.pip.arcforge.au |
-| **Claude.ai Integration** | 🔵 | Server ready, needs validation |
-| **ChatGPT Integration** | ⚪ | Pending Claude.ai success |
+| **Claude.ai Integration** | 🟢 | Fully validated and working |
+| **ChatGPT Integration** | ⚪ | Pending (next priority) |
 | PWA Frontend | 🟢 | Live at app.pip.arcforge.au |
-| Xero Integration | 🟢 | OAuth + 10 tools working |
+| Xero Integration | 🟢 | OAuth + 10 tools audited and working |
 | User Auth | 🟢 | Email/password + invite codes |
 | Business Context | 🟢 | Document upload + context injection |
 
@@ -150,6 +150,18 @@ See **ISSUES.md** for detailed tracking.
 ---
 
 ## Recent Achievements
+
+### 2025-11-29: Xero Tools Audit & Bug Fixes
+- **BUG FIX**: Aged receivables/payables tools now correctly find unpaid invoices
+  - Root cause: Xero API `where` clause unreliable with combined filters
+  - Fix: Use `statuses` array parameter + fallback code filtering
+- **AUDIT**: All 10 Xero tools reviewed and hardened
+  - `getInvoices`: Fixed status filtering (was using broken where clause)
+  - `getBankAccounts`: Added fallback filter for Type=="BANK"
+  - `searchContacts`: Added fallback filter for name search
+  - All tools: Improved error message extraction from Xero API
+- **VALIDATED**: Claude.ai integration fully working end-to-end
+  - Successfully shows $1,500 overdue invoice from Embark Earthworks
 
 ### 2025-11-29: OAuth Security Hardening & Sign-Up Flow
 - **SECURITY**: Removed insecure /login endpoint (P0 vulnerability)
