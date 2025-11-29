@@ -3,9 +3,9 @@
 > **Purpose**: Current work, active bugs, and recent changes (2-week rolling window)
 > **Lifecycle**: Living (update daily/weekly during active development)
 
-**Last Updated**: 2025-11-28 (evening)
+**Last Updated**: 2025-11-29 (morning)
 **Current Phase**: ✅ Production - Live at https://zero.rodda.xyz
-**Version**: 0.2.1-alpha (Arc Forge Theme + UX Improvements)
+**Version**: 0.2.2-alpha (MCP Remote Server + Claude/ChatGPT Distribution)
 **Infrastructure**: DigitalOcean VPS (shared with do-vps-prod services)
 
 ---
@@ -81,12 +81,12 @@ Status: Pending validation at Thursday demo
 |----------|----------|--------|-------|
 | PWA (web) | HIGH | ✅ Live | https://zero.rodda.xyz - functional chat interface |
 | Self-hosted (Docker) | HIGH | ✅ Ready | Docker configs in repo, docs available |
-| **MCP Server** | HIGH | 🔵 Research | Distribute via MCP standard for Claude/AI clients |
-| **ChatGPT GPT** | MEDIUM | Future | GPT Store distribution after beta validation |
+| **MCP Remote Server** | HIGH | ✅ Built | `packages/mcp-remote-server` - works with Claude.ai + ChatGPT |
+| **ChatGPT App** | HIGH | 🔵 Testing | Same MCP server, ChatGPT Apps SDK integration |
 | iOS App Store | LOW | Future | Evaluate after 6 months based on adoption |
 | Google Play Store | LOW | Future | Evaluate after 6 months based on adoption |
 
-**MCP Research Required**: Deep dive into making zero-agent available as MCP server. This enables distribution to Claude Code users, other MCP-compatible AI assistants. See `docs/TODO-mcp-distribution-research.md`.
+**MCP-First Distribution Strategy (2025-11-29)**: Major pivot to distribute Pip as a Remote MCP Server. Users connect from their Claude.ai or ChatGPT subscription - we provide Xero tools + Pip personality, they provide LLM inference. **$0 LLM costs for Arc Forge.** See `docs/research-notes/SPIKE-pip-inside-claude-chatgpt.md`.
 
 ### Strategic Documents (Joplin: Arc Forge Business Planning)
 - **Avatar Profile**: "Primary Avatar Profile: Small Business Owner (Self-Managing)"
@@ -407,6 +407,18 @@ Status: Pending validation at Thursday demo
   K6DJHS2V  YAMC4PWT  5TNVG8RZ  E9HWBJ3L
   ```
 - Test signup/login verified working
+
+**MCP Remote Server BUILT** (2025-11-29):
+- ✅ Created `packages/mcp-remote-server` for Claude.ai + ChatGPT distribution
+- ✅ HTTP/SSE transport for remote MCP connections
+- ✅ Pip personality via MCP prompts (pip_assistant)
+- ✅ 10 Xero tools exposed (invoices, reports, bank transactions, etc.)
+- ✅ Multi-tenant session management (session ID per SSE connection)
+- ✅ Protocol tested with MCP SDK client (all tests passed)
+- **Key insight**: Users bring their own LLM subscription = $0 inference costs
+- **Endpoints**: `/sse` (SSE), `/messages` (POST), `/health`, `/auth/xero`
+- **Next**: Deploy to VPS, test with Claude.ai Pro account
+- Research: `docs/research-notes/SPIKE-pip-inside-claude-chatgpt.md`
 
 ---
 

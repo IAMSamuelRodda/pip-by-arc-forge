@@ -1,8 +1,8 @@
 /**
  * Anthropic Claude Provider Implementation
  *
- * Supports API key authentication
- * Models: Claude 4.5 Sonnet, Claude 3.7 Sonnet, Claude 3.5 Haiku
+ * Supports API key authentication (OAuth not available for third-party apps)
+ * Models: Claude Opus 4, Claude Sonnet 4, Claude 3.5 Sonnet, Claude 3.5 Haiku
  */
 
 import Anthropic from "@anthropic-ai/sdk";
@@ -20,6 +20,7 @@ import { AuthenticationError, LLMProviderError } from "../types.js";
 export class AnthropicProvider implements LLMProvider {
   readonly name = "anthropic" as const;
   readonly supportedModels = [
+    "claude-opus-4-20250514",
     "claude-sonnet-4-20250514",
     "claude-3-5-sonnet-20241022",
     "claude-3-5-haiku-20241022",
@@ -27,7 +28,7 @@ export class AnthropicProvider implements LLMProvider {
 
   private client: Anthropic | null = null;
   private apiKey: string | null = null;
-  private defaultModel = "claude-3-5-haiku-20241022";  // Cheapest for testing
+  private defaultModel = process.env.LLM_DEFAULT_MODEL || "claude-sonnet-4-20250514";
   private usageStats: UsageMetrics = {
     inputTokens: 0,
     outputTokens: 0,
@@ -229,7 +230,8 @@ export class AnthropicProvider implements LLMProvider {
 
   /**
    * Calculate cost based on Anthropic pricing (Nov 2025)
-   * Sonnet 4.5: $3 input / $15 output per MTok
+   * Opus 4: $15 input / $75 output per MTok
+   * Sonnet 4: $3 input / $15 output per MTok
    * Haiku 3.5: $0.80 input / $4 output per MTok
    */
   private calculateCost(
@@ -237,12 +239,13 @@ export class AnthropicProvider implements LLMProvider {
     model: string
   ): number {
     const pricing: Record<string, { input: number; output: number }> = {
+      "claude-opus-4-20250514": { input: 15.0, output: 75.0 },
       "claude-sonnet-4-20250514": { input: 3.0, output: 15.0 },
       "claude-3-5-sonnet-20241022": { input: 3.0, output: 15.0 },
       "claude-3-5-haiku-20241022": { input: 0.8, output: 4.0 },
     };
 
-    const modelPricing = pricing[model] || pricing["claude-3-5-haiku-20241022"];
+    const modelPricing = pricing[model] || pricing["claude-sonnet-4-20250514"];
     const inputCost = (usage.input_tokens / 1_000_000) * modelPricing.input;
     const outputCost = (usage.output_tokens / 1_000_000) * modelPricing.output;
 

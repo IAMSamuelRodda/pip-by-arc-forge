@@ -1,0 +1,49 @@
+# Pip MCP Server - Caddy Configuration
+# Add this block to your main Caddyfile on the VPS
+#
+# Location: /opt/do-vps-prod/docker/droplet/Caddyfile
+# After adding, reload Caddy: docker exec caddy caddy reload --config /etc/caddy/Caddyfile
+
+# ===========================================
+# Pip MCP Remote Server
+# For Claude.ai and ChatGPT MCP integration
+# ===========================================
+pip.arcforge.au {
+    # Enable HTTPS (automatic with Caddy)
+
+    # Reverse proxy to MCP server container
+    reverse_proxy pip-mcp:3001
+
+    # Enable compression
+    encode gzip
+
+    # CORS headers for MCP clients
+    header {
+        Access-Control-Allow-Origin *
+        Access-Control-Allow-Methods "GET, POST, OPTIONS"
+        Access-Control-Allow-Headers "Content-Type, Authorization"
+    }
+
+    # Logging
+    log {
+        output file /var/log/caddy/pip-mcp.log {
+            roll_size 10mb
+            roll_keep 3
+        }
+    }
+}
+
+# ===========================================
+# Zero Agent Main Server (existing)
+# ===========================================
+zero.rodda.xyz {
+    reverse_proxy zero-agent:3000
+    encode gzip
+
+    log {
+        output file /var/log/caddy/zero-agent.log {
+            roll_size 10mb
+            roll_keep 3
+        }
+    }
+}
