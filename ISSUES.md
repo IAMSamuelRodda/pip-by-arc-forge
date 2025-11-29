@@ -275,6 +275,16 @@ Risks identified during blueprint complexity assessment.
 
 ## Resolved Issues (Last 2 Weeks)
 
+### 2025-11-29
+
+#### issue_fixed_003: Aged Receivables/Payables API Error
+- **Status**: 🟢 Resolved
+- **Priority**: P1
+- **Component**: `packages/mcp-remote-server` (xero-tools.ts)
+- **Description**: get_aged_receivables and get_aged_payables tools returned "undefined" error
+- **Root Cause**: Xero SDK methods `getReportAgedReceivablesByContact` and `getReportAgedPayablesByContact` were called with date parameter in contactId position, causing "contactId was not in the correct format" API error
+- **Resolution**: Rewrote both functions to use `getInvoices` endpoint with Type filters (ACCREC/ACCPAY) instead of reports API. More reliable and provides better error messages.
+
 ### 2025-11-27
 
 #### issue_fixed_001: Connect to Xero Button Not Navigating
