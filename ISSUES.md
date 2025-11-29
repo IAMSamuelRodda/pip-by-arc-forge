@@ -1,10 +1,10 @@
 # Issues Tracking
 
-> **Purpose**: Dynamic issue tracking for bugs, improvements, technical debt, and flagged complexity items
-> **Lifecycle**: Living (update when issues are discovered, resolved, or status changes)
-> **Alternative to**: GitHub Issues (streamlined approach for solo/small team development)
+> **Purpose**: Track **open** bugs, improvements, technical debt, and risks
+> **Lifecycle**: Living (add when issues arise, remove when resolved)
+> **Resolved Issues**: Move to `CHANGELOG.md` under the appropriate version's "Fixed" section
 
-**Last Updated**: 2025-11-29
+**Last Updated**: 2025-11-30
 
 ---
 
@@ -29,45 +29,7 @@
 
 ---
 
-## Active Issues
-
-### Bugs
-
-#### issue_bug_001: [P0 SECURITY] Token URL Allows User Impersonation
-- **Status**: 🟢 Resolved & Deployed
-- **Priority**: P0 (CRITICAL)
-- **Component**: `packages/mcp-remote-server` (/login endpoint)
-- **Description**: The /login page generated JWT tokens for ANY email without verification.
-- **Resolution** (2025-11-29):
-  - [x] Removed insecure /login endpoint entirely
-  - [x] OAuth 2.0 flow now verifies password against database (bcrypt)
-  - [x] Added OAuth discovery endpoint (/.well-known/oauth-authorization-server)
-  - [x] User lookup via getUserByEmail() before allowing auth
-  - [x] SSE endpoint returns 401 without Bearer token (triggers OAuth)
-  - [x] Deployed to production
-- **Notes**: Fix deployed and verified
-
-#### issue_bug_002: Claude.ai OAuth Integration Not Working
-- **Status**: 🟢 Resolved
-- **Priority**: P1
-- **Component**: `packages/mcp-remote-server` (OAuth flow)
-- **Description**: Claude.ai custom connector with OAuth credentials doesn't connect properly
-- **Resolution** (2025-11-29):
-  - [x] Added OAuth discovery endpoint (/.well-known/oauth-authorization-server)
-  - [x] SSE returns 401 to trigger OAuth flow
-  - [x] Added tabbed Sign In / Sign Up interface
-  - [x] Sign Up requires one-time invite code (beta access)
-  - [x] Unified OAuth flow with Xero connection
-  - [x] Password verification via bcrypt
-  - [x] Fixed bcrypt ESM import issue
-  - [x] Added MCP callback to Xero app redirect URIs
-  - [x] Complete end-to-end test with Claude.ai ✅
-  - [x] Verify Xero tools work via Claude ✅
-- **Configuration**:
-  - URL: `https://mcp.pip.arcforge.au/sse`
-  - Client ID: `pip-mcp-client`
-  - Client Secret: `pip-mcp-secret-change-in-production`
-- **Notes**: Full OAuth flow working! User can sign up/in → connect Xero → use tools in Claude.ai
+## Open Issues
 
 ### Improvements
 
@@ -102,20 +64,46 @@
 - **Notes**: All current tools are read-only (zero risk). This must be implemented BEFORE adding any write operations.
 
 #### issue_005: ChatGPT Memory Disabled in Developer Mode
-- **Status**: 🟡 Workaround Available
-- **Priority**: P2 (Medium - affects demo)
-- **Component**: External (ChatGPT limitation)
+- **Status**: 🟡 In Progress (Memory Stack planned)
+- **Priority**: P2 (Medium - affects Plus users)
+- **Component**: External (ChatGPT limitation) + `packages/mcp-remote-server`
 - **Description**: ChatGPT disables memory when MCP connectors are used in Developer Mode
-- **Workaround**:
-  1. Export ChatGPT memories (prompt: "Write out your memories of me verbatim")
-  2. Save as text file
-  3. Upload to Pip's Business Context Layer
-  4. Personalization works across all platforms (Claude.ai, ChatGPT, PWA)
+- **Solution**: Implement Pip Memory Stack (Priority 2 in STATUS.md)
+- **ChatGPT Business Option**: Published connectors MAY retain memory (UNVERIFIED)
 - **Acceptance Criteria**:
-  - [ ] Document memory export process
-  - [ ] Create user guide for memory import
-  - [ ] Test with existing user context
-- **Notes**: This is actually BETTER than relying on ChatGPT memory - user controls what Pip knows, works across all platforms.
+  - [ ] Research memory approaches (mem0, SQLite, vector DB)
+  - [ ] Implement user_memories table
+  - [ ] Add memory extraction + injection to MCP
+  - [ ] Create memory import endpoint
+  - [ ] Add memory management UI to PWA
+- **Notes**: Memory stack enables "Pip knows me" for Plus users and cross-platform memory portability.
+- **Reference**: docs/CHATGPT-MEMORY-GUIDE.md
+
+#### issue_006: Google Docs Integration
+- **Status**: 🔴 Open
+- **Priority**: P3 (Low - future enhancement)
+- **Component**: `packages/mcp-remote-server`
+- **Description**: Allow users to connect Google Docs to Pip for business context
+- **Use Case**: Users store business plans, KPIs, meeting notes in Google Docs. Connecting these would enrich Pip's context without manual file uploads.
+- **Acceptance Criteria**:
+  - [ ] Google OAuth integration
+  - [ ] Google Docs API read access
+  - [ ] Document sync/indexing
+  - [ ] Context injection from connected docs
+- **Notes**: Common request - many SMBs use Google Workspace. Consider Google Drive broader integration.
+
+#### issue_007: Nextcloud Integration
+- **Status**: 🔴 Open
+- **Priority**: P3 (Low - future enhancement)
+- **Component**: `packages/mcp-remote-server`
+- **Description**: Allow users to connect Nextcloud for business context (open source alternative)
+- **Use Case**: Support open source community who prefer self-hosted solutions. Nextcloud is popular for privacy-conscious businesses.
+- **Acceptance Criteria**:
+  - [ ] Nextcloud OAuth/API integration
+  - [ ] Document sync from Nextcloud Files
+  - [ ] Support for Nextcloud Notes
+  - [ ] Context injection from connected docs
+- **Notes**: Aligns with Pip's self-hostable philosophy. Good for privacy-focused users and FOSS community.
 
 #### issue_000: Business Context Layer
 - **Status**: 🟡 In Progress (Blueprint created)
@@ -304,84 +292,8 @@ Risks identified during blueprint complexity assessment.
 
 ---
 
-## Resolved Issues (Last 2 Weeks)
-
-### 2025-11-29
-
-#### issue_fixed_004: Full Xero Tools Audit
-- **Status**: 🟢 Resolved
-- **Priority**: P1
-- **Component**: `packages/mcp-remote-server` (xero-tools.ts)
-- **Description**: Comprehensive audit of all 10 Xero tools after discovering filtering bugs
-- **Findings & Fixes**:
-  - `getInvoices`: Fixed - was using unreliable `where` clause for status filtering, now uses `statuses` array parameter + code fallback
-  - `getBankAccounts`: Added fallback filter for Type=="BANK" in code
-  - `searchContacts`: Added fallback filter for name search in code
-  - All tools: Improved error message extraction (now extracts `error.response.body.Message` from Xero API errors)
-- **Key Learning**: Xero API `where` clause is unreliable for filtering. Always use dedicated parameters (like `statuses` array) and add code-side fallback filters for safety.
-
-#### issue_fixed_003: Aged Receivables/Payables API Error
-- **Status**: 🟢 Resolved
-- **Priority**: P1
-- **Component**: `packages/mcp-remote-server` (xero-tools.ts)
-- **Description**: get_aged_receivables and get_aged_payables tools returned "undefined" error
-- **Root Cause**:
-  1. Original: Xero SDK methods `getReportAgedReceivablesByContact` were called with date parameter in contactId position
-  2. After rewrite: Combined `where` clause (`Type=="ACCREC" AND Status=="AUTHORISED"`) wasn't being parsed correctly
-- **Resolution**:
-  1. Rewrote to use `getInvoices` endpoint with Type filters
-  2. Used `statuses` array parameter `["AUTHORISED"]` instead of where clause
-  3. Added fallback filter in code for extra safety
-- **Validated**: Successfully shows $1,500 overdue invoice from Embark Earthworks
-
-### 2025-11-27
-
-#### issue_fixed_001: Connect to Xero Button Not Navigating
-- **Status**: 🟢 Resolved
-- **Priority**: P1
-- **Resolution**: Changed from `<a href>` to `window.location.href` for proper navigation
-
-#### issue_fixed_002: Docker Network Connectivity
-- **Status**: 🟢 Resolved
-- **Priority**: P0
-- **Resolution**: Added `droplet_frontend` external network to docker-compose.yml
-
----
-
-## Archived Issues
-
-Move resolved issues here after 2 weeks.
-
----
-
-## Using PROGRESS.md + ISSUES.md vs GitHub Issues
-
-This project uses a **streamlined markdown-based tracking approach** instead of GitHub Issues.
-
-### When to Use This Approach
-- Solo developer or small team (1-3 people)
-- Fast iteration cycles
-- Don't need external stakeholder visibility
-- Want to keep all project context in repository
-- AI-assisted development (context stays in codebase)
-
-### When to Use GitHub Issues Instead
-- Team > 3 people needing assignment/ownership
-- External stakeholders need visibility
-- Need automated workflows (GitHub Actions triggered by issues)
-- Complex dependency tracking with sub-issues
-- Roadmap views and project boards
-
-### Relationship to Blueprint
-- **BLUEPRINT.yaml**: Architectural plan with complexity scores
-- **PROGRESS.md**: Execution tracking (task status, completion)
-- **ISSUES.md**: Problems, improvements, flagged items, risks
-- **STATUS.md**: 2-week rolling snapshot for quick reference
-
----
-
 ## References
 
-- **PROGRESS.md**: Project tracking (epics, features, tasks)
-- **specs/BLUEPRINT.yaml**: Full architectural blueprint
-- **STATUS.md**: Current work snapshot (2-week rolling window)
+- `CONTRIBUTING.md` - Documentation workflow guide
+- `CHANGELOG.md` - Where resolved issues go
+- `STATUS.md` - Current work snapshot

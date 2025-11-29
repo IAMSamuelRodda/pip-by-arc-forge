@@ -77,7 +77,11 @@ In any Claude conversation, try:
 
 ### Use with ChatGPT
 
-**Requirements**: ChatGPT Plus ($20/month) or higher with Developer Mode enabled
+**Requirements**: ChatGPT Plus ($20/month) or higher
+
+**Important**: Memory behavior differs by subscription:
+- **Business/Teams/Enterprise**: Publish connector for full memory support
+- **Plus**: Memory disabled in Developer Mode (see [Memory Guide](./docs/CHATGPT-MEMORY-GUIDE.md))
 
 #### Step 1: Enable Developer Mode
 
@@ -218,6 +222,7 @@ See [`ARCHITECTURE.md`](./ARCHITECTURE.md) for complete details.
 - [`CONTRIBUTING.md`](./CONTRIBUTING.md) - Workflow, progress tracking
 - [`DEVELOPMENT.md`](./DEVELOPMENT.md) - Git workflow, CI/CD, testing
 - [`CHANGELOG.md`](./CHANGELOG.md) - Release history
+- [`docs/CHATGPT-MEMORY-GUIDE.md`](./docs/CHATGPT-MEMORY-GUIDE.md) - ChatGPT memory with Pip
 
 ---
 
@@ -250,4 +255,4 @@ MIT License
 
 ---
 
-**Last Updated**: 2025-11-29
+**Last Updated**: 2025-11-30

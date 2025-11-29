@@ -3,7 +3,7 @@
 > **Purpose**: Current work, active bugs, and recent changes (2-week rolling window)
 > **Lifecycle**: Living (update daily/weekly during active development)
 
-**Last Updated**: 2025-11-29
+**Last Updated**: 2025-11-30
 **Current Phase**: Production Hardening
 **Version**: 0.2.0
 **Infrastructure**: DigitalOcean VPS (shared with do-vps-prod services)
@@ -12,20 +12,36 @@
 
 ## Current Focus
 
-### Phase: Safety Guardrails + Memory Import
+### Phase: Memory Stack + Safety Guardrails
 
-**Objective**: Harden Pip for production use before adding write operations.
+**Objective**: Enable personalized "Pip knows me" experience for ChatGPT Plus users, then harden for write operations.
 
 **Priority Order**:
-1. **Safety Guardrails** - Tiered permissions before ANY write operations (Epic 1.3)
-2. **Memory Import** - ChatGPT memory → Pip context layer workaround (Epic 1.4)
-3. **Landing Page** - Create pip.arcforge.au (Epic 1.5)
+1. **Memory Technology Stack** - Pip-native memory layer for Plus users (Epic 1.4)
+2. **Safety Guardrails** - Tiered permissions before ANY write operations (Epic 1.3)
+3. **ChatGPT Memory Export** - Document + implement import flow (Epic 1.4.1)
+4. **Landing Page** - Create pip.arcforge.au (Epic 1.5)
 
-**Why this order**: Xero has NO user restore. Must protect users from AI mistakes before adding write capabilities.
+**Why this order**:
+- Memory first: Enables demo-ready "Pip knows me" experience for dental client
+- Safety before writes: Xero has NO user restore - must protect users before adding write capabilities
+- Memory export after stack: Can't import memories without storage layer
 
 ### Current Priorities
 
-#### Safety Guardrails (Priority 1) - NEW
+#### Memory Technology Stack (Priority 1)
+| Task | Status | Notes |
+|------|--------|-------|
+| Research memory approaches | ⚪ Pending | mem0, custom SQLite, vector DB |
+| Design memory schema | ⚪ Pending | User facts, preferences, context |
+| Add `user_memories` table | ⚪ Pending | SQLite storage layer |
+| Implement memory extraction | ⚪ Pending | Parse conversations for facts |
+| Add memory injection to MCP | ⚪ Pending | Include in tool context |
+| Add memory UI to PWA | ⚪ Pending | View/edit/delete memories |
+
+**Why Memory First?**: ChatGPT Plus users (majority market) can't publish connectors → memory disabled in Dev Mode. Pip needs its own memory layer to enable "Pip knows me" experience for dental client demo.
+
+#### Safety Guardrails (Priority 2)
 | Task | Status | Notes |
 |------|--------|-------|
 | Design safety architecture | ✅ Done | specs/SAFETY-ARCHITECTURE.md |
@@ -34,14 +50,23 @@
 | Implement permission checks | ⚪ Pending | Tool router validation |
 | Add settings UI to PWA | ⚪ Pending | Permission level selector |
 
-#### Memory Import (Priority 2) - NEW
+**Why Safety Before Writes?**: Xero has NO user restore. Must protect users from AI mistakes before adding any write capabilities.
+
+#### ChatGPT Memory Export (Priority 3)
 | Task | Status | Notes |
 |------|--------|-------|
-| Document memory export process | ⚪ Pending | ChatGPT prompt method |
-| Create memory import guide | ⚪ Pending | Upload to context layer |
-| Test with existing user context | ⚪ Pending | Verify personalization |
+| Document official data export | ✅ Done | docs/CHATGPT-MEMORY-GUIDE.md |
+| Create memory import endpoint | ⚪ Pending | Requires Memory Stack first |
+| Parse conversations.json | ⚪ Pending | Extract user facts |
+| Test import flow | ⚪ Pending | Verify personalization works |
 
-**Why Memory Import?**: ChatGPT disables memory when MCP connectors used. Dental client demo needs "Pip knows him" experience.
+**Dependency**: Requires Memory Stack (Priority 1) to be complete first.
+
+**ChatGPT Business Option** (NEEDS VERIFICATION):
+- Research suggests published connectors retain memory
+- Requires Business/Teams subscription + admin access
+- Flow: Admin publishes connector → users get memory without Dev Mode
+- **Status**: Unverified - need to test with actual Business account
 
 ### Completed Integrations
 
@@ -55,13 +80,19 @@
 | Xero tools via Claude | ✅ Done | All 10 tools audited and working |
 | Document connection flow | ✅ Done | README.md - step-by-step guide |
 
-#### ChatGPT Integration - ✅ COMPLETE
+#### ChatGPT Integration - ✅ COMPLETE (memory limitation for Plus)
 | Task | Status | Notes |
 |------|--------|-------|
-| Research MCP support | ✅ Done | Developer Mode required |
+| Research MCP support | ✅ Done | Developer Mode required for setup |
 | Test with ChatGPT Plus | ✅ Done | Works with zero code changes! |
 | Document ChatGPT setup | ✅ Done | README.md - step-by-step guide |
-| Memory limitation | ⚠️ Known | Memory disabled in Developer Mode |
+| Memory in Dev Mode | ⚠️ Disabled | Security: prevents MCP accessing user data |
+| Memory with Published | ⚠️ Unverified | Business/Teams: needs testing |
+
+**ChatGPT Memory Situation** (2025-11-30):
+- Developer Mode disables memory (security feature, not bug)
+- **Plus users**: Need Pip memory stack (Priority 1 above)
+- **Business/Teams**: Published connectors MAY retain memory (UNVERIFIED - needs testing with actual account)
 
 ---
 
@@ -71,7 +102,8 @@
 |--------|--------|-------|
 | **MCP Server** | 🟢 | Deployed at mcp.pip.arcforge.au |
 | **Claude.ai Integration** | 🟢 | Fully validated and working |
-| **ChatGPT Integration** | 🟢 | Working (memory disabled in Dev Mode) |
+| **ChatGPT Integration** | 🟡 | Working, but memory disabled for Plus users |
+| **Memory Stack** | ⚪ | Not started - required for Plus users |
 | **Safety Guardrails** | 🔵 | Architecture designed, implementation pending |
 | PWA Frontend | 🟢 | Live at app.pip.arcforge.au |
 | Xero Integration | 🟢 | OAuth + 10 READ-ONLY tools |
@@ -128,7 +160,7 @@
 
 See **ISSUES.md** for detailed tracking.
 
-**Summary**: 0 Critical | 1 High (safety guardrails) | 3 Medium | 1 Low
+**Summary**: 0 Critical | 1 High (safety guardrails) | 3 Medium | 3 Low
 
 ---
 
@@ -136,32 +168,53 @@ See **ISSUES.md** for detailed tracking.
 
 ### Immediate
 
-1. **Memory Import Feature** (Epic 1.4)
-   - Document ChatGPT memory export process
-   - Create guide for uploading to Pip context layer
-   - Test with dental client's existing context
+1. **Memory Technology Stack** (Epic 1.4)
+   - Research: mem0 vs custom SQLite vs vector DB
+   - Design memory schema (facts, preferences, context)
+   - Implement storage + extraction + injection
+   - Add memory management UI to PWA
 
 2. **Safety Guardrails Implementation** (Epic 1.3)
    - Add database tables (user_settings, operation_snapshots)
    - Implement permission checks in tool router
    - Add settings UI to PWA
 
-### After Safety + Memory
+3. **ChatGPT Memory Export/Import** (Epic 1.4.1)
+   - Create memory import endpoint
+   - Parse conversations.json for user facts
+   - Test with dental client's ChatGPT export
 
-3. **Landing Page** (Epic 1.5)
+### After Memory + Safety
+
+4. **Landing Page** (Epic 1.5)
    - Create pip.arcforge.au
    - What is Pip? + How to connect (Claude.ai/ChatGPT/PWA)
    - Arc Forge branding, dark theme
 
 ### Future
 
-4. Voice Mode (Milestone 2)
-5. Write operations (create/update invoices) - requires safety guardrails first
-6. Additional accounting platform support
+5. Voice Mode (Milestone 2)
+6. Write operations (create/update invoices) - requires safety guardrails first
+7. Additional accounting platform support
+8. Verify ChatGPT Business published connector memory behavior
 
 ---
 
 ## Recent Achievements
+
+### 2025-11-30: ChatGPT Memory Research + Priority Refinement
+- **RESEARCH**: ChatGPT memory behavior with MCP connectors
+  - Developer Mode disables memory (security feature, confirmed)
+  - Published connectors in Business/Teams MAY retain memory (UNVERIFIED)
+  - Plus users have no workaround → need Pip memory stack
+- **RESEARCH**: ChatGPT Apps SDK (preview, built on MCP, higher effort than needed)
+- **RESEARCH**: Official data export structure documented
+  - Files: conversations.json, shared_conversations.json, message_feedback.json, user.json, chat.html
+  - No explicit memories.json - may need separate export via Memory management UI
+- **DECISION**: Memory Technology Stack is Priority 2 (after Safety Guardrails)
+  - Required for ChatGPT Plus users (majority of target market)
+  - Enables cross-platform memory (ChatGPT → Claude.ai via Pip)
+- **CREATED**: docs/CHATGPT-MEMORY-GUIDE.md - user guide for memory options
 
 ### 2025-11-29: Safety Architecture + ChatGPT Validated
 - **DESIGN**: Created safety guardrails architecture (specs/SAFETY-ARCHITECTURE.md)
@@ -240,7 +293,9 @@ See **ISSUES.md** for detailed tracking.
 
 **Key Insight**: MCP distribution = users bring their own LLM subscription = $0 inference costs for Arc Forge.
 
-**ChatGPT Limitation**: Memory disabled in Developer Mode. Workaround: export ChatGPT memories → upload to Pip context layer.
+**ChatGPT Memory**:
+- **Plus users**: Memory disabled in Dev Mode → need Pip memory stack (Priority 2)
+- **Business/Teams**: Published connector MAY enable memory (UNVERIFIED - needs testing)
 
 ### Secured Domains
 - askpip.au (secured)
@@ -256,6 +311,7 @@ See **ISSUES.md** for detailed tracking.
 - `ISSUES.md` - Bug and improvement tracking
 - `ARCHITECTURE.md` - System design and ADRs
 - `specs/SAFETY-ARCHITECTURE.md` - Xero API safety guardrails design
+- `docs/CHATGPT-MEMORY-GUIDE.md` - ChatGPT memory + Pip user guide
 - `docs/research-notes/SPIKE-pip-inside-claude-chatgpt.md` - MCP strategy research
 - `docs/research-notes/PATTERN-lazy-loading-mcp-tools.md` - Context optimization pattern
 

@@ -12,7 +12,7 @@
 
 **Before finishing work:**
 1. Update `STATUS.md` - Document investigation notes
-2. Update issues - Close completed tasks, link commits
+2. Resolve issues - Remove from `ISSUES.md`, add to `CHANGELOG.md`
 3. Check `DEVELOPMENT.md` - Run pre-commit checklist
 
 ---
@@ -89,4 +89,4 @@ curl https://mcp.pip.arcforge.au/health
 
 ---
 
-**Last Updated**: 2025-11-29
+**Last Updated**: 2025-11-30

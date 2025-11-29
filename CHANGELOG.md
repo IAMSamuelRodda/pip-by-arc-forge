@@ -10,9 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
-- Claude.ai integration validation (in progress)
-- ChatGPT Apps SDK integration
+- Safety Guardrails (tiered permissions for write operations)
+- Memory Technology Stack (Pip-native memory for ChatGPT Plus users)
 - Landing page at pip.arcforge.au
+
+### Added
+- ChatGPT memory research and documentation (docs/CHATGPT-MEMORY-GUIDE.md)
+- Google Docs integration planned (issue_006)
+- Nextcloud integration planned (issue_007)
 
 ---
 
@@ -25,6 +30,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Token URL login**: /login generates personal connection URLs for Claude.ai
 - **JWT authentication**: 30-day tokens for MCP sessions
 - **Domain structure**: app.pip.arcforge.au (PWA), mcp.pip.arcforge.au (MCP)
+
+### Fixed
+- **issue_bug_001**: [P0 SECURITY] Removed insecure /login endpoint that allowed user impersonation
+- **issue_bug_002**: Claude.ai OAuth integration now working with proper discovery endpoint
+- **issue_fixed_003**: Aged receivables/payables tools now correctly find unpaid invoices (Xero API `where` clause was unreliable)
+- **issue_fixed_004**: Full Xero tools audit - all 10 tools reviewed, added fallback filters for reliability
 
 ### Changed
 - **Full rebrand**: Renamed from "Zero Agent" to "Pip"
@@ -72,6 +83,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Xero OAuth**: Token storage in SQLite, automatic refresh
 - **SQLite database**: Daily backups at 3am UTC
 - **Docker**: Multi-stage build with Caddy reverse proxy
+
+### Fixed
+- **issue_fixed_001**: Connect to Xero button now navigates properly (changed from `<a href>` to `window.location.href`)
+- **issue_fixed_002**: [P0] Docker network connectivity resolved (added `droplet_frontend` external network)
 
 ### Changed
 - **Architecture pivot**: AWS Lambda → VPS monolith

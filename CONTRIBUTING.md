@@ -3,7 +3,7 @@
 > **Purpose**: Workflow guide for documentation updates and progress tracking
 > **Lifecycle**: Stable (update when processes change)
 
-**Last Updated**: 2025-11-29
+**Last Updated**: 2025-11-30
 
 ---
 
@@ -17,10 +17,12 @@ Pip uses a **markdown-based tracking system** instead of GitHub Issues. This kee
 |----------|---------|------------------|
 | `STATUS.md` | Current state, active work, 2-week rolling window | Daily/Weekly |
 | `PROGRESS.md` | Detailed task tracking (epics, features, tasks) | On task completion |
-| `ISSUES.md` | Bugs, improvements, technical debt, risks | When issues arise/resolve |
+| `ISSUES.md` | **Open** bugs, improvements, technical debt, risks | When issues arise |
+| `CHANGELOG.md` | Release history + **resolved issues** (append-only) | On issue resolution/releases |
 | `ARCHITECTURE.md` | System design, database schema, ADRs | When architecture changes |
-| `CHANGELOG.md` | Release history with semantic versioning (append-only) | On version releases |
 | `CLAUDE.md` | AI agent navigation hub (minimal, ~100 lines) | Rarely |
+
+**Key Principle**: ISSUES.md stays lean (open issues only). Resolved issues move to CHANGELOG.md.
 
 ### Document Workflow
 
@@ -31,7 +33,7 @@ Starting Work:
   3. Update task to "in_progress" in PROGRESS.md
 
 During Work:
-  - Log blockers/issues in ISSUES.md
+  - Log blockers/issues in ISSUES.md (open issues only)
   - Update STATUS.md if priorities shift
 
 Completing Work:
@@ -39,6 +41,11 @@ Completing Work:
   2. Update STATUS.md - move item to "Recent Achievements"
   3. If unresolved issues remain → log in ISSUES.md
   4. If architecture changed → update ARCHITECTURE.md
+
+Resolving Issues:
+  1. Remove resolved issue from ISSUES.md
+  2. Add to CHANGELOG.md under current/next version's "Fixed" section
+  3. Reference issue ID (e.g., "issue_003: Description")
 ```
 
 ---
@@ -74,20 +81,21 @@ Update when:
 
 ### ISSUES.md
 Update when:
-- Bug discovered
-- Improvement identified
-- Technical debt noted
-- Risk identified
-- Spike research needed
-- Issue resolved
+- Bug discovered → add to Open Issues
+- Improvement identified → add to Open Issues
+- Technical debt noted → add to Technical Debt
+- Risk identified → add to Risk Registry
+- Spike research needed → add to Spike Tasks
+- Issue resolved → **remove from ISSUES.md, add to CHANGELOG.md**
 
-**Structure**:
-- Active Issues (bugs, improvements)
+**Structure** (open items only):
+- Open Issues (bugs, improvements)
 - Flagged Items (needs decomposition)
 - Spike Tasks (research needed)
 - Technical Debt
 - Risk Registry
-- Resolved Issues (last 2 weeks)
+
+**Note**: No "Resolved Issues" section. Resolved issues go to CHANGELOG.md.
 
 ### ARCHITECTURE.md
 Update when:
@@ -201,7 +209,8 @@ docs/
 ### Bug Fixes
 - [ ] Root cause documented in ISSUES.md
 - [ ] Fix implemented
-- [ ] ISSUES.md updated (moved to resolved)
+- [ ] Issue removed from ISSUES.md
+- [ ] Fix added to CHANGELOG.md (under "Fixed")
 - [ ] PR merged to dev
 
 ### Spike/Research
