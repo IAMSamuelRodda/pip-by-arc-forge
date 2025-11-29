@@ -573,15 +573,25 @@ feature_3_2 (TTS)
 
 ## Progress Changelog
 
-### 2025-11-29 - MCP Remote Server with OAuth 2.0 Authentication
+### 2025-11-29 - Domain Migration + MCP OAuth
+
+**Domain Migration to arcforge.au** ✅
+- Consolidated all Pip services under arcforge.au domain
+- New domains:
+  - `app.pip.arcforge.au` → Main PWA application
+  - `mcp.pip.arcforge.au` → MCP server for Claude.ai/ChatGPT
+- Legacy redirects (temporary):
+  - `zero.rodda.xyz` → `app.pip.arcforge.au`
+  - `pip.arcforge.au` → `mcp.pip.arcforge.au`
+- Naming convention established: `{service}.{product}.arcforge.au`
 
 **MCP Remote Server DEPLOYED** ✅
 - Created `packages/mcp-remote-server` for Claude.ai + ChatGPT distribution
 - HTTP/SSE transport using `@modelcontextprotocol/sdk`
 - Pip personality via MCP prompts (pip_assistant)
 - Multi-tenant session management (JWT auth + session ID per SSE connection)
-- Deployed to VPS at https://pip.arcforge.au
-- DNS configured: `pip.arcforge.au` → 170.64.169.203 (Cloudflare DNS Only for SSE compatibility)
+- Deployed to VPS at https://mcp.pip.arcforge.au
+- Simple login page at `/login` generates personal token URL for Claude.ai
 - Caddy reverse proxy with auto-HTTPS
 - Docker container sharing SQLite volume with main server
 

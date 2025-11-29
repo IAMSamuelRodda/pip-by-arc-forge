@@ -581,7 +581,7 @@ User Voice → WebRTC/WebSocket → Lambda (Transcribe) → Agent → Lambda (Po
 - Auto-HTTPS via Let's Encrypt
 - HTTP/2 support
 - Automatic certificate renewal
-- Domain: `zero.rodda.xyz`
+- Domains: `app.pip.arcforge.au` (main app), `mcp.pip.arcforge.au` (MCP server)
 
 ### Docker Configuration
 - Multi-stage build for minimal image size
@@ -719,7 +719,7 @@ The MCP Remote Server (`packages/mcp-remote-server`) enables Pip to work directl
                      │ SSE Connection
                      ▼
 ┌─────────────────────────────────────────────────────────────┐
-│            MCP Remote Server (pip.arcforge.au)              │
+│         MCP Remote Server (mcp.pip.arcforge.au)             │
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐   │
 │  │              Lazy-Loading Layer                      │   │
@@ -771,11 +771,11 @@ On Demand:
 
 ### Deployment
 
-- **URL**: https://pip.arcforge.au
+- **URL**: https://mcp.pip.arcforge.au
 - **Container**: `pip-mcp` (256MB memory limit)
 - **Network**: `droplet_frontend` (shared with Caddy)
 - **Storage**: Shared SQLite volume with main server
-- **DNS**: Cloudflare DNS Only (required for SSE compatibility)
+- **DNS**: Cloudflare A records (DNS Only, required for SSE compatibility)
 
 ---
 
@@ -792,7 +792,7 @@ On Demand:
 
 **Impact:**
 - New package: `packages/mcp-remote-server`
-- New deployment: https://pip.arcforge.au
+- New deployment: https://mcp.pip.arcforge.au
 - Token reduction: 85% via lazy-loading
 - Same pattern applicable to Claude Desktop
 
@@ -844,4 +844,4 @@ On Demand:
 
 ---
 
-**Last Updated**: 2025-11-27
+**Last Updated**: 2025-11-29

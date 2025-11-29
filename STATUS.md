@@ -3,9 +3,9 @@
 > **Purpose**: Current work, active bugs, and recent changes (2-week rolling window)
 > **Lifecycle**: Living (update daily/weekly during active development)
 
-**Last Updated**: 2025-11-29 (evening - OAuth added)
-**Current Phase**: ✅ Production - Live at https://zero.rodda.xyz + https://pip.arcforge.au
-**Version**: 0.2.3-alpha (MCP Remote Server with Lazy-Loading Deployed)
+**Last Updated**: 2025-11-29 (evening - Domain Migration)
+**Current Phase**: ✅ Production - Live at https://app.pip.arcforge.au + https://mcp.pip.arcforge.au
+**Version**: 0.2.4-alpha (Consolidated under arcforge.au domain)
 **Infrastructure**: DigitalOcean VPS (shared with do-vps-prod services)
 
 ---
@@ -65,7 +65,7 @@ Status: Pending validation at Thursday demo
 - [ ] Update PWA branding, copy, UI
 - [ ] Update Xero app name in developer portal
 - [ ] Update VISION.md, README.md, all docs
-- [ ] Redirect zero.rodda.xyz → new domain
+- [ ] Redirect app.pip.arcforge.au → new domain
 
 ### Beta Strategy (25 Users)
 | Aspect | Decision |
@@ -79,18 +79,19 @@ Status: Pending validation at Thursday demo
 ### Distribution Strategy
 | Platform | Priority | Status | Notes |
 |----------|----------|--------|-------|
-| PWA (web) | HIGH | ✅ Live | https://zero.rodda.xyz - functional chat interface |
+| PWA (web) | HIGH | ✅ Live | https://app.pip.arcforge.au - functional chat interface |
 | Self-hosted (Docker) | HIGH | ✅ Ready | Docker configs in repo, docs available |
-| **MCP Remote Server** | HIGH | ✅ **DEPLOYED** | https://pip.arcforge.au - works with Claude.ai + ChatGPT |
+| **MCP Remote Server** | HIGH | ✅ **DEPLOYED** | https://mcp.pip.arcforge.au - works with Claude.ai + ChatGPT |
 | **ChatGPT App** | HIGH | 🔵 Testing | Same MCP server, ChatGPT Apps SDK integration |
 | iOS App Store | LOW | Future | Evaluate after 6 months based on adoption |
 | Google Play Store | LOW | Future | Evaluate after 6 months based on adoption |
 
 **MCP-First Distribution Strategy (2025-11-29)**: Major pivot to distribute Pip as a Remote MCP Server. Users connect from their Claude.ai or ChatGPT subscription - we provide Xero tools + Pip personality, they provide LLM inference. **$0 LLM costs for Arc Forge.** See `docs/research-notes/SPIKE-pip-inside-claude-chatgpt.md`.
 
-**MCP Remote Server (pip.arcforge.au)**:
-- **Live URL**: https://pip.arcforge.au/sse
-- **Health**: https://pip.arcforge.au/health
+**MCP Remote Server (mcp.pip.arcforge.au)**:
+- **Live URL**: https://mcp.pip.arcforge.au/sse
+- **Health**: https://mcp.pip.arcforge.au/health
+- **Login**: https://mcp.pip.arcforge.au/login (get token URL for Claude.ai)
 - **Architecture**: Lazy-loading with 2 meta-tools (90% context reduction)
 - **Categories**: invoices (3), reports (2), banking (2), contacts (2), organisation (1)
 - **Pattern**: `docs/research-notes/PATTERN-lazy-loading-mcp-tools.md`
@@ -111,7 +112,7 @@ Status: Pending validation at Thursday demo
 | Aspect | Status | Notes |
 |--------|--------|-------|
 | Architecture | 🟢 | Open source platform, LLM + database agnostic |
-| Infrastructure | 🟢 | **VPS Live** - https://zero.rodda.xyz |
+| Infrastructure | 🟢 | **VPS Live** - https://app.pip.arcforge.au |
 | LLM Abstraction | 🟢 | Provider-agnostic interface (Anthropic + Ollama) |
 | Database Abstraction | 🟢 | SQLite (default) + DynamoDB providers |
 | Agent Foundation | 🟢 | Native tool calling + Xero integration working |
@@ -147,25 +148,25 @@ Status: Pending validation at Thursday demo
 | Server package | ✅ Done | `packages/server` with Express + TypeScript |
 | Docker config | ✅ Done | Dockerfile, docker-compose.yml |
 | VPS integration | ✅ Done | Memory-limited config (384MB) for do-vps-prod |
-| DNS record | ✅ Done | `zero.rodda.xyz` → 170.64.169.203 |
+| DNS record | ✅ Done | `app.pip.arcforge.au` + `mcp.pip.arcforge.au` → 170.64.169.203 |
 | Deploy container | ✅ Done | Built and running on VPS |
 | Caddy config | ✅ Done | Reverse proxy configured, auto-HTTPS |
-| Health check | ✅ Done | https://zero.rodda.xyz/health responding |
+| Health check | ✅ Done | https://app.pip.arcforge.au/health responding |
 | API keys | ✅ Done | Anthropic + Xero credentials configured |
 | Xero OAuth | ✅ Done | Callback URL added to Xero app |
 
-**Live URL**: https://zero.rodda.xyz
+**Live URL**: https://app.pip.arcforge.au
 **Health Status**: ✅ Fully Operational
 **VPS**: production-syd1 (170.64.169.203) - shared with Nextcloud, Joplin, etc.
 **Memory Budget**: 384MB (of ~2.3GB available)
 
 **Endpoints:**
-- Health: `GET https://zero.rodda.xyz/health`
-- Chat: `POST https://zero.rodda.xyz/api/chat`
-- **Documents**: `POST https://zero.rodda.xyz/api/documents/upload` (NEW)
-- **Documents**: `GET https://zero.rodda.xyz/api/documents` (NEW)
-- Xero Auth: `GET https://zero.rodda.xyz/auth/xero`
-- Sessions: `GET https://zero.rodda.xyz/api/sessions`
+- Health: `GET https://app.pip.arcforge.au/health`
+- Chat: `POST https://app.pip.arcforge.au/api/chat`
+- Documents: `POST https://app.pip.arcforge.au/api/documents/upload`
+- Documents: `GET https://app.pip.arcforge.au/api/documents`
+- Xero Auth: `GET https://app.pip.arcforge.au/auth/xero`
+- Sessions: `GET https://app.pip.arcforge.au/api/sessions`
 
 ---
 
@@ -403,7 +404,7 @@ Status: Pending validation at Thursday demo
 
 **User Authentication COMPLETE & DEPLOYED** (2025-11-28):
 - ✅ User authentication implemented (`specs/PLAN-user-authentication.md`)
-- ✅ Deployed to VPS (https://zero.rodda.xyz)
+- ✅ Deployed to VPS (https://app.pip.arcforge.au)
 - Email + Password with invite codes for beta access
 - Per-user data isolation (sessions, documents, Xero connections)
 - JWT tokens with bcrypt password hashing
@@ -421,8 +422,8 @@ Status: Pending validation at Thursday demo
 - ✅ Pip personality via MCP prompts (pip_assistant)
 - ✅ **Lazy-loading implemented**: 2 meta-tools instead of 10 direct tools (90% context reduction)
 - ✅ Multi-tenant session management (session ID per SSE connection)
-- ✅ **Deployed to VPS**: https://pip.arcforge.au
-- ✅ DNS configured: pip.arcforge.au → 170.64.169.203 (DNS Only for SSE)
+- ✅ **Deployed to VPS**: https://mcp.pip.arcforge.au
+- ✅ DNS configured: app.pip.arcforge.au + mcp.pip.arcforge.au → 170.64.169.203
 - ✅ Caddy reverse proxy with auto-HTTPS
 - ✅ Docker container running with shared SQLite volume
 - ✅ **OAuth 2.0 implemented**: Authorization Code flow for Claude.ai integration
@@ -439,20 +440,38 @@ Status: Pending validation at Thursday demo
 
 ### Production (VPS)
 - **Status**: ✅ Live (2 services)
-- **Main App**: https://zero.rodda.xyz (PWA + Chat API)
-- **MCP Server**: https://pip.arcforge.au (Claude.ai/ChatGPT integration)
+- **Main App**: https://app.pip.arcforge.au (PWA + Chat API)
+- **MCP Server**: https://mcp.pip.arcforge.au (Claude.ai/ChatGPT integration)
 - **VPS**: DigitalOcean Sydney (170.64.169.203)
 - **Containers**:
-  - `zero-agent` - Express server + PWA (384MB)
+  - `zero-agent` - Express server + PWA (384MB) - rename to `pip-app` planned
   - `pip-mcp` - MCP remote server (256MB)
 - **Database**: SQLite with daily backups (shared volume)
 - **Cost**: $0/month (shared droplet)
 
-### MCP Server (pip.arcforge.au)
-- **SSE Endpoint**: https://pip.arcforge.au/sse
-- **Health Check**: https://pip.arcforge.au/health
+### Domain Naming Convention (2025-11-29)
+Scalable structure for Arc Forge products:
+```
+{product}.arcforge.au          → Landing page (future)
+app.{product}.arcforge.au      → Main application (PWA)
+mcp.{product}.arcforge.au      → MCP server
+api.{product}.arcforge.au      → API (if separate)
+```
+
+**Current Pip domains**:
+- `app.pip.arcforge.au` → Main PWA
+- `mcp.pip.arcforge.au` → MCP server for Claude.ai/ChatGPT
+
+**Legacy redirects** (will be removed):
+- `zero.rodda.xyz` → redirects to `app.pip.arcforge.au`
+- `pip.arcforge.au` → redirects to `mcp.pip.arcforge.au`
+
+### MCP Server (mcp.pip.arcforge.au)
+- **SSE Endpoint**: https://mcp.pip.arcforge.au/sse
+- **Health Check**: https://mcp.pip.arcforge.au/health
+- **Login**: https://mcp.pip.arcforge.au/login (get personal token URL)
 - **Architecture**: Lazy-loading (2 meta-tools → 10 underlying tools)
-- **Connect from Claude.ai**: Settings → Integrations → Add Custom Integration
+- **Connect from Claude.ai**: Get URL from /login, paste into Add Custom Integration
 
 ### Self-Hosted
 - **Status**: ✅ Available
