@@ -152,8 +152,59 @@
 
 1. **Onboard beta users** - Share with trusted users for feedback
 2. **Monitor production** - Watch for errors, memory usage
-3. **Iterate on UX** - Based on user feedback
-4. **Consider simplifying memory** - Adopt Anthropic's ~350 line pattern if maintenance burden grows
+3. **Full planning session** - Interactive Q&A with agent, new blueprint, refresh PROGRESS.md
+
+---
+
+## Feature Backlog (2025-11-30 Night)
+
+*Captured for tomorrow's planning session.*
+
+### 1. Automatic Memory Management
+- Memory should "just work" like Anthropic's MCP Memory Server
+- Seamless - no explicit management needed by user
+- LLM extracts facts automatically, server stores them
+- Currently requires explicit `add_memory` calls - should be automatic
+
+### 2. Chat History (like Claude.ai)
+- Persistent conversation history across sessions
+- Sidebar showing past chats
+- Ability to continue previous conversations
+- Currently: No chat history in MCP mode
+
+### 3. Projects Feature (Isolated Context)
+- Like Claude.ai's Projects
+- Separate knowledge bases per project/client
+- Isolated memory and context per project
+- Use case: Different Xero orgs, different business contexts
+
+### 4. Per-Chat Document Upload
+- Plus icon (+) in chat to add documents to THIS conversation
+- Replace current global context upload
+- More intuitive UX - documents relevant to current chat
+- Global preferences/context: defer and test later
+
+### 5. Pip's Voice/Personality
+Two character options (switchable in settings):
+
+**Option A: Adelaide Bookkeeper**
+- Smart young woman from Adelaide
+- Knows the books, keeps it simple
+- Professional but approachable
+- Target avatar: Sam (our customer persona)
+
+**Option B: Pip from LOTR**
+- Fun, endearing character inspired by Pippin
+- Somehow great at bookkeeping (unexplained)
+- Playful but competent
+- More personality-driven
+
+**UX**: Toggle in settings or via chat command
+
+### 6. Deferred Investigations
+- Global preferences vs specific options (test both)
+- Claude.ai-style custom instructions
+- Whether generic or domain-specific settings work better
 
 ---
 

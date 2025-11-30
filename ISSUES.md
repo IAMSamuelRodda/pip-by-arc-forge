@@ -210,6 +210,87 @@
 
 ---
 
+### Future Features (Captured 2025-11-30)
+
+*To be refined in planning session.*
+
+#### issue_011: Automatic Memory Management
+- **Status**: 🔴 Open
+- **Priority**: P1 (High - core UX improvement)
+- **Component**: `packages/mcp-remote-server`
+- **Description**: Memory should "just work" without explicit tool calls. LLM extracts facts automatically, server stores them seamlessly.
+- **Current State**: Requires explicit `add_memory` calls
+- **Target State**: Like Anthropic's MCP Memory Server - seamless extraction
+- **Acceptance Criteria**:
+  - [ ] Research Anthropic's automatic extraction pattern
+  - [ ] Implement system prompt for fact extraction
+  - [ ] Background memory storage without user awareness
+  - [ ] Memory recalled automatically in relevant contexts
+- **Notes**: Key UX improvement. See Joplin note "Pip Memory Architecture" for research.
+
+#### issue_012: Chat History
+- **Status**: 🔴 Open
+- **Priority**: P1 (High - expected feature)
+- **Component**: `packages/mcp-remote-server`, `packages/pwa-app`
+- **Description**: Persistent conversation history like Claude.ai
+- **Acceptance Criteria**:
+  - [ ] Store chat sessions in SQLite
+  - [ ] Sidebar showing past conversations
+  - [ ] Continue previous conversations
+  - [ ] Per-user isolation
+- **Notes**: Standard feature in AI chat interfaces. Users expect this.
+
+#### issue_013: Projects Feature (Isolated Context)
+- **Status**: 🔴 Open
+- **Priority**: P2 (Medium - power user feature)
+- **Component**: `packages/mcp-remote-server`, `packages/pwa-app`
+- **Description**: Like Claude.ai Projects - separate knowledge bases per project/client
+- **Use Cases**:
+  - Different Xero organizations
+  - Different business contexts
+  - Client isolation for accountants
+- **Acceptance Criteria**:
+  - [ ] Project CRUD operations
+  - [ ] Project-specific memory isolation
+  - [ ] Project-specific document context
+  - [ ] Project selector in UI
+- **Notes**: Power user feature. May be premium tier.
+
+#### issue_014: Per-Chat Document Upload
+- **Status**: 🔴 Open
+- **Priority**: P2 (Medium - UX improvement)
+- **Component**: `packages/pwa-app`
+- **Description**: Plus icon (+) to add documents to current conversation, replacing global context upload
+- **Current State**: Documents uploaded globally
+- **Target State**: Documents attached per-chat (like Claude.ai)
+- **Acceptance Criteria**:
+  - [ ] Plus icon in chat input
+  - [ ] Document picker/upload
+  - [ ] Document context for current conversation only
+  - [ ] Visual indicator of attached documents
+- **Notes**: More intuitive UX. Global preferences deferred for later testing.
+
+#### issue_015: Pip's Voice/Personality
+- **Status**: 🔴 Open
+- **Priority**: P2 (Medium - brand differentiation)
+- **Component**: `packages/mcp-remote-server` (system prompt)
+- **Description**: Define Pip's character voice. Two options to test:
+- **Option A - Adelaide Bookkeeper**:
+  - Smart young woman from Adelaide
+  - Professional but approachable
+  - Keeps it simple for Sam (target customer)
+- **Option B - Pippin (LOTR-inspired)**:
+  - Fun, endearing character
+  - Somehow great at bookkeeping
+  - Playful but competent
+- **Acceptance Criteria**:
+  - [ ] Define system prompts for both voices
+  - [ ] Settings toggle to switch voices
+  - [ ] A/B test with users
+- **Notes**: Current "G'day! I'm Pip" is too casual. Need defined personality.
+
+---
+
 ## Flagged Items (From Blueprint Assessment)
 
 Items flagged by `improving-plans` skill as requiring decomposition or spike tasks before implementation.
