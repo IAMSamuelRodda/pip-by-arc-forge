@@ -1262,11 +1262,13 @@ app.get("/oauth/authorize", (req: Request, res: Response) => {
       color: #7eb88e;
       margin-bottom: 0.5rem;
       font-size: 1.5rem;
+      text-align: center;
     }
     .subtitle {
       color: #999;
       margin-bottom: 1.5rem;
       font-size: 0.9rem;
+      text-align: center;
     }
     .tabs {
       display: flex;
@@ -1334,13 +1336,6 @@ app.get("/oauth/authorize", (req: Request, res: Response) => {
       background: rgba(229, 115, 115, 0.1);
       border-radius: 4px;
     }
-    .logo {
-      text-align: center;
-      margin-bottom: 1rem;
-    }
-    .logo span {
-      font-size: 2rem;
-    }
     .form-panel {
       display: none;
     }
@@ -1356,7 +1351,6 @@ app.get("/oauth/authorize", (req: Request, res: Response) => {
 </head>
 <body>
   <div class="container">
-    <div class="logo"><span>🤖</span></div>
     <h1>Connect Pip to Claude</h1>
     <p class="subtitle">Access your Xero data through Claude</p>
 
