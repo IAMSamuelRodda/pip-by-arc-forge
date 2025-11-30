@@ -3,8 +3,8 @@
 > **Purpose**: Detailed project tracking with milestones, epics, features, and tasks
 > **Lifecycle**: Living (update on task completion, status changes)
 
-**Last Updated**: 2025-11-30 (EOD)
-**Current Phase**: Memory Stack + Safety Hardening
+**Last Updated**: 2025-11-30 (Evening)
+**Current Phase**: Memory Testing & ChatGPT Verification
 
 ---
 
@@ -12,10 +12,10 @@
 
 | Metric | Value |
 |--------|-------|
-| Current Focus | Mem0 Memory Stack + Safety Guardrails |
-| Phase | Memory Stack + Safety Hardening |
+| Current Focus | Memory tool testing + ChatGPT verification |
+| Phase | Memory Testing & ChatGPT Verification |
 | Milestones Complete | 1/3 (Core Platform) |
-| Overall | MCP validated, implementing Mem0 memory layer |
+| Overall | MCP deployed with memory stack, awaiting testing |
 
 ### Architecture Direction (2025-11-30)
 
@@ -260,29 +260,31 @@ const memory = new Memory({
 
 #### feature_1_4_1: Mem0 Integration
 
-**Status**: 🟡 Blocked (Architecture Decision Required)
+**Status**: 🟢 Deployed (Testing Required)
 
 | Task | Status | Notes |
 |------|--------|-------|
 | Install mem0ai package | ✅ Done | v2.1.38 installed |
-| Configure Memory instance | ✅ Done | In-memory vector + SQLite history |
-| Add memory tools to MCP | ✅ Done | 5 tools: add, search, list, delete, clear_all |
+| Configure Memory instance | ✅ Done | Ollama embeddings + SQLite history |
+| Add memory tools to MCP | ✅ Done | 4 tools: add, search, list, delete |
 | User isolation (multi-tenant) | ✅ Done | userId param per memory operation |
-| **Architecture decision** | ⚠️ DECISION NEEDED | See issue_008 in ISSUES.md |
+| Architecture decision | ✅ Done | A/B testing implemented (issue_008 resolved) |
+| Deploy to production | ✅ Done | Option A (mem0) deployed |
+| **Test via Claude.ai** | ⚪ NEXT | Memory tools need verification |
+| **Test via ChatGPT** | ⚪ NEXT | Dev Mode compatibility check |
 
-**Memory Tools Implemented**:
+**Memory Tools Deployed**:
 - `add_memory`: Store user preferences, goals, business context
 - `search_memory`: Semantic search across memories
 - `list_memories`: View all stored memories
 - `delete_memory`: Remove specific memory by ID
-- `clear_all_memories`: Reset all memories (with confirmation)
 
-**Current Configuration** (may change based on decision):
+**Production Configuration** (Option A - mem0):
 - Vector store: in-memory (no external DB needed)
 - History: SQLite at `/app/data/pip-memory.db`
-- Embeddings: OpenAI text-embedding-3-small
-- LLM: OpenAI gpt-4o-mini for memory extraction
-- Requires: `OPENAI_API_KEY` environment variable
+- Embeddings: Ollama nomic-embed-text (local on VPS)
+- LLM: Claude (via user's Claude.ai/ChatGPT subscription)
+- Ollama: Running as systemd service on VPS
 
 #### Architecture Research (2025-11-30) - COMPLETE
 
@@ -355,15 +357,19 @@ Deep research into alternative memory architectures. Key findings:
 
 ### Epic 1.5: Landing Page
 
-**Status**: ⚪ Not Started
-**Priority**: MEDIUM (after safety + memory import)
+**Status**: ✅ Complete
+**Completed**: 2025-11-30
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Create pip.arcforge.au | ⚪ Pending | |
-| What is Pip section | ⚪ Pending | One-liner + value prop |
-| How to use section | ⚪ Pending | Claude.ai / ChatGPT / PWA options |
-| Arc Forge branding | ⚪ Pending | Dark theme |
+| Create pip.arcforge.au | ✅ Done | Deployed to VPS |
+| What is Pip section | ✅ Done | "The Books in Plain English" |
+| Demo chat section | ✅ Done | Interactive demo UI |
+| Features section | ✅ Done | Invoices, Reports, Contacts |
+| Pricing section | ✅ Done | Free (Beta) + subscription requirements |
+| Arc Forge branding | ✅ Done | Dark theme with JetBrains Mono |
+
+**URL**: https://pip.arcforge.au
 
 ---
 
@@ -395,6 +401,34 @@ The Thursday demo with dental practice owner has been completed. Demo materials 
 ---
 
 ## Progress Changelog
+
+### 2025-11-30 (Evening) - Full Deployment & Claude.ai Verification
+
+**Deployment Complete**:
+- Memory-enabled MCP container deployed with `MEMORY_VARIANT=mem0`
+- Ollama accessible from container via `host.docker.internal`
+- Landing page live at pip.arcforge.au
+- All three services healthy: pip.arcforge.au, app.pip.arcforge.au, mcp.pip.arcforge.au
+
+**Claude.ai Integration Fixes**:
+- OAuth debounce prevents double-submit race condition
+- Session persistence (60s keep-alive after SSE close)
+- Login button UX: loading state + disabled on click
+- user_settings table migration added
+- **Xero tools verified working** (get_invoices tested successfully)
+
+**Bug Fixes**:
+- OAuth double-code generation fixed (caused "Invalid authorization" error)
+- MCP session expiring before tool calls fixed
+- Missing database table created (user_settings)
+
+**Next Steps**:
+1. Test memory tools via Claude.ai
+2. Test memory tools via ChatGPT Dev Mode
+3. If Option A fails: Switch to Option B (`MEMORY_VARIANT=native`)
+4. Document A/B comparison results
+
+---
 
 ### 2025-11-30 (EOD) - Memory Architecture Deep Research
 

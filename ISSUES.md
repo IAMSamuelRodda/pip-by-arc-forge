@@ -34,39 +34,25 @@
 ### Priority Decisions
 
 #### issue_008: Memory Architecture Decision
-- **Status**: ⚠️ Flagged (Decision Required)
-- **Priority**: P1 (HIGH - blocks memory stack completion)
+- **Status**: ✅ Resolved (A/B architecture implemented, Option A deployed)
+- **Priority**: - (Complete)
 - **Component**: `packages/mcp-remote-server`
 - **Research Complete**: 2025-11-30
+- **Decision Made**: 2025-11-30
 - **Description**: Choose between two memory architectures for Pip
-- **Options**:
-
-| Option | Description | API Cost | ChatGPT Memory | Complexity |
-|--------|-------------|----------|----------------|------------|
-| **A** | Keep mem0 + Claude LLM + Ollama embeddings | ~$0.001/req | No (Dev Mode blocks) | Low (config change) |
-| **B** | MCP-native (Memento-style) | **$0** | **Yes** | Medium (new system) |
-
-- **Option A Details**:
-  - Modify current mem0 config to use Anthropic LLM + Ollama embeddings
-  - Pros: Quick change, keeps mem0's sophisticated extraction pipeline
-  - Cons: Still requires embedding API, ChatGPT memory still broken
-
-- **Option B Details** (Innovative):
-  - Let calling LLM (Claude.ai/ChatGPT) do fact extraction
-  - MCP server just stores/retrieves structured data
-  - Uses local embeddings (BGE-M3 via @xenova/transformers)
-  - Pros: $0 API cost, ChatGPT memory works, aligns with "bring your own LLM" philosophy
-  - Cons: Need to reimplement deduplication/conflict resolution
-  - Validated by: [Memento MCP Server](https://github.com/iachilles/memento)
-
-- **Decision Criteria**:
-  - [ ] Do we prioritize ChatGPT Plus users having working memory?
-  - [ ] Is $0 API cost worth the implementation effort?
-  - [ ] Does "users bring their own LLM" philosophy extend to memory extraction?
-
+- **Resolution**:
+  - **Implemented A/B testing architecture** with `MEMORY_VARIANT` env var
+  - **Option A (mem0)**: Deployed to production with Ollama embeddings
+  - **Option B (native)**: Available via config switch if needed
+  - **Next**: Test both options to determine best approach
+- **Technical Details**:
+  - `MEMORY_VARIANT=mem0` - Uses mem0ai with Ollama nomic-embed-text
+  - `MEMORY_VARIANT=native` - Uses @xenova/transformers for local embeddings
+  - Ollama running on VPS as systemd service
+  - Memory tools exposed: add_memory, search_memory, list_memories, delete_memory
 - **Research Reference**:
+  - Spec: `specs/BLUEPRINT-feature-memory-ab-testing-20251130.yaml`
   - Joplin: "Pip Memory Architecture Deep Research (2025-11-30)"
-  - Web: [Memento](https://github.com/iachilles/memento), [MCP Architecture](https://modelcontextprotocol.io/docs/learn/architecture)
 
 ---
 
@@ -110,20 +96,26 @@
 - **Resolution**: All safety guardrails implemented. Users can configure permission levels via PWA settings page.
 
 #### issue_005: ChatGPT Memory Disabled in Developer Mode
-- **Status**: 🟡 In Progress (Spike complete, implementation ready)
-- **Priority**: P1 (High - blocks memory features)
+- **Status**: 🟡 In Progress (Memory deployed, testing needed)
+- **Priority**: P1 (High - verification pending)
 - **Component**: External (ChatGPT limitation) + `packages/mcp-remote-server`
 - **Description**: ChatGPT disables memory when MCP connectors are used in Developer Mode
-- **Solution**: Use official `mem0ai` npm package (spike_mem0 complete)
-- **ChatGPT Business Option**: Published connectors MAY retain memory (UNVERIFIED)
+- **Solution**: Use official `mem0ai` npm package with Ollama embeddings
+- **Current State** (2025-11-30):
+  - Memory tools deployed to production (Option A - mem0)
+  - Ollama running on VPS with nomic-embed-text model
+  - Claude.ai Xero tools verified working
+  - **Pending**: Memory tool testing via both Claude.ai and ChatGPT
 - **Acceptance Criteria**:
   - [x] Research memory approaches (mem0, SQLite, vector DB) - spike_mem0 COMPLETE
-  - [ ] Install mem0ai and configure with in-memory + SQLite
-  - [ ] Add memory extraction + injection to MCP
-  - [ ] Create memory import endpoint
+  - [x] Install mem0ai and configure with Ollama embeddings - DEPLOYED
+  - [x] Add memory tools to MCP - DEPLOYED (add, search, list, delete)
+  - [ ] **Test memory tools via Claude.ai** - NEXT
+  - [ ] **Test memory tools via ChatGPT Dev Mode** - NEXT
+  - [ ] If Option A fails: Switch to Option B (native embeddings)
   - [ ] Add memory management UI to PWA
 - **Notes**: Memory stack enables "Pip knows me" for Plus users and cross-platform memory portability.
-- **Reference**: docs/CHATGPT-MEMORY-GUIDE.md, docs/research-notes/SPIKE-mem0-integration.md
+- **Reference**: docs/CHATGPT-MEMORY-GUIDE.md, specs/BLUEPRINT-feature-memory-ab-testing-20251130.yaml
 
 #### issue_006: Google Docs Integration
 - **Status**: 🔴 Open

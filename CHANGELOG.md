@@ -10,11 +10,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Mem0 memory tools**: 5 MCP tools implemented (add, search, list, delete, clear_all)
-- **Memory service**: Using `mem0ai` v2.1.38 with in-memory vector + SQLite history
-- **System prompt update**: Memory guidelines for Pip personality
+- **Landing page**: pip.arcforge.au with demo chat UI, features, and pricing sections
+- **Memory A/B architecture**: `MEMORY_VARIANT` env var for switching between mem0 and native implementations
+- **Mem0 memory tools**: 4 MCP tools deployed (add, search, list, delete)
+- **Memory service**: Using `mem0ai` v2.1.38 with Ollama embeddings + SQLite history
+- **VPS Ollama**: Running as systemd service with nomic-embed-text model
 - **ChatGPT memory guide**: docs/CHATGPT-MEMORY-GUIDE.md (export/import instructions)
 - **Repository renamed**: `pip` → `pip-by-arc-forge` (GitHub + local)
+
+### Fixed
+- **OAuth double-submit bug**: Added debounce protection to prevent race conditions
+- **MCP session expiring**: Sessions now kept alive for 60 seconds after SSE close
+- **Missing user_settings table**: Added migration to sqlite.ts
+- **Login button UX**: Added loading state ("Sign In" → "Signing In...") with disabled state
+- **Sign up button UX**: Same loading state pattern applied
+
+### Verified
+- **Claude.ai Xero tools**: All 10 tools working (get_invoices tested successfully)
+- **Full deployment**: All three services healthy (pip.arcforge.au, app.pip.arcforge.au, mcp.pip.arcforge.au)
 
 ### Researched
 - **spike_mem0** (COMPLETE): Mem0 Integration Feasibility
@@ -22,18 +35,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Key discovery: Official TypeScript SDK with full API parity
   - Resource impact: ~100-200MB RAM, fits 384MB VPS
   - Decision document: `docs/research-notes/SPIKE-mem0-integration.md`
-- **Memory architecture deep research** (2025-11-30):
-  - Option A: mem0 + Claude LLM + Ollama embeddings (~$0.001/req)
-  - Option B: MCP-native Memento-style ($0, ChatGPT memory works)
-  - Decision pending: issue_008 in ISSUES.md
+- **Memory architecture decision** (RESOLVED):
+  - Option A (mem0 + Ollama): Deployed to production
+  - Option B (native): Available via config switch
+  - A/B testing architecture implemented
 - **Architecture direction adopted**:
   - USE: Mem0 (memory) + Lazy-MCP (tools)
   - SKIP: LangChain (obsolete), traditional RAG
   - DEFER: LangGraph (only if complex approval flows needed)
 
+### Pending Testing
+- Memory tools via Claude.ai
+- Memory tools via ChatGPT Dev Mode
+- A/B comparison results
+
 ### Planned
-- Safety Guardrails implementation (tiered permissions)
-- Landing page at pip.arcforge.au
 - Google Docs integration (issue_006)
 - Nextcloud integration (issue_007)
 
