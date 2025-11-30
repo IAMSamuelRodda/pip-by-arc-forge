@@ -31,6 +31,7 @@ import {
 import * as xeroTools from "./handlers/xero-tools.js";
 import { getXeroStatus } from "./services/xero.js";
 import * as memoryService from "./services/memory.js";
+import * as safetyService from "./services/safety.js";
 
 // Types
 interface Session {
@@ -427,10 +428,10 @@ function createMcpServer(userId?: string): Server {
   server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToolResult> => {
     const { name, arguments: args } = request.params;
 
-    // Meta-tool: get_tools_in_category (doesn't require auth)
+    // Meta-tool: get_tools_in_category (filter based on permission level)
     if (name === "get_tools_in_category") {
       const category = (args as { category: string }).category;
-      const categoryTools = toolRegistry.filter((t) => t.category === category);
+      let categoryTools = toolRegistry.filter((t) => t.category === category);
 
       if (categoryTools.length === 0) {
         return {
@@ -441,6 +442,28 @@ function createMcpServer(userId?: string): Server {
             },
           ],
           isError: true,
+        };
+      }
+
+      // Filter tools based on user's permission level
+      if (userId) {
+        const visibleToolNames = await safetyService.getVisibleTools(
+          userId,
+          categoryTools.map((t) => t.name)
+        );
+        categoryTools = categoryTools.filter((t) => visibleToolNames.includes(t.name));
+      }
+
+      // If all tools in category are filtered out due to permissions
+      if (categoryTools.length === 0) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `No tools available in the "${category}" category at your current permission level. ` +
+                `You may need to enable higher permissions in Pip settings to access these tools.`,
+            },
+          ],
         };
       }
 
@@ -533,6 +556,20 @@ function createMcpServer(userId?: string): Server {
       if (isMemoryTool) {
         return await executeMemoryTool(userId!, tool_name, toolArgs || {});
       } else {
+        // Check permission level for Xero tools
+        const permissionCheck = await safetyService.checkToolPermission(userId!, tool_name);
+        if (!permissionCheck.allowed) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: safetyService.formatPermissionError(permissionCheck),
+              },
+            ],
+            isError: true,
+          };
+        }
+
         return await executeXeroTool(userId!, tool_name, toolArgs || {});
       }
     }

@@ -854,4 +854,36 @@ export class DynamoDBProvider implements DatabaseProvider {
   async listInviteCodes(): Promise<any[]> {
     throw new Error("Invite code operations not implemented in DynamoDB provider. Use SQLite.");
   }
+
+  // ============================================================================
+  // Safety Settings Operations (Not implemented - use SQLite for now)
+  // ============================================================================
+
+  async getUserSettings(_userId: string): Promise<any> {
+    throw new Error("Safety settings not implemented in DynamoDB provider. Use SQLite.");
+  }
+
+  async upsertUserSettings(_settings: any): Promise<any> {
+    throw new Error("Safety settings not implemented in DynamoDB provider. Use SQLite.");
+  }
+
+  // ============================================================================
+  // Operation Snapshot Operations (Not implemented - use SQLite for now)
+  // ============================================================================
+
+  async createOperationSnapshot(_snapshot: any): Promise<any> {
+    throw new Error("Operation snapshot not implemented in DynamoDB provider. Use SQLite.");
+  }
+
+  async getOperationSnapshot(_id: string): Promise<any> {
+    throw new Error("Operation snapshot not implemented in DynamoDB provider. Use SQLite.");
+  }
+
+  async updateOperationSnapshot(_id: string, _updates: any): Promise<any> {
+    throw new Error("Operation snapshot not implemented in DynamoDB provider. Use SQLite.");
+  }
+
+  async listOperationSnapshots(_userId: string, _options?: any): Promise<any[]> {
+    throw new Error("Operation snapshot not implemented in DynamoDB provider. Use SQLite.");
+  }
 }

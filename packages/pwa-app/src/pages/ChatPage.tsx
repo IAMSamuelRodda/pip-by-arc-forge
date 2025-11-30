@@ -194,6 +194,13 @@ export function ChatPage() {
                 {user?.name || user?.email?.split('@')[0] || 'User'}
               </span>
               <button
+                onClick={() => navigate('/settings')}
+                className="text-sm px-2 py-1 text-arc-text-dim hover:text-arc-text-secondary transition-colors"
+                title="Settings"
+              >
+                Settings
+              </button>
+              <button
                 onClick={handleLogout}
                 className="text-sm px-2 py-1 text-arc-text-dim hover:text-arc-text-secondary transition-colors"
                 title="Sign out"
