@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { ChatPage } from './pages/ChatPage';
 import { LoginPage } from './pages/LoginPage';
 import { SignupPage } from './pages/SignupPage';
+import { SettingsPage } from './pages/SettingsPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useAuthStore } from './store/authStore';
 
@@ -26,6 +27,14 @@ function App() {
         element={
           <ProtectedRoute>
             <ChatPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <SettingsPage />
           </ProtectedRoute>
         }
       />

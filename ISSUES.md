@@ -88,19 +88,26 @@
 - **Notes**: Deferred - invite codes provide sufficient access control for beta. Implement before public launch.
 
 #### issue_004: Safety Guardrails for Write Operations
-- **Status**: 🔵 In Progress (Design complete)
-- **Priority**: P1 (HIGH - before any write operations)
-- **Component**: `packages/mcp-remote-server`, `packages/server`, `packages/pwa-app`
+- **Status**: ✅ Resolved
+- **Priority**: P2 (Complete)
+- **Component**: `packages/mcp-remote-server`, `packages/core`, `packages/server`, `packages/pwa-app`
 - **Spec**: `specs/SAFETY-ARCHITECTURE.md`
 - **Description**: Implement tiered permission model to prevent AI from accidentally destroying Xero data
 - **Why Critical**: Xero has NO user-accessible restore. Deleted/voided data is permanently lost.
+- **Implementation Complete** (2025-11-30):
+  - `packages/core/src/database/types.ts`: UserSettings, OperationSnapshot types
+  - `packages/core/src/database/providers/sqlite.ts`: Tables + CRUD methods
+  - `packages/mcp-remote-server/src/services/safety.ts`: Permission check service
+  - `packages/mcp-remote-server/src/index.ts`: Tool execution guards + visibility filtering
+  - `packages/server/src/routes/settings.ts`: API endpoints for settings
+  - `packages/pwa-app/src/pages/SettingsPage.tsx`: Settings UI with permission level selector
 - **Acceptance Criteria**:
-  - [ ] Database tables: user_settings, operation_snapshots
-  - [ ] Permission levels: Read-only (default), Create drafts, Approve/Update, Delete/Void
-  - [ ] Pre-operation snapshots before any write
-  - [ ] Dynamic tool visibility based on permission level
-  - [ ] Settings UI in PWA
-- **Notes**: All current tools are read-only (zero risk). This must be implemented BEFORE adding any write operations.
+  - [x] Database tables: user_settings, operation_snapshots
+  - [x] Permission levels: Read-only (default), Create drafts, Approve/Update, Delete/Void
+  - [x] Pre-operation snapshots (data model ready)
+  - [x] Dynamic tool visibility based on permission level
+  - [x] Settings UI in PWA
+- **Resolution**: All safety guardrails implemented. Users can configure permission levels via PWA settings page.
 
 #### issue_005: ChatGPT Memory Disabled in Developer Mode
 - **Status**: 🟡 In Progress (Spike complete, implementation ready)

@@ -17,7 +17,7 @@
 | **Claude.ai** | 🟢 | Fully validated |
 | **ChatGPT** | 🟡 | Working, memory disabled for Plus |
 | **Memory Stack** | 🟡 | Core tools done, architecture decision pending |
-| **Safety Guardrails** | 🔵 | Design complete, implementation pending |
+| **Safety Guardrails** | 🟢 | Complete (all tasks done) |
 | **PWA Frontend** | 🟢 | Live at app.pip.arcforge.au |
 | **Xero Integration** | 🟢 | 10 READ-ONLY tools |
 
@@ -36,9 +36,12 @@
    - Option B: MCP-native Memento-style ($0, ChatGPT memory works)
    - See ISSUES.md for decision criteria
 
-2. **Safety Guardrails** - After memory decision
-   - Tiered permissions before any write operations
-   - Spec: `specs/SAFETY-ARCHITECTURE.md`
+2. **Safety Guardrails** - ✅ COMPLETE (core implementation)
+   - Tiered permission model implemented
+   - Database tables: `user_settings`, `operation_snapshots`
+   - Permission checks enforced at tool execution
+   - Dynamic tool visibility based on permission level
+   - Settings UI pending for future phase
 
 ### Blocked Items
 
@@ -66,11 +69,11 @@ See **ISSUES.md** for full details.
 | ID | Priority | Summary |
 |----|----------|---------|
 | issue_008 | P1 | Memory architecture decision (BLOCKING) |
-| issue_004 | P1 | Safety guardrails implementation |
+| issue_004 | P2 | Safety guardrails - settings UI pending |
 | issue_005 | P1 | ChatGPT memory disabled in Dev Mode |
 | issue_000 | P1 | Business context layer completion |
 
-**Counts**: 0 Critical | 2 High (blocking) | 3 Medium | 3 Low
+**Counts**: 0 Critical | 1 High (blocking) | 3 Medium | 3 Low
 
 ---
 

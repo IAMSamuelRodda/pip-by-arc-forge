@@ -115,6 +115,63 @@ export interface InviteCode {
 }
 
 // ============================================================================
+// Safety Guardrails
+// ============================================================================
+
+/**
+ * Permission Level
+ * Controls what operations a user can perform
+ * - 0: Read-only (default) - only get_* and search_* tools
+ * - 1: Create drafts - can create DRAFT invoices/contacts
+ * - 2: Approve/update - can approve, update (requires confirmation)
+ * - 3: Delete/void - can void/delete (requires confirmation + delay)
+ */
+export type PermissionLevel = 0 | 1 | 2 | 3;
+
+export const PERMISSION_LEVEL_NAMES: Record<PermissionLevel, string> = {
+  0: "Read-Only",
+  1: "Create Drafts",
+  2: "Approve & Update",
+  3: "Delete & Void",
+};
+
+/**
+ * User Settings
+ * Stores user preferences including safety settings
+ */
+export interface UserSettings {
+  userId: string;
+  permissionLevel: PermissionLevel;
+  requireConfirmation: boolean;
+  dailyEmailSummary: boolean;
+  require2FA: boolean;
+  vacationModeUntil?: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/**
+ * Operation Snapshot
+ * Captures state before write operations for audit trail
+ */
+export interface OperationSnapshot {
+  id: string;
+  userId: string;
+  operationType: string;
+  permissionLevel: PermissionLevel;
+  entityType: string;
+  entityId?: string;
+  beforeState?: Record<string, unknown>;
+  afterState?: Record<string, unknown>;
+  requestedBy: "agent" | "user";
+  status: "pending" | "confirmed" | "executed" | "failed" | "cancelled";
+  errorMessage?: string;
+  createdAt: number;
+  confirmedAt?: number;
+  executedAt?: number;
+}
+
+// ============================================================================
 // Query Filters
 // ============================================================================
 
@@ -220,6 +277,16 @@ export interface DatabaseProvider {
   getInviteCode(code: string): Promise<InviteCode | null>;
   useInviteCode(code: string, userId: string): Promise<void>;
   listInviteCodes(): Promise<InviteCode[]>;
+
+  // Safety settings operations
+  getUserSettings(userId: string): Promise<UserSettings | null>;
+  upsertUserSettings(settings: Partial<UserSettings> & { userId: string }): Promise<UserSettings>;
+
+  // Operation snapshot operations (audit trail)
+  createOperationSnapshot(snapshot: Omit<OperationSnapshot, "id" | "createdAt">): Promise<OperationSnapshot>;
+  getOperationSnapshot(id: string): Promise<OperationSnapshot | null>;
+  updateOperationSnapshot(id: string, updates: Partial<OperationSnapshot>): Promise<OperationSnapshot>;
+  listOperationSnapshots(userId: string, options?: { limit?: number; status?: OperationSnapshot["status"] }): Promise<OperationSnapshot[]>;
 }
 
 // ============================================================================

@@ -43,6 +43,14 @@ interface DocumentListItem {
   createdAt: number;
 }
 
+interface UserSettings {
+  permissionLevel: 0 | 1 | 2 | 3;
+  requireConfirmation: boolean;
+  dailyEmailSummary: boolean;
+  require2FA: boolean;
+  vacationModeUntil?: number;
+}
+
 export const api = {
   /**
    * Send a chat message
@@ -147,5 +155,37 @@ export const api = {
     if (!response.ok) {
       throw new Error('Failed to delete document');
     }
+  },
+
+  /**
+   * Get user settings
+   */
+  async getSettings(): Promise<{ settings: UserSettings }> {
+    const response = await fetch(`${API_BASE}/api/settings`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to get settings');
+    }
+    return response.json();
+  },
+
+  /**
+   * Update user settings
+   */
+  async updateSettings(settings: Partial<UserSettings>): Promise<{ settings: UserSettings }> {
+    const response = await fetch(`${API_BASE}/api/settings`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify(settings),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Update failed' }));
+      throw new Error(error.error || 'Failed to update settings');
+    }
+    return response.json();
   },
 };

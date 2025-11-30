@@ -157,9 +157,9 @@ Claude API (direct, with tool calling)
 
 ---
 
-### Epic 1.3: Safety Guardrails (NEW PRIORITY)
+### Epic 1.3: Safety Guardrails
 
-**Status**: 🔵 In Progress
+**Status**: ✅ Complete
 **Priority**: HIGH (before adding any write operations)
 **Spec**: `specs/SAFETY-ARCHITECTURE.md`
 
@@ -168,17 +168,25 @@ Claude API (direct, with tool calling)
 | Task | Status | Notes |
 |------|--------|-------|
 | Design safety architecture | ✅ Done | specs/SAFETY-ARCHITECTURE.md |
-| Add `user_settings` table | ⚪ Pending | permission_level column |
-| Add `operation_snapshots` table | ⚪ Pending | Pre-operation state capture |
-| Implement permission checks | ⚪ Pending | Tool router validation |
-| Add settings UI to PWA | ⚪ Pending | Permission level selector |
-| Dynamic tool visibility | ⚪ Pending | Hide write tools based on level |
+| Add `user_settings` table | ✅ Done | permission_level, vacation_mode, etc. |
+| Add `operation_snapshots` table | ✅ Done | Pre-operation state capture |
+| Implement permission checks | ✅ Done | Safety service in MCP server |
+| Dynamic tool visibility | ✅ Done | Tools filtered by permission level |
+| Add settings UI to PWA | ✅ Done | /settings route with level selector |
 
-**Permission Levels**:
+**Permission Levels** (enforced at tool execution):
 - **Level 0 (Default)**: Read-only - current 10 tools, zero risk
 - **Level 1**: Create drafts - new invoices/contacts as DRAFT only
 - **Level 2**: Approve/update - requires confirmation dialog
 - **Level 3**: Delete/void - requires per-operation confirmation + delay
+
+**Implementation Complete**:
+- `packages/core/src/database/types.ts`: UserSettings, OperationSnapshot types
+- `packages/core/src/database/providers/sqlite.ts`: New tables + CRUD methods
+- `packages/mcp-remote-server/src/services/safety.ts`: Permission check service
+- `packages/mcp-remote-server/src/index.ts`: Tool execution guards + visibility filtering
+- `packages/server/src/routes/settings.ts`: API endpoints for settings
+- `packages/pwa-app/src/pages/SettingsPage.tsx`: Settings UI with permission level selector
 
 ---
 

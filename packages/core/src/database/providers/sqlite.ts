@@ -21,6 +21,9 @@ import type {
   MemoryFilter,
   User,
   InviteCode,
+  UserSettings,
+  OperationSnapshot,
+  PermissionLevel,
 } from "../types.js";
 import {
   ConnectionError,
@@ -1229,6 +1232,270 @@ export class SQLiteProvider implements DatabaseProvider {
     } catch (error) {
       throw new DatabaseError(
         "Failed to list invite codes",
+        this.name,
+        error as Error
+      );
+    }
+  }
+
+  // ============================================================================
+  // User Settings Operations (Safety Guardrails)
+  // ============================================================================
+
+  async getUserSettings(userId: string): Promise<UserSettings | null> {
+    if (!this.db) throw new DatabaseError("Database not connected", this.name);
+
+    try {
+      const stmt = this.db.prepare(`
+        SELECT * FROM user_settings WHERE user_id = ?
+      `);
+
+      const row = stmt.get(userId) as any;
+
+      if (!row) return null;
+
+      return {
+        userId: row.user_id,
+        permissionLevel: row.permission_level as PermissionLevel,
+        requireConfirmation: row.require_confirmation === 1,
+        dailyEmailSummary: row.daily_email_summary === 1,
+        require2FA: row.require_2fa === 1,
+        vacationModeUntil: row.vacation_mode_until || undefined,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      };
+    } catch (error) {
+      throw new DatabaseError(
+        `Failed to get user settings for: ${userId}`,
+        this.name,
+        error as Error
+      );
+    }
+  }
+
+  async upsertUserSettings(
+    settings: Partial<UserSettings> & { userId: string }
+  ): Promise<UserSettings> {
+    if (!this.db) throw new DatabaseError("Database not connected", this.name);
+
+    try {
+      const existing = await this.getUserSettings(settings.userId);
+      const now = Date.now();
+
+      const fullSettings: UserSettings = {
+        userId: settings.userId,
+        permissionLevel: settings.permissionLevel ?? existing?.permissionLevel ?? 0,
+        requireConfirmation: settings.requireConfirmation ?? existing?.requireConfirmation ?? true,
+        dailyEmailSummary: settings.dailyEmailSummary ?? existing?.dailyEmailSummary ?? true,
+        require2FA: settings.require2FA ?? existing?.require2FA ?? false,
+        vacationModeUntil: settings.vacationModeUntil ?? existing?.vacationModeUntil,
+        createdAt: existing?.createdAt ?? now,
+        updatedAt: now,
+      };
+
+      const stmt = this.db.prepare(`
+        INSERT OR REPLACE INTO user_settings
+        (user_id, permission_level, require_confirmation, daily_email_summary, require_2fa, vacation_mode_until, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+
+      stmt.run(
+        fullSettings.userId,
+        fullSettings.permissionLevel,
+        fullSettings.requireConfirmation ? 1 : 0,
+        fullSettings.dailyEmailSummary ? 1 : 0,
+        fullSettings.require2FA ? 1 : 0,
+        fullSettings.vacationModeUntil || null,
+        fullSettings.createdAt,
+        fullSettings.updatedAt
+      );
+
+      return fullSettings;
+    } catch (error) {
+      throw new DatabaseError(
+        `Failed to upsert user settings for: ${settings.userId}`,
+        this.name,
+        error as Error
+      );
+    }
+  }
+
+  // ============================================================================
+  // Operation Snapshot Operations (Audit Trail)
+  // ============================================================================
+
+  async createOperationSnapshot(
+    snapshot: Omit<OperationSnapshot, "id" | "createdAt">
+  ): Promise<OperationSnapshot> {
+    if (!this.db) throw new DatabaseError("Database not connected", this.name);
+
+    try {
+      const id = crypto.randomUUID();
+      const now = Date.now();
+
+      const fullSnapshot: OperationSnapshot = {
+        id,
+        ...snapshot,
+        createdAt: now,
+      };
+
+      const stmt = this.db.prepare(`
+        INSERT INTO operation_snapshots
+        (id, user_id, operation_type, permission_level, entity_type, entity_id, before_state, after_state, requested_by, status, error_message, created_at, confirmed_at, executed_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+
+      stmt.run(
+        fullSnapshot.id,
+        fullSnapshot.userId,
+        fullSnapshot.operationType,
+        fullSnapshot.permissionLevel,
+        fullSnapshot.entityType,
+        fullSnapshot.entityId || null,
+        fullSnapshot.beforeState ? JSON.stringify(fullSnapshot.beforeState) : null,
+        fullSnapshot.afterState ? JSON.stringify(fullSnapshot.afterState) : null,
+        fullSnapshot.requestedBy,
+        fullSnapshot.status,
+        fullSnapshot.errorMessage || null,
+        fullSnapshot.createdAt,
+        fullSnapshot.confirmedAt || null,
+        fullSnapshot.executedAt || null
+      );
+
+      return fullSnapshot;
+    } catch (error) {
+      throw new DatabaseError(
+        "Failed to create operation snapshot",
+        this.name,
+        error as Error
+      );
+    }
+  }
+
+  async getOperationSnapshot(id: string): Promise<OperationSnapshot | null> {
+    if (!this.db) throw new DatabaseError("Database not connected", this.name);
+
+    try {
+      const stmt = this.db.prepare(`
+        SELECT * FROM operation_snapshots WHERE id = ?
+      `);
+
+      const row = stmt.get(id) as any;
+
+      if (!row) return null;
+
+      return {
+        id: row.id,
+        userId: row.user_id,
+        operationType: row.operation_type,
+        permissionLevel: row.permission_level as PermissionLevel,
+        entityType: row.entity_type,
+        entityId: row.entity_id || undefined,
+        beforeState: row.before_state ? JSON.parse(row.before_state) : undefined,
+        afterState: row.after_state ? JSON.parse(row.after_state) : undefined,
+        requestedBy: row.requested_by,
+        status: row.status,
+        errorMessage: row.error_message || undefined,
+        createdAt: row.created_at,
+        confirmedAt: row.confirmed_at || undefined,
+        executedAt: row.executed_at || undefined,
+      };
+    } catch (error) {
+      throw new DatabaseError(
+        `Failed to get operation snapshot: ${id}`,
+        this.name,
+        error as Error
+      );
+    }
+  }
+
+  async updateOperationSnapshot(
+    id: string,
+    updates: Partial<OperationSnapshot>
+  ): Promise<OperationSnapshot> {
+    if (!this.db) throw new DatabaseError("Database not connected", this.name);
+
+    try {
+      const existing = await this.getOperationSnapshot(id);
+      if (!existing) {
+        throw new RecordNotFoundError(this.name, "OperationSnapshot", id);
+      }
+
+      const updated: OperationSnapshot = {
+        ...existing,
+        ...updates,
+      };
+
+      const stmt = this.db.prepare(`
+        UPDATE operation_snapshots
+        SET status = ?, error_message = ?, after_state = ?, confirmed_at = ?, executed_at = ?
+        WHERE id = ?
+      `);
+
+      stmt.run(
+        updated.status,
+        updated.errorMessage || null,
+        updated.afterState ? JSON.stringify(updated.afterState) : null,
+        updated.confirmedAt || null,
+        updated.executedAt || null,
+        id
+      );
+
+      return updated;
+    } catch (error) {
+      if (error instanceof RecordNotFoundError) throw error;
+      throw new DatabaseError(
+        `Failed to update operation snapshot: ${id}`,
+        this.name,
+        error as Error
+      );
+    }
+  }
+
+  async listOperationSnapshots(
+    userId: string,
+    options?: { limit?: number; status?: OperationSnapshot["status"] }
+  ): Promise<OperationSnapshot[]> {
+    if (!this.db) throw new DatabaseError("Database not connected", this.name);
+
+    try {
+      let query = `SELECT * FROM operation_snapshots WHERE user_id = ?`;
+      const params: any[] = [userId];
+
+      if (options?.status) {
+        query += ` AND status = ?`;
+        params.push(options.status);
+      }
+
+      query += ` ORDER BY created_at DESC`;
+
+      if (options?.limit) {
+        query += ` LIMIT ?`;
+        params.push(options.limit);
+      }
+
+      const stmt = this.db.prepare(query);
+      const rows = stmt.all(...params) as any[];
+
+      return rows.map((row) => ({
+        id: row.id,
+        userId: row.user_id,
+        operationType: row.operation_type,
+        permissionLevel: row.permission_level as PermissionLevel,
+        entityType: row.entity_type,
+        entityId: row.entity_id || undefined,
+        beforeState: row.before_state ? JSON.parse(row.before_state) : undefined,
+        afterState: row.after_state ? JSON.parse(row.after_state) : undefined,
+        requestedBy: row.requested_by,
+        status: row.status,
+        errorMessage: row.error_message || undefined,
+        createdAt: row.created_at,
+        confirmedAt: row.confirmed_at || undefined,
+        executedAt: row.executed_at || undefined,
+      }));
+    } catch (error) {
+      throw new DatabaseError(
+        `Failed to list operation snapshots for user: ${userId}`,
         this.name,
         error as Error
       );
