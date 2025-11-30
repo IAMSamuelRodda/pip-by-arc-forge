@@ -159,8 +159,8 @@ Once connected, Pip provides these Xero tools:
 
 ```bash
 # 1. Clone and setup
-git clone https://github.com/IAMSamuelRodda/pip.git
-cd pip
+git clone https://github.com/IAMSamuelRodda/pip-by-arc-forge.git
+cd pip-by-arc-forge
 pnpm install
 
 # 2. Configure environment
