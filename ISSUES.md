@@ -138,6 +138,23 @@
   - [ ] Context injection from connected docs
 - **Notes**: Common request - many SMBs use Google Workspace. Consider Google Drive broader integration.
 
+#### issue_009: Interactive Demo Mode with Xero Demo Organisation
+- **Status**: 🔴 Open
+- **Priority**: P2 (Medium - improves landing page conversion)
+- **Component**: `packages/mcp-remote-server`, `landing-page.html`
+- **Description**: Add interactive demo using Xero's demo organisation data so visitors can try Pip without connecting their own Xero
+- **Use Case**: Landing page "See Demo" button could let users ask real questions against sample data, reducing friction to understand value
+- **Research Required**:
+  - [ ] How to access Xero Demo Company API (read-only)
+  - [ ] Can we use a shared demo org or need per-session?
+  - [ ] Rate limits on demo org queries
+- **Acceptance Criteria**:
+  - [ ] "Try Demo" button on landing page
+  - [ ] Pre-authenticated demo session with sample Xero data
+  - [ ] Users can ask questions without sign-up
+  - [ ] Clear indication this is demo data, not their real books
+- **Notes**: Xero provides demo companies for testing. This could dramatically improve landing page conversion by showing real value before sign-up.
+
 #### issue_007: Nextcloud Integration
 - **Status**: 🔴 Open
 - **Priority**: P3 (Low - future enhancement)
