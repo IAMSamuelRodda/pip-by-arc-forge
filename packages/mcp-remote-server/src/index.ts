@@ -906,10 +906,16 @@ app.get("/sse", async (req: Request, res: Response) => {
 
   console.log(`Session created: ${sessionId} for user ${userId}`);
 
-  // Handle disconnect
+  // Handle disconnect - keep session alive for 60 seconds to allow POST /messages
   res.on("close", () => {
-    console.log(`Session closed: ${sessionId}`);
-    sessions.delete(sessionId);
+    console.log(`SSE connection closed for session: ${sessionId} (keeping session alive for 60s)`);
+    // Don't delete immediately - Claude.ai may POST to /messages after closing SSE
+    setTimeout(() => {
+      if (sessions.has(sessionId)) {
+        console.log(`Session expired: ${sessionId}`);
+        sessions.delete(sessionId);
+      }
+    }, 60000); // Keep session alive for 60 seconds
   });
 
   // Connect server to transport
@@ -921,17 +927,22 @@ app.get("/sse", async (req: Request, res: Response) => {
 app.post("/messages", async (req: Request, res: Response) => {
   // Get session ID from query
   const sessionId = req.query.sessionId as string;
+  console.log(`POST /messages received for session: ${sessionId}`);
 
   if (!sessionId) {
+    console.log("Missing sessionId in POST /messages");
     res.status(400).json({ error: "Missing sessionId" });
     return;
   }
 
   const session = sessions.get(sessionId);
   if (!session) {
+    console.log(`Session not found: ${sessionId}, active sessions: ${sessions.size}`);
     res.status(404).json({ error: "Session not found" });
     return;
   }
+
+  console.log(`Processing message for session: ${sessionId}`);
 
   // Forward message to transport - pass the already-parsed body from express.json()
   try {
