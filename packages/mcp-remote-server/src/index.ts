@@ -30,7 +30,7 @@ import {
 // Import tool handlers
 import * as xeroTools from "./handlers/xero-tools.js";
 import { getXeroStatus } from "./services/xero.js";
-import * as memoryService from "./services/memory.js";
+import { memoryToolDefinitions, executeMemoryTool } from "./handlers/memory-tools.js";
 import * as safetyService from "./services/safety.js";
 
 // Types
@@ -88,12 +88,14 @@ Use get_tools_in_category to discover tools, then execute_tool to run them.
 - contacts: get_contacts, search_contacts
 - organisation: get_organisation
 
-**Memory Category:**
-- add_memory: Remember something about the user
-- search_memory: Find relevant memories
-- list_memories: See all memories
-- delete_memory: Remove a specific memory
-- clear_all_memories: Start fresh`;
+**Memory Category (Knowledge Graph):**
+- create_entities: Store people, businesses, concepts, events
+- create_relations: Link entities together (e.g., "works_at", "owns")
+- add_observations: Add facts to existing entities
+- search_nodes: Find relevant memories
+- open_nodes: Get specific entities with their relations
+- read_graph: See entire knowledge graph
+- delete_entities, delete_observations, delete_relations: Remove memories`;
 
 // ===========================================
 // Lazy-Loading Tool Registry
@@ -223,88 +225,8 @@ const toolRegistry: ToolDefinition[] = [
     inputSchema: { type: "object", properties: {} },
   },
 
-  // MEMORY category - Pip's memory about the user
-  {
-    category: "memory",
-    name: "add_memory",
-    description:
-      "Store important information about the user for future reference. Use this when the user shares preferences, goals, business context, or anything Pip should remember.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        content: {
-          type: "string",
-          description:
-            "The information to remember (e.g., 'User prefers weekly cash flow summaries', 'Business goal: hire first employee by Q2')",
-        },
-        category: {
-          type: "string",
-          enum: ["preference", "goal", "context", "reminder", "other"],
-          description: "Category of memory for organization",
-        },
-      },
-      required: ["content"],
-    },
-  },
-  {
-    category: "memory",
-    name: "search_memory",
-    description:
-      "Search Pip's memories about the user. Use this to recall relevant context before answering questions.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        query: {
-          type: "string",
-          description: "What to search for in memories (e.g., 'hiring plans', 'cash flow preferences')",
-        },
-        limit: {
-          type: "number",
-          description: "Maximum memories to return (default: 5)",
-        },
-      },
-      required: ["query"],
-    },
-  },
-  {
-    category: "memory",
-    name: "list_memories",
-    description: "List all of Pip's memories about the user",
-    inputSchema: {
-      type: "object",
-      properties: {},
-    },
-  },
-  {
-    category: "memory",
-    name: "delete_memory",
-    description: "Delete a specific memory by its ID",
-    inputSchema: {
-      type: "object",
-      properties: {
-        memoryId: {
-          type: "string",
-          description: "The ID of the memory to delete",
-        },
-      },
-      required: ["memoryId"],
-    },
-  },
-  {
-    category: "memory",
-    name: "clear_all_memories",
-    description: "Delete ALL memories about this user. Use with caution - this cannot be undone.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        confirm: {
-          type: "boolean",
-          description: "Must be true to confirm deletion",
-        },
-      },
-      required: ["confirm"],
-    },
-  },
+  // MEMORY category - Knowledge Graph (imported from memory-tools.ts)
+  ...memoryToolDefinitions,
 ];
 
 // Get unique categories with tool counts
@@ -607,179 +529,6 @@ function createMcpServer(userId?: string): Server {
   });
 
   return server;
-}
-
-/**
- * Execute a Memory tool by name
- */
-async function executeMemoryTool(
-  userId: string,
-  toolName: string,
-  args: Record<string, unknown>
-): Promise<CallToolResult> {
-  try {
-    switch (toolName) {
-      case "add_memory": {
-        const { content, category } = args as { content: string; category?: string };
-        const memories = await memoryService.addMemory(userId, content, { category });
-
-        if (memories.length === 0) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: "I've noted that, but couldn't extract any specific memories to store.",
-              },
-            ],
-          };
-        }
-
-        const memorySummary = memories.map((m) => `- ${m.memory}`).join("\n");
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Got it! I'll remember:\n${memorySummary}`,
-            },
-          ],
-        };
-      }
-
-      case "search_memory": {
-        const { query, limit } = args as { query: string; limit?: number };
-        const memories = await memoryService.searchMemory(userId, query, limit || 5);
-
-        if (memories.length === 0) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `I don't have any memories matching "${query}".`,
-              },
-            ],
-          };
-        }
-
-        const memoryList = memories
-          .map((m, i) => {
-            const relevance = m.score ? `(relevance: ${(m.score * 100).toFixed(0)}%)` : "";
-            return `${i + 1}. ${m.memory} ${relevance}`.trim();
-          })
-          .join("\n");
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: `**Memories matching "${query}":**\n${memoryList}`,
-            },
-          ],
-        };
-      }
-
-      case "list_memories": {
-        const memories = await memoryService.getAllMemories(userId);
-
-        if (memories.length === 0) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: "I don't have any memories stored for you yet. Share something you'd like me to remember!",
-              },
-            ],
-          };
-        }
-
-        const memoryList = memories.map((m, i) => `${i + 1}. ${m.memory} (ID: ${m.id})`).join("\n");
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: `**All memories (${memories.length}):**\n${memoryList}`,
-            },
-          ],
-        };
-      }
-
-      case "delete_memory": {
-        const { memoryId } = args as { memoryId: string };
-        const success = await memoryService.deleteMemory(userId, memoryId);
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: success
-                ? `Memory ${memoryId} has been deleted.`
-                : `Could not delete memory ${memoryId}. It may not exist.`,
-            },
-          ],
-        };
-      }
-
-      case "clear_all_memories": {
-        const { confirm } = args as { confirm: boolean };
-
-        if (!confirm) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: "Please confirm by setting confirm: true to delete all memories.",
-              },
-            ],
-          };
-        }
-
-        const success = await memoryService.deleteAllMemories(userId);
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: success
-                ? "All memories have been cleared. Starting fresh!"
-                : "Could not clear memories. Please try again.",
-            },
-          ],
-        };
-      }
-
-      default:
-        return {
-          content: [{ type: "text", text: `Memory tool not implemented: ${toolName}` }],
-          isError: true,
-        };
-    }
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(`Error executing memory tool ${toolName}:`, error);
-
-    // Check for missing OpenAI key
-    if (errorMessage.includes("OPENAI_API_KEY")) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: "Memory features are not available: OpenAI API key is not configured.",
-          },
-        ],
-        isError: true,
-      };
-    }
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: `Error with memory: ${errorMessage}`,
-        },
-      ],
-      isError: true,
-    };
-  }
 }
 
 /**
