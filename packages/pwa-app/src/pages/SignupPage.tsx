@@ -52,8 +52,8 @@ export function SignupPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-arc-bg-tertiary border border-arc-border rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <span className="text-3xl text-arc-accent">P</span>
+          <div className="w-16 h-16 bg-arc-bg-primary border-2 border-arc-accent rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-3xl text-arc-accent font-semibold">P</span>
           </div>
           <h1 className="text-2xl font-medium text-arc-text-primary">Join the beta</h1>
           <p className="text-sm text-arc-text-secondary mt-2">
