@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Response Styles (Claude.ai Pattern)** - issue_020 (2025-12-02)
+  - Five styles: Normal, Formal, Concise, Explanatory, Learning
+  - Style selector dropdown in Settings page
+  - Style prompt injection into agent orchestrator
+  - Replaces Personality feature (Epic 2.5) with simpler, user-controlled approach
+  - `packages/core/src/styles/index.ts` - Style definitions with prompt modifiers
 - **Deployment script**: `deploy/deploy.sh` for systematic deployment of all containers
 - **Migration checklist**: DEVELOPMENT.md now includes database migration procedures and lessons learned
 - **Epic 2.1: Memory Management UI** (2025-12-01)

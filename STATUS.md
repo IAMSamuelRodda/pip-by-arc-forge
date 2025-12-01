@@ -67,7 +67,7 @@
 
 1. ~~**Epic 2.1** (Memory Refactor)~~ ✅ Complete
 2. ~~**Epic 2.2** (Chat History)~~ ✅ Complete
-3. **Response Styles** (issue_020) - P1, replaces Epic 2.5 (simpler, user-controlled)
+3. ~~**Response Styles** (issue_020)~~ ✅ Complete (2025-12-02)
 4. **Epic 2.3** (Projects) - Complex, needs careful implementation
 5. **Epic 2.4** (Document Upload) - Medium priority, spike complete
 6. ~~**Epic 2.5** (Personality)~~ 🔵 Deferred - replaced by Response Styles
@@ -192,7 +192,7 @@
 
 ## Next Steps
 
-1. **Implement Response Styles** (issue_020) - Claude.ai pattern, replaces Personality feature
+1. **Deploy Response Styles** - Build and deploy to production
 2. **Implement Epic 2.3** - Projects feature (isolated context per project/client)
 3. **Implement Epic 2.4** - Per-chat document upload (spike complete)
 4. **Fix issue_019** - Safety Settings UI placement
@@ -200,7 +200,7 @@
 
 ---
 
-## Feature Backlog (Updated 2025-12-01)
+## Feature Backlog (Updated 2025-12-02)
 
 ### Completed ✅
 
@@ -212,21 +212,21 @@
    - Collapsible sidebar with chat list
    - Title auto-generation, relative timestamps
 
+3. ~~**Response Styles**~~ → issue_020 deployed (2025-12-02)
+   - Claude.ai pattern: Normal, Formal, Concise, Explanatory, Learning
+   - Settings dropdown for style selection
+   - Simpler than Personality - user-controlled, not AI character
+
 ### Remaining
 
-3. **Projects Feature (Isolated Context)** → Epic 2.3
+4. **Projects Feature (Isolated Context)** → Epic 2.3
    - Separate knowledge bases per project/client
    - Multi-Xero org support
    - Cross-project reference capability (spike complete)
 
-4. **Per-Chat Document Upload** → Epic 2.4
+5. **Per-Chat Document Upload** → Epic 2.4
    - Plus icon (+) in chat (spike complete: use react-dropzone)
    - Document preview below chat input
-
-5. **Response Styles** → issue_020 (replaces Epic 2.5)
-   - Claude.ai pattern: Normal, Formal, Concise, Explanatory, Learning
-   - Settings dropdown for style selection
-   - Simpler than Personality - user-controlled, not AI character
 
 6. **Pip's Personality** → Epic 2.5 (DEFERRED)
    - Adelaide/Pippin profiles preserved for future use
