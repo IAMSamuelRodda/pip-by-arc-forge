@@ -402,27 +402,73 @@ Deep research into alternative memory architectures. Key findings:
 
 ### Epic 2.1: Memory Architecture Modernization
 
-**Status**: ⚪ Not Started
+**Status**: 🟡 Partially Complete (audit done, patterns documented)
 **Priority**: HIGH (foundation for all features)
+**UX Reference**: `specs/spike-outputs/UX-PATTERNS-CLAUDE-AI-REFERENCE-20251201.md` (Pattern 0.7)
+
+**Architecture Insight** (2025-12-01):
+Current `memory.ts` (~394 lines) already aligns with Anthropic's MCP Memory Server approach.
+Key gap is **Claude.ai UI/UX patterns** - single memory with tracked user edits.
 
 #### feature_2_1_1: Memory Architecture Analysis & Design
-**Complexity**: 2.3/5 | **Est**: 3 days
+**Status**: ✅ Complete
+**Complexity**: 2.3/5 | **Actual**: 1 day
 
 | Task | Status | Complexity | Notes |
 |------|--------|------------|-------|
-| task_2_1_1_1: Review Anthropic's MCP Memory Server | ⚪ | 1.5 | Study ~350 line reference implementation |
-| task_2_1_1_2: Audit current memory-native.ts | ⚪ | 1.7 | Identify bloat and deviations |
-| task_2_1_1_3: Design refactored schema and API | ⚪ | 2.2 | Define migration path |
+| task_2_1_1_1: Review Anthropic's MCP Memory Server | ✅ | 1.5 | ~394 lines, close to target |
+| task_2_1_1_2: Audit current memory-native.ts | ✅ | 1.7 | Knowledge graph structure is correct |
+| task_2_1_1_3: Design refactored schema and API | ✅ | 2.2 | Claude.ai Pattern 0.7 documented |
 
-#### feature_2_1_2: Memory System Refactor Implementation
-**Complexity**: 2.8/5 | **Est**: 5 days
+**Findings**:
+- Current implementation: Knowledge graph (entities, relations, observations) ✅
+- Text-based search working ✅
+- User/project isolation ✅
+- **Gap**: Missing `is_user_edit` flag, summary generation, management UI
+
+#### feature_2_1_2: User Edit Tracking Schema
+**Status**: ⚪ Not Started
+**Complexity**: 2.0/5 | **Est**: 2 days
 
 | Task | Status | Complexity | Notes |
 |------|--------|------------|-------|
-| task_2_1_2_1: Implement lean memory service | ⚪ | 2.5 | Target ~350 lines, remove bloat |
-| task_2_1_2_2: Create database migration | ⚪ | 2.3 | Schema updates, backward compatibility |
-| task_2_1_2_3: Update MCP tools | ⚪ | 2.0 | add_memory, search_memory, etc. |
-| task_2_1_2_4: Integration testing | ⚪ | 2.2 | Claude.ai + ChatGPT verification |
+| task_2_1_2_1: Add `is_user_edit` column to observations | ⚪ | 1.5 | Boolean flag for explicit requests |
+| task_2_1_2_2: Create `memory_summaries` table | ⚪ | 1.8 | user_id, project_id, summary, generated_at |
+| task_2_1_2_3: Update `add_observations` tool | ⚪ | 2.0 | Accept `isUserEdit` flag parameter |
+| task_2_1_2_4: Detect explicit memory requests | ⚪ | 2.5 | "Remember that...", "Forget that..." patterns |
+
+#### feature_2_1_3: Memory Summary Generation
+**Status**: ⚪ Not Started
+**Complexity**: 2.5/5 | **Est**: 3 days
+
+| Task | Status | Complexity | Notes |
+|------|--------|------------|-------|
+| task_2_1_3_1: LLM prompt for summary generation | ⚪ | 2.3 | Prose narrative from knowledge graph |
+| task_2_1_3_2: Summary regeneration endpoint | ⚪ | 2.0 | POST /api/memory/regenerate |
+| task_2_1_3_3: Scheduled regeneration (optional) | ⚪ | 2.5 | Nightly job or on-demand |
+
+#### feature_2_1_4: Memory Management API
+**Status**: ⚪ Not Started
+**Complexity**: 2.3/5 | **Est**: 2 days
+
+| Task | Status | Complexity | Notes |
+|------|--------|------------|-------|
+| task_2_1_4_1: GET /api/memory | ⚪ | 1.8 | Return summary + edit count |
+| task_2_1_4_2: POST /api/memory/edit | ⚪ | 2.0 | Add explicit edit from inline input |
+| task_2_1_4_3: GET/DELETE /api/memory/edits | ⚪ | 2.0 | List and remove user edits |
+| task_2_1_4_4: DELETE /api/memory/edits (clear all) | ⚪ | 1.5 | Clear all user edits |
+
+#### feature_2_1_5: Memory Management UI (Pattern 0.7)
+**Status**: ⚪ Not Started
+**Complexity**: 2.8/5 | **Est**: 4 days
+
+| Task | Status | Complexity | Notes |
+|------|--------|------------|-------|
+| task_2_1_5_1: ManageMemoryModal component | ⚪ | 2.5 | Summary view + manage edits button |
+| task_2_1_5_2: Inline edit input | ⚪ | 2.3 | "Tell Pip what to remember or forget..." |
+| task_2_1_5_3: Manage edits sub-view | ⚪ | 2.2 | List edits with delete buttons |
+| task_2_1_5_4: Settings → Privacy integration | ⚪ | 1.8 | Access point in settings page |
+| task_2_1_5_5: Integration testing | ⚪ | 2.2 | Claude.ai + ChatGPT verification |
 
 ---
 

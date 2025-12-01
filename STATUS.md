@@ -45,21 +45,32 @@
 2. **Claude.ai UX Patterns Documented** ✅
    - 8 patterns captured for PWA redesign reference
    - Collapsible sidebar, contextual settings, quick toggles
-   - Memory management UI with user edit tracking
+   - Memory management UI with user edit tracking (Pattern 0.7)
    - Full settings page structure
    - Output: `specs/spike-outputs/UX-PATTERNS-CLAUDE-AI-REFERENCE-20251201.md`
 
-3. **Spikes Completed**:
+3. **Epic 2.1 Memory Architecture Updated** ✅
+   - Current `memory.ts` (~394 lines) validated as aligned with Anthropic
+   - Gap identified: Claude.ai UI/UX patterns (Pattern 0.7)
+   - Added 4 new features: User Edit Tracking, Summary Generation, API, UI
+   - issue_018 merged into Epic 2.1 (feature_2_1_2 through feature_2_1_5)
+
+4. **spike_m2_001 Blueprint Created** ✅
+   - Cross-project reference research blueprint generated
+   - Research questions defined (Claude Code, VS Code, Notion patterns)
+   - 3 deliverables: research report, API design, POC
+   - Blueprint: `specs/BLUEPRINT-spike-cross-project-reference-20251201.yaml`
+
+5. **Spikes Status**:
    - ✅ spike_m2_002: React.js Refactor Assessment - **Keep React + react-dropzone**
    - ✅ spike_m2_003: Character Voice Methodology - Adelaide/Pippin profiles
    - ✅ spike_m2_004: Multi-Model Architecture - LiteLLM + Tailscale + Ollama
+   - 🔴 spike_m2_001: Cross-Project Reference Research (2 days) - **BLUEPRINT READY**
 
-4. **Spikes Remaining**:
-   - 🔴 spike_m2_001: Cross-Project Reference Research (2 days)
-
-5. **New Issues Created**:
-   - issue_017: Ollama Model Warm-Up Strategy (14s cold start)
-   - issue_018: Memory Management UI + User Edit Tracking
+6. **Issues Updated**:
+   - issue_011: Memory Architecture → 🟡 Partially Complete (analysis done)
+   - issue_017: Ollama Model Warm-Up Strategy (14s cold start) - unchanged
+   - issue_018: Memory Management UI → 🟢 Merged into Epic 2.1
 
 ### Recommended Sequence
 

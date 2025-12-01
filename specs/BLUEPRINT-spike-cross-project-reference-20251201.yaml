@@ -1,0 +1,142 @@
+# Blueprint: Cross-Project Reference Research
+# Type: spike
+# Created: 2025-12-01
+# Tracking: document-based (PROGRESS.md + ISSUES.md)
+
+metadata:
+  name: cross-project-reference-research
+  type: spike
+  id: spike_m2_001
+  created: 2025-12-01
+  time_box: 2 days
+  priority: P1 (blocks feature_2_3_3)
+  reduces_uncertainty_for:
+    - task_2_3_3_1 (Design cross-project API)
+    - task_2_3_3_2 (Implement access controls)
+
+# =============================================================================
+# Context
+# =============================================================================
+
+context:
+  problem: |
+    Pip's Projects feature (Epic 2.3) needs cross-project reference capability.
+    Users managing multiple Xero organizations need to:
+    - Compare data across projects ("How does client A's revenue compare to B?")
+    - Copy patterns from one project to another
+    - Reference global context while in project-specific view
+
+    Uncertainty level: 4/5 (high) - unclear what patterns exist, how to design API,
+    and what permission model is appropriate.
+
+  current_state:
+    - Projects schema designed (task_2_3_1_1)
+    - Memory service has user_id and project_id isolation
+    - No cross-project data access patterns implemented
+    - No research on how other tools handle this
+
+  goal: |
+    Reduce uncertainty from 4 to 2 by researching existing patterns and
+    designing an API with clear permission model.
+
+# =============================================================================
+# Research Questions
+# =============================================================================
+
+research_questions:
+  existing_patterns:
+    - How does Claude Code handle references to other repos/projects?
+    - How do IDEs (VS Code, JetBrains) handle multi-project workspaces?
+    - How does Notion handle cross-database references?
+    - How do accounting tools handle multi-entity views?
+
+  api_design:
+    - Read-only vs read-write cross-project access?
+    - Explicit references vs implicit aggregation?
+    - Per-request permission check vs pre-authorized access?
+    - URL scheme for cross-project identifiers?
+
+  permission_model:
+    - Owner-only vs shared project access?
+    - Granular permissions (view, copy, compare) vs simple allow/deny?
+    - How to prevent accidental data leakage between clients?
+    - Audit trail requirements?
+
+  ux_considerations:
+    - How to indicate cross-project context in chat?
+    - How to handle "not authorized" gracefully?
+    - Should cross-project be explicit ("compare projects A and B") or implicit?
+
+# =============================================================================
+# Deliverables
+# =============================================================================
+
+deliverables:
+  - id: deliverable_001
+    name: Research Report
+    description: |
+      Document analyzing cross-project reference patterns from:
+      - Claude Code (repo references)
+      - VS Code workspaces
+      - Notion linked databases
+      - Multi-entity accounting tools (Xero, QuickBooks)
+    output: docs/research-notes/SPIKE-m2-001-cross-project-patterns.md
+    estimated_effort: 1 day
+
+  - id: deliverable_002
+    name: API Design Document
+    description: |
+      Proposed API design for cross-project data access:
+      - Endpoint definitions
+      - Request/response schemas
+      - Permission model specification
+      - Error handling patterns
+    output: specs/spike-outputs/CROSS-PROJECT-API-DESIGN-20251201.md
+    estimated_effort: 0.5 days
+
+  - id: deliverable_003
+    name: Proof of Concept
+    description: |
+      Minimal implementation demonstrating:
+      - Cross-project memory query
+      - Permission check
+      - Context indicator in response
+    output: Code in packages/mcp-remote-server (branch if needed)
+    estimated_effort: 0.5 days
+
+# =============================================================================
+# Acceptance Criteria
+# =============================================================================
+
+acceptance_criteria:
+  - All research questions answered with evidence/references
+  - API design covers read-only cross-project access at minimum
+  - Permission model clearly documented
+  - POC demonstrates basic cross-project memory query
+  - Uncertainty reduced from 4 to 2 for task_2_3_3_1
+  - Clear recommendation for implementation approach
+
+# =============================================================================
+# Risks
+# =============================================================================
+
+risks:
+  - id: risk_001
+    description: No clear pattern emerges from research
+    severity: medium
+    mitigation: Fall back to simplest model (explicit project switching, no cross-reference)
+
+  - id: risk_002
+    description: Permission model becomes complex
+    severity: medium
+    mitigation: Start with owner-only access, defer shared access to later iteration
+
+# =============================================================================
+# Notes
+# =============================================================================
+
+notes:
+  - This spike blocks feature_2_3_3 (Cross-Project Reference Capability)
+  - Keep scope narrow - focus on read-only cross-project memory access first
+  - Don't over-engineer - simpler is better for MVP
+  - Consider that most users will only have 1-3 projects initially

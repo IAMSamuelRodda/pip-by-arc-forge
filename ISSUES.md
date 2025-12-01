@@ -79,26 +79,13 @@
 ### Improvements
 
 #### issue_018: Memory Management UI + User Edit Tracking
-- **Status**: 🔴 Open
-- **Priority**: P2 (Medium - aligns with Claude.ai pattern)
+- **Status**: 🟢 Merged into Epic 2.1
+- **Priority**: - (Absorbed)
 - **Component**: `packages/mcp-remote-server`, `packages/pwa-app`
-- **Description**: Add "Manage memory" UI and track user explicit edit requests separately from auto-extracted memory. Single unified memory system - edits are just flagged for easy removal.
-- **Architecture**: ONE memory store, LLM auto-extracts (primary), user explicit requests flagged as "edits"
-- **Current State**: Memory tools work, no UI to view/manage, no edit tracking
-- **Required Changes**:
-  - Add `is_user_edit` boolean column to `memory_observations` table
-  - Add `memory_summaries` table for cached prose summaries
-  - Update `add_observations` tool to accept `isUserEdit` flag
-  - Add API endpoints: GET /api/memory, POST /api/memory/edit, GET/DELETE /api/memory/edits
-  - Add "Manage memory" modal with prose summary + inline edit input + edits list
-- **Inline Edit Feature**: Input field "Tell Pip what to remember or forget..." inside memory view
-- **UX Pattern**: See `specs/spike-outputs/UX-PATTERNS-CLAUDE-AI-REFERENCE-20251201.md` Pattern 0.7
-- **Acceptance Criteria**:
-  - [ ] Schema migration for `is_user_edit` flag and summaries table
-  - [ ] User can view memory summary (prose, auto-generated)
-  - [ ] User can add memory edits via inline input
-  - [ ] User can view/delete individual "edits" (explicit requests only)
-  - [ ] LLM detects "remember that..." patterns and flags as user edit
+- **Description**: Add "Manage memory" UI and track user explicit edit requests separately from auto-extracted memory.
+- **Resolution**: Merged into Epic 2.1 (feature_2_1_2 through feature_2_1_5) on 2025-12-01
+- **See**: PROGRESS.md → Epic 2.1 for detailed tasks
+- **UX Reference**: `specs/spike-outputs/UX-PATTERNS-CLAUDE-AI-REFERENCE-20251201.md` Pattern 0.7
 
 #### issue_017: Ollama Model Warm-Up Strategy
 - **Status**: 🔴 Open
@@ -271,21 +258,34 @@
 *Blueprint: `specs/BLUEPRINT-project-milestone2-ux-personality-20251201.yaml`*
 
 #### issue_011: Memory Architecture Refactor (Epic 2.1)
-- **Status**: 🔴 Open
+- **Status**: 🟡 Partially Complete (analysis done, patterns documented)
 - **Priority**: P1 (High - foundation for all M2 features)
-- **Component**: `packages/mcp-remote-server` (memory-native.ts)
-- **Blueprint**: feature_2_1_1, feature_2_1_2
-- **Description**: Align memory implementation with Anthropic's official MCP Memory Server approach (~350 lines). Remove bloat, improve efficiency.
-- **Current State**: Custom implementation with unnecessary complexity
-- **Target State**: Lean, efficient, Anthropic-aligned memory service
+- **Component**: `packages/mcp-remote-server` (memory.ts, memory-tools.ts)
+- **Blueprint**: feature_2_1_1 through feature_2_1_5
+- **UX Reference**: `specs/spike-outputs/UX-PATTERNS-CLAUDE-AI-REFERENCE-20251201.md` (Pattern 0.7)
+- **Description**: Align memory implementation with Anthropic + Claude.ai patterns.
+- **Analysis Complete** (2025-12-01):
+  - Current `memory.ts` (~394 lines) already aligns with Anthropic approach ✅
+  - Knowledge graph structure (entities, relations, observations) ✅
+  - Text-based search working ✅
+  - User/project isolation built in ✅
+- **Gap Identified**: Missing Claude.ai UI/UX patterns:
+  - `is_user_edit` flag on observations
+  - `memory_summaries` table for prose summaries
+  - Summary generation (on-demand/nightly)
+  - Memory management API + UI
+  - Detection of explicit user requests ("remember that...")
 - **Acceptance Criteria**:
-  - [ ] Review Anthropic MCP Memory Server reference implementation
-  - [ ] Audit and document current bloat in memory-native.ts
-  - [ ] Implement lean memory service (~350 lines target)
-  - [ ] Database migration for schema changes
+  - [x] Review Anthropic MCP Memory Server reference implementation
+  - [x] Audit current memory-native.ts (renamed to memory.ts)
+  - [x] Document Claude.ai Pattern 0.7 (single memory with tracked edits)
+  - [ ] Add `is_user_edit` column to observations
+  - [ ] Create `memory_summaries` table
+  - [ ] Implement Memory Management API
+  - [ ] Build Memory Management UI
   - [ ] Integration testing on Claude.ai + ChatGPT
-- **Complexity**: 2.3-2.8/5 (Medium)
-- **Notes**: Foundation work - must complete before other features.
+- **Complexity**: 2.0-2.8/5 (Medium)
+- **Notes**: Architecture validated. Implementation focuses on Claude.ai patterns. See Epic 2.1 in PROGRESS.md for detailed tasks.
 
 #### issue_012: Chat History (Epic 2.2)
 - **Status**: 🔴 Open
@@ -413,20 +413,27 @@ Research/investigation tasks that must complete before dependent implementation 
 ### Milestone 2 Spikes
 
 #### spike_m2_001: Cross-Project Reference Capability Research
-- **Status**: 🔴 Open
+- **Status**: 🔴 Open (blueprint created)
 - **Duration**: 2 days
 - **Priority**: P1 (blocks feature_2_3_3)
 - **Reduces Uncertainty For**: task_2_3_3_1, task_2_3_3_2
-- **Blueprint**: feature_3_3 spike
+- **Blueprint**: `specs/BLUEPRINT-spike-cross-project-reference-20251201.yaml`
 - **Description**: Research patterns for cross-project data access (like Claude Code referencing other repos)
+- **Research Questions**:
+  - How do Claude Code, VS Code, Notion handle cross-project references?
+  - API design: read-only vs read-write, explicit vs implicit?
+  - Permission model: owner-only vs shared, granular vs simple?
+  - UX: How to indicate cross-project context in chat?
 - **Deliverables**:
-  - [ ] Research report on cross-project reference patterns (Claude Code, IDEs)
-  - [ ] API design for cross-project data access with permission model
-  - [ ] Proof of concept implementation
+  - [ ] Research report: `docs/research-notes/SPIKE-m2-001-cross-project-patterns.md`
+  - [ ] API design: `specs/spike-outputs/CROSS-PROJECT-API-DESIGN-20251201.md`
+  - [ ] Proof of concept: Cross-project memory query with permission check
 - **Acceptance Criteria**:
+  - All research questions answered with evidence
+  - API design covers read-only cross-project access
+  - Permission model clearly documented
+  - POC demonstrates basic cross-project memory query
   - Uncertainty reduced from 4 → 2 for task_2_3_3_1
-  - Clear API design with permission model
-  - POC demonstrating feasibility
 
 #### spike_m2_002: React.js Refactor Assessment for File Uploads
 - **Status**: ✅ Complete
