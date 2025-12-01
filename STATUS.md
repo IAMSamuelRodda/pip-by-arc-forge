@@ -55,9 +55,13 @@
    - ✅ spike_m2_003: Character Voice Methodology - Adelaide/Pippin profiles
    - ✅ spike_m2_004: Multi-Model Architecture - LiteLLM + Tailscale + Ollama
 
-4. **Tech Debt Documented**:
-   - debt_003: Legacy "zero-agent" naming convention (P3)
-   - debt_004: ESLint v9 flat config migration (P3)
+4. **Tech Debt**:
+   - ~~debt_003: Legacy "zero-agent" naming~~ ✅ Resolved (migrated to pip-data/pip.db)
+   - debt_004: ESLint v9 flat config migration (P3 - deferred)
+
+5. **Infrastructure**:
+   - Added `deploy/deploy.sh` for systematic deployment
+   - Both containers rebuilt consistently on each deploy
 
 ### Remaining Work (Milestone 2)
 

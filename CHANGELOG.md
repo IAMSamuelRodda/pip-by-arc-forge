@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Deployment script**: `deploy/deploy.sh` for systematic deployment of all containers
 - **Epic 2.1: Memory Management UI** (2025-12-01)
   - ManageMemoryModal component (Settings → Manage memory)
   - User edit tracking (is_user_edit column in observations)
@@ -33,12 +34,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Repository renamed**: `pip` → `pip-by-arc-forge` (GitHub + local)
 
 ### Changed
+- **Naming cleanup (debt_003)**: `zero-agent` → `pip` naming convention
+  - Docker volume: `zero-agent-data` → `pip-data`
+  - Database: `zero-agent.db` → `pip.db`
+  - Removed unused `zero-agent-network`
 - **Git workflow simplified**: Moved to Simple tier (main only, direct commits)
   - Removed dev branch (merged to main)
   - Removed enforce-main-pr-source.yml workflow (not needed for Simple tier)
   - Updated all documentation for Simple tier
 
 ### Fixed
+- **Memory modal loading forever**: Added memory API routes to main server (was only in MCP server)
+- **"no such column: project_id" error**: Added schema migration for memory tables on startup
 - **issue_010: Mem0 SQLite crash**: Switched to native memory (mem0ai has internal SQLite bug in Docker/Alpine)
 - **issue_010: Alpine glibc crash**: Removed @xenova/transformers (onnxruntime requires glibc, Alpine uses musl)
 - **OAuth double-submit bug**: Added debounce protection to prevent race conditions

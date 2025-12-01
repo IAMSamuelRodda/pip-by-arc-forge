@@ -569,25 +569,20 @@ Research/investigation tasks that must complete before dependent implementation 
 - **Notes**: TypeScript compilation (`pnpm build`) provides primary type safety. Lint is secondary quality gate.
 
 #### debt_003: Legacy "zero-agent" Naming Convention
-- **Status**: 🔴 Open
-- **Priority**: P3 (Low - cosmetic cleanup)
+- **Status**: 🟢 Resolved
+- **Priority**: - (Complete)
+- **Resolved**: 2025-12-01
 - **Component**: Multiple (Docker, database, documentation)
-- **Description**: Project was rebranded from "Zero Agent" to "Pip" but legacy naming persists in 20+ files
-- **Files Affected**:
-  - `Dockerfile` - container references, data paths
-  - `docker-compose.yml` - service names, volumes, networks
-  - `.env.example` - environment variables
-  - `packages/mcp-remote-server/Dockerfile` - container references
-  - Database path: `/app/data/zero-agent.db` → should be `/app/data/pip.db`
-  - Various documentation files
-- **Acceptance Criteria**:
-  - [ ] Rename Docker container from `zero-agent` to `pip-server`
-  - [ ] Update database path to `pip.db` (requires data migration)
-  - [ ] Update docker-compose service names
-  - [ ] Update volume names (zero-agent-data → pip-data)
-  - [ ] Update network names (zero-agent-network → pip-network)
-  - [ ] Search and replace in all documentation
-- **Notes**: Low priority - system works fine. Schedule for next cleanup sprint. Database rename requires data migration strategy.
+- **Description**: Project was rebranded from "Zero Agent" to "Pip" but legacy naming persisted
+- **Resolution**:
+  - [x] Created `deploy/migrate-naming.sh` for data migration
+  - [x] Renamed Docker containers: `zero-agent` → `pip-app`, `pip-mcp`
+  - [x] Updated database path: `zero-agent.db` → `pip.db`
+  - [x] Updated volume: `zero-agent-data` → `pip-data`
+  - [x] Removed unused `zero-agent-network`
+  - [x] Updated `deploy/deploy.sh` with new naming
+  - [x] Updated `CLAUDE.md` with correct paths
+- **Commits**: `24e7419` - migration scripts, `33e3571` - deploy script
 
 #### debt_001: No Formal Test Coverage
 - **Status**: 🔴 Open
