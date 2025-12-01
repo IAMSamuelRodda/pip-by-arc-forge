@@ -78,6 +78,47 @@
 
 ### Improvements
 
+#### issue_018: Memory Management UI + User Edit Tracking
+- **Status**: 🔴 Open
+- **Priority**: P2 (Medium - aligns with Claude.ai pattern)
+- **Component**: `packages/mcp-remote-server`, `packages/pwa-app`
+- **Description**: Add "Manage memory" UI and track user explicit edit requests separately from auto-extracted memory. Single unified memory system - edits are just flagged for easy removal.
+- **Architecture**: ONE memory store, LLM auto-extracts (primary), user explicit requests flagged as "edits"
+- **Current State**: Memory tools work, no UI to view/manage, no edit tracking
+- **Required Changes**:
+  - Add `is_user_edit` boolean column to `memory_observations` table
+  - Add `memory_summaries` table for cached prose summaries
+  - Update `add_observations` tool to accept `isUserEdit` flag
+  - Add API endpoints: GET /api/memory, POST /api/memory/edit, GET/DELETE /api/memory/edits
+  - Add "Manage memory" modal with prose summary + inline edit input + edits list
+- **Inline Edit Feature**: Input field "Tell Pip what to remember or forget..." inside memory view
+- **UX Pattern**: See `specs/spike-outputs/UX-PATTERNS-CLAUDE-AI-REFERENCE-20251201.md` Pattern 0.7
+- **Acceptance Criteria**:
+  - [ ] Schema migration for `is_user_edit` flag and summaries table
+  - [ ] User can view memory summary (prose, auto-generated)
+  - [ ] User can add memory edits via inline input
+  - [ ] User can view/delete individual "edits" (explicit requests only)
+  - [ ] LLM detects "remember that..." patterns and flags as user edit
+
+#### issue_017: Ollama Model Warm-Up Strategy
+- **Status**: 🔴 Open
+- **Priority**: P2 (Medium - UX improvement)
+- **Component**: `packages/pwa-app`, LiteLLM proxy
+- **Description**: Ollama models have ~14s cold start (loading into GPU). Need to investigate pre-warming strategies.
+- **Context**:
+  - Cold start: ~14s (model loading into VRAM)
+  - Warm latency: ~238ms (excellent)
+- **Investigation Areas**:
+  - [ ] Trigger model warm-up when user selects Ollama model in dropdown
+  - [ ] Background warm-up while user is typing (if message is long)
+  - [ ] Keep model loaded with periodic ping (prevent unload)
+  - [ ] Display "warming up..." indicator in UI
+- **Acceptance Criteria**:
+  - [ ] Measure actual cold/warm latency with integrated PWA
+  - [ ] Determine if 14s cold start is acceptable or needs mitigation
+  - [ ] If needed, implement pre-warming strategy
+- **Notes**: Defer implementation until Ollama is integrated into PWA. Test real-world UX first.
+
 #### issue_016: Light/Dark Mode Theme Support
 - **Status**: 🔴 Open
 - **Priority**: P3 (Low - future enhancement)
@@ -409,27 +450,30 @@ Research/investigation tasks that must complete before dependent implementation 
 - **Output**: `docs/research-notes/SPIKE-m2-002-react-refactor-assessment.md`
 
 #### spike_m2_004: Multi-Model LLM Architecture Research
-- **Status**: 🔴 Open
-- **Duration**: 3-5 days
-- **Priority**: P1 (foundation for multi-model support)
+- **Status**: ✅ Complete
+- **Duration**: 1 day (time-boxed 3-5 days)
+- **Completed**: 2025-12-01
+- **Priority**: - (Done - foundation for multi-model support)
 - **Reduces Uncertainty For**: Future multi-model support implementation
 - **Blueprint**: `specs/archive/BLUEPRINT-spike-multi-model-architecture-20251201.yaml`
 - **Description**: Research optimal architecture for LiteLLM proxy, Tailscale+Ollama connectivity, PWA model selector, and model-agnostic MCP design.
 - **Deliverables**:
-  - [ ] Architecture Decision Document (LiteLLM strategy, Tailscale pattern, PWA integration)
-  - [ ] LiteLLM Configuration POC (Anthropic + OpenAI + Ollama routing)
-  - [ ] Tailscale + Ollama Connectivity Test (latency measurements, offline handling)
-  - [ ] PWA Model Selector Mockup (UI/UX design, state management)
-  - [ ] Cost/Performance Comparison Matrix (5+ models, function calling support)
-- **Acceptance Criteria**:
-  - All research questions answered with evidence
-  - LiteLLM routing to 3+ models working
-  - Ollama accessible via Tailscale with latency <5s
-  - Uncertainty reduced to UA ≤2 for implementation
-- **Risks**:
-  - Tailscale latency may be prohibitive for real-time chat
-  - LiteLLM may not support all provider-specific features
-  - Local GPU machine offline = degraded experience
+  - [x] Architecture Decision Document (LiteLLM strategy, Tailscale pattern, PWA integration)
+  - [x] LiteLLM Configuration POC (Anthropic + OpenAI + Ollama routing)
+  - [x] Tailscale + Ollama Connectivity Test (latency measurements, offline handling)
+  - [x] PWA Model Selector Mockup (UI/UX design, state management)
+  - [x] Cost/Performance Comparison Matrix (5+ models, function calling support)
+- **Outputs**:
+  - `specs/spike-outputs/ADR-MULTI-MODEL-ARCHITECTURE-20251201.md`
+  - `specs/spike-outputs/COST-PERFORMANCE-MATRIX-20251201.md`
+  - `specs/spike-outputs/PWA-MODEL-SELECTOR-DESIGN-20251201.md`
+  - `/opt/litellm/` on VPS - LiteLLM proxy with 5 models
+- **Key Findings**:
+  - LiteLLM standalone with host networking (for Tailscale access)
+  - Ollama warm latency: 238ms (excellent), cold: 14s (needs warm-up strategy)
+  - MCP server is already model-agnostic, no changes needed
+  - Recommendations: Claude Sonnet 4 (primary), Haiku (fast), GPT-4o (fallback), Ollama (offline)
+- **Follow-up**: issue_017 - Ollama Model Warm-Up Strategy
 
 #### spike_m2_003: Character Voice Methodology Research
 - **Status**: ✅ Complete

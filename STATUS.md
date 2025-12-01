@@ -34,30 +34,32 @@
 
 ### Just Completed (2025-12-01)
 
-1. **Git Workflow Simplified to Simple Tier** ✅
-   - Simplified from Standard tier (main + dev) to Simple tier (main only)
-   - Fast prototyping mode - direct commits to main
-   - Fixed VPS remote URL (was pointing to old repo)
-   - Merged dev to main and deleted dev branch
-   - Removed all feature/spike branches and stale worktrees
-   - Updated CLAUDE.md, CONTRIBUTING.md, DEVELOPMENT.md for Simple tier
+1. **spike_m2_004: Multi-Model LLM Architecture** ✅ (completed in 1 day)
+   - LiteLLM proxy deployed on VPS (port 4000, 5 models)
+   - Tailscale + Ollama connectivity verified (238ms warm latency)
+   - Architecture Decision Document written
+   - PWA model selector mockup designed
+   - Cost/performance matrix for 8+ models
+   - Outputs: `specs/spike-outputs/ADR-MULTI-MODEL-ARCHITECTURE-20251201.md`
 
-2. **Epic 2.1: Memory Architecture Refactor** ✅
-   - Aligned with Anthropic MCP Memory Server patterns (~350 lines)
-   - Removed mem0 and unused dependencies
-   - Simplified memory service implementation
+2. **Claude.ai UX Patterns Documented** ✅
+   - 8 patterns captured for PWA redesign reference
+   - Collapsible sidebar, contextual settings, quick toggles
+   - Memory management UI with user edit tracking
+   - Full settings page structure
+   - Output: `specs/spike-outputs/UX-PATTERNS-CLAUDE-AI-REFERENCE-20251201.md`
 
 3. **Spikes Completed**:
-   - ✅ spike_m2_002: React.js Refactor Assessment - **Decision: Keep React**
-     - ChatGPT uses React + Next.js, Claude uses React + Ink
-     - No framework migration needed (3-5 week cost not justified)
-     - File upload recommendation: react-dropzone
-   - ✅ spike_m2_003: Character Voice Methodology Research
-     - Adelaide and Pippin personality profiles created
-     - Voice switching infrastructure designed
+   - ✅ spike_m2_002: React.js Refactor Assessment - **Keep React + react-dropzone**
+   - ✅ spike_m2_003: Character Voice Methodology - Adelaide/Pippin profiles
+   - ✅ spike_m2_004: Multi-Model Architecture - LiteLLM + Tailscale + Ollama
 
 4. **Spikes Remaining**:
    - 🔴 spike_m2_001: Cross-Project Reference Research (2 days)
+
+5. **New Issues Created**:
+   - issue_017: Ollama Model Warm-Up Strategy (14s cold start)
+   - issue_018: Memory Management UI + User Edit Tracking
 
 ### Recommended Sequence
 

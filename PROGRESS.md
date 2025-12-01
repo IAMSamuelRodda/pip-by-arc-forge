@@ -668,9 +668,9 @@ The Thursday demo with dental practice owner has been completed. Demo materials 
 
 ## Spike: Multi-Model LLM Architecture (spike_m2_004)
 
-**Status**: 🔴 Not Started
+**Status**: ✅ COMPLETE
 **Blueprint**: `specs/archive/BLUEPRINT-spike-multi-model-architecture-20251201.yaml`
-**Time-box**: 3-5 days
+**Time-box**: 3-5 days (completed in 1 day)
 **Reduces Uncertainty For**: Future multi-model support implementation
 
 ### Context
@@ -688,50 +688,91 @@ Goal: Research optimal architecture for:
 
 ### Deliverables
 
-| Deliverable | Est | Status | Notes |
-|-------------|-----|--------|-------|
-| Architecture Decision Document | 1.5d | ⚪ | ADR: LiteLLM strategy, Tailscale pattern, PWA integration |
-| LiteLLM Configuration POC | 1.5d | ⚪ | Anthropic + OpenAI + Ollama routing, Docker setup |
-| Tailscale + Ollama Connectivity Test | 1.0d | ⚪ | Latency measurements, offline handling |
-| PWA Model Selector Mockup | 0.5d | ⚪ | UI/UX design, state management approach |
-| Cost/Performance Comparison Matrix | 0.5d | ⚪ | 5+ models, function calling support |
+| Deliverable | Est | Status | Output |
+|-------------|-----|--------|--------|
+| Architecture Decision Document | 1.5d | ✅ | `specs/spike-outputs/ADR-MULTI-MODEL-ARCHITECTURE-20251201.md` |
+| LiteLLM Configuration POC | 1.5d | ✅ | `/opt/litellm/` on VPS - 5 models configured |
+| Tailscale + Ollama Connectivity Test | 1.0d | ✅ | Cold: 14s, Warm: 238ms via Tailscale |
+| PWA Model Selector Mockup | 0.5d | ✅ | `specs/spike-outputs/PWA-MODEL-SELECTOR-DESIGN-20251201.md` |
+| Cost/Performance Comparison Matrix | 0.5d | ✅ | `specs/spike-outputs/COST-PERFORMANCE-MATRIX-20251201.md` |
 
 ### Research Questions
 
 **LiteLLM Integration**:
-- [ ] Routing and fallback patterns
-- [ ] Streaming response handling
-- [ ] Cost tracking/observability
-- [ ] Provider-specific features (function calling, tools)
+- [x] Routing and fallback patterns → Config-based model mapping, drop_params for normalization
+- [x] Streaming response handling → Full streaming support all providers
+- [x] Cost tracking/observability → Native callbacks (file, PostgreSQL)
+- [x] Provider-specific features → Function calling validated for Anthropic, OpenAI
 
 **Tailscale + Ollama**:
-- [ ] Direct Ollama vs LiteLLM proxy exposure
-- [ ] Latency implications of tunneling
-- [ ] Server discovery/registration
-- [ ] Offline graceful degradation
+- [x] Direct Ollama vs LiteLLM proxy exposure → Via LiteLLM (unified API)
+- [x] Latency implications of tunneling → Negligible (~10ms overhead)
+- [x] Server discovery/registration → Static Tailscale IP (100.64.0.2)
+- [x] Offline graceful degradation → Clear error messages, manual model switching
 
 **PWA Model Selector**:
-- [ ] Static vs dynamic model discovery
-- [ ] Model-specific capabilities display
-- [ ] Mid-conversation switching UX
-- [ ] User preference persistence
+- [x] Static vs dynamic model discovery → Hybrid (static config, dynamic availability)
+- [x] Model-specific capabilities display → Badges: best/fast/cheap/local
+- [x] Mid-conversation switching UX → Allowed, no context loss
+- [x] User preference persistence → Zustand + localStorage
 
 **MCP Model Source**:
-- [ ] Model-agnostic tool design
-- [ ] Platform differences (Claude.ai vs ChatGPT vs PWA)
-- [ ] Prompt engineering considerations
+- [x] Model-agnostic tool design → No changes needed, already model-agnostic
+- [x] Platform differences → Calling platform handles model selection
+- [x] Prompt engineering considerations → Not needed for tools
 
 ### Acceptance Criteria
 
-- [ ] All research questions answered with evidence
-- [ ] LiteLLM routing to 3+ models working
-- [ ] Ollama accessible via Tailscale with latency <5s
-- [ ] Architecture decision document covers all 5 areas
-- [ ] Uncertainty reduced to UA ≤2 for implementation
+- [x] All research questions answered with evidence
+- [x] LiteLLM routing to 3+ models working (5 models: claude-sonnet, claude-haiku, gpt-4o, gpt-4o-mini, deepseek-coder)
+- [x] Ollama accessible via Tailscale with latency <5s (238ms warm, 14s cold)
+- [x] Architecture decision document covers all 5 areas
+- [x] Uncertainty reduced to UA ≤2 for implementation
+
+### Key Findings
+
+1. **LiteLLM Standalone**: Deploy as separate container with host networking (for Tailscale access)
+2. **Ollama Cold Start**: 14s model loading - needs warm-up strategy (issue_017)
+3. **MCP Model-Agnostic**: No changes needed - calling platform chooses model
+4. **Recommendations**: Claude Sonnet 4 (primary), Haiku (fast), GPT-4o (fallback), Local Ollama (offline)
+
+### Future Investigation
+
+- **issue_017**: Ollama Model Warm-Up Strategy - silent background warm-up while user types
 
 ---
 
 ## Progress Changelog
+
+### 2025-12-01 - spike_m2_004: Multi-Model Architecture Spike COMPLETE
+
+**Spike Completed** (1 day, time-boxed 3-5 days):
+- All 5 deliverables completed with documented outputs
+- LiteLLM proxy deployed on VPS with 5 models configured
+- Ollama accessible via Tailscale (238ms warm latency)
+- Comprehensive architecture decision document written
+- PWA model selector mockup with React component code
+- Cost/performance matrix comparing 8+ cloud models and 6+ local models
+
+**Key Technical Accomplishments**:
+- LiteLLM running on VPS port 4000 with host networking
+- Models: claude-sonnet, claude-haiku, gpt-4o, gpt-4o-mini, deepseek-coder
+- Tailscale connectivity verified (VPS 100.64.0.1 → Local 100.64.0.2)
+- Ollama listening on all interfaces (OLLAMA_HOST=0.0.0.0)
+
+**Outputs Created**:
+- `specs/spike-outputs/ADR-MULTI-MODEL-ARCHITECTURE-20251201.md`
+- `specs/spike-outputs/COST-PERFORMANCE-MATRIX-20251201.md`
+- `specs/spike-outputs/PWA-MODEL-SELECTOR-DESIGN-20251201.md`
+
+**Follow-up Issue**: issue_017 - Ollama Model Warm-Up Strategy (14s cold start)
+
+**Next Steps** (from ADR):
+- Phase 1: Connect Pip backend to LiteLLM, add model selector UI
+- Phase 2: Validate local models with MCP tools, implement warm-up
+- Phase 3: Cost tracking, alerts, advanced features
+
+---
 
 ### 2025-12-01 - spike_m2_004: Multi-Model Architecture Spike Created
 
