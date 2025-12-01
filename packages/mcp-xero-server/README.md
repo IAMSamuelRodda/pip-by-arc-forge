@@ -86,7 +86,7 @@ Environment variables (Lambda or local):
 AWS_REGION=us-east-1
 SECRETS_MANAGER_XERO_TOKENS_ARN=arn:aws:secretsmanager:...
 SECRETS_MANAGER_API_KEYS_ARN=arn:aws:secretsmanager:...
-DYNAMODB_TABLE_NAME=zero-agent-dev-main
+DYNAMODB_TABLE_NAME=pip-dev-main
 ```
 
 ## Token Management

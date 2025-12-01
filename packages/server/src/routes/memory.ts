@@ -10,7 +10,7 @@ import Database from 'better-sqlite3';
 import { requireAuth } from '../middleware/auth.js';
 
 // Database path (same as MCP server)
-const DB_PATH = process.env.DATABASE_PATH || '/app/data/zero-agent.db';
+const DB_PATH = process.env.DATABASE_PATH || './data/pip.db';
 
 interface UserEdit {
   entityName: string;

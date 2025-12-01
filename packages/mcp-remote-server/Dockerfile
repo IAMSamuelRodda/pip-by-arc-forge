@@ -63,7 +63,7 @@ USER pip-mcp
 # Environment variables
 ENV NODE_ENV=production
 ENV MCP_PORT=3001
-ENV DATABASE_PATH=/app/data/zero-agent.db
+ENV DATABASE_PATH=/app/data/pip.db
 
 # Expose MCP server port
 EXPOSE 3001

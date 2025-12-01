@@ -12,7 +12,7 @@ import { createDatabaseProvider, type OAuthTokens, type DatabaseProvider } from 
 const XERO_TOKEN_URL = "https://identity.xero.com/connect/token";
 
 // Initialize database provider (SQLite by default)
-const dbPath = process.env.DATABASE_PATH || "./data/zero-agent.db";
+const dbPath = process.env.DATABASE_PATH || "./data/pip.db";
 let db: DatabaseProvider;
 
 // Initialize database (called at startup)

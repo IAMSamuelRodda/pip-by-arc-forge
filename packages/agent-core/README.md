@@ -102,8 +102,8 @@ Environment variables:
 
 ```bash
 AWS_REGION=us-east-1
-DYNAMODB_TABLE_NAME=zero-agent-dev-main
-LAMBDA_MCP_FUNCTION_NAME=zero-agent-dev-mcp
+DYNAMODB_TABLE_NAME=pip-dev-main
+LAMBDA_MCP_FUNCTION_NAME=pip-dev-mcp
 ANTHROPIC_API_KEY=sk-...
 ```
 

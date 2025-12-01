@@ -85,15 +85,15 @@ CMD ["pnpm", "server:start"]
 
 ```ini
 [Unit]
-Description=Zero Agent Server
+Description=Pip Server
 After=network.target
 
 [Service]
 Type=simple
-User=zero-agent
-WorkingDirectory=/opt/zero-agent
+User=pip
+WorkingDirectory=/opt/pip
 ExecStart=/usr/bin/node packages/server/dist/index.js
-EnvironmentFile=/opt/zero-agent/.env
+EnvironmentFile=/opt/pip/.env
 Restart=always
 
 [Install]
@@ -103,7 +103,7 @@ WantedBy=multi-user.target
 ### Caddy (Reverse Proxy)
 
 ```
-zero-agent.example.com {
+app.pip.example.com {
     reverse_proxy localhost:3000
 }
 ```

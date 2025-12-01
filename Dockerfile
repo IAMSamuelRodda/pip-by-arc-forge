@@ -73,7 +73,7 @@ USER pip-app
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV DATABASE_PROVIDER=sqlite
-ENV DATABASE_PATH=/app/data/zero-agent.db
+ENV DATABASE_PATH=/app/data/pip.db
 
 # Expose port
 EXPOSE 3000

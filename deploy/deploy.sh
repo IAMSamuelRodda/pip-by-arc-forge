@@ -9,6 +9,18 @@ set -e  # Exit on error
 echo "🚀 Starting Pip deployment..."
 echo ""
 
+# Load environment variables
+if [ -f .env ]; then
+  echo "📋 Loading environment variables from .env..."
+  set -a  # Export all variables
+  source .env
+  set +a
+  echo ""
+else
+  echo "⚠️  No .env file found. Using existing environment variables."
+  echo ""
+fi
+
 # Pull latest code
 echo "📥 Pulling latest code..."
 git pull origin main

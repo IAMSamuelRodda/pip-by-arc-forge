@@ -17,7 +17,7 @@ import { DynamoDBProvider } from "./providers/dynamodb.js";
  *   provider: "sqlite",
  *   connection: {
  *     type: "sqlite",
- *     filename: "./data/zero-agent.db"
+ *     filename: "./data/pip.db"
  *   }
  * });
  *
@@ -27,7 +27,7 @@ import { DynamoDBProvider } from "./providers/dynamodb.js";
  *   provider: "dynamodb",
  *   connection: {
  *     type: "dynamodb",
- *     tableName: "zero-agent-prod",
+ *     tableName: "pip-prod",
  *     region: "ap-southeast-2"
  *   }
  * });
@@ -86,7 +86,7 @@ export async function createDatabaseProviderFromEnv(): Promise<DatabaseProvider>
         provider: "sqlite",
         connection: {
           type: "sqlite",
-          filename: process.env.DATABASE_FILENAME || "./data/zero-agent.db",
+          filename: process.env.DATABASE_PATH || process.env.DATABASE_FILENAME || "./data/pip.db",
           readonly: process.env.DATABASE_READONLY === "true",
         },
       };
