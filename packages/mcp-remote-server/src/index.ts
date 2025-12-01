@@ -31,6 +31,7 @@ import {
 import * as xeroTools from "./handlers/xero-tools.js";
 import { getXeroStatus } from "./services/xero.js";
 import { memoryToolDefinitions, executeMemoryTool } from "./handlers/memory-tools.js";
+import { getMemoryManager } from "./services/memory.js";
 import * as safetyService from "./services/safety.js";
 
 // Types
@@ -605,6 +606,173 @@ app.get("/health", (req: Request, res: Response) => {
     version: "0.1.0",
     activeSessions: sessions.size,
   });
+});
+
+// ===========================================
+// Memory Management API (for PWA UI)
+// ===========================================
+
+// Helper: Extract user from Bearer token
+function getUserFromRequest(req: Request): { userId: string } | null {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return null;
+  }
+  const token = authHeader.substring(7);
+  return verifyToken(token);
+}
+
+// GET /api/memory - Get memory summary and edit count
+app.get("/api/memory", (req: Request, res: Response) => {
+  const user = getUserFromRequest(req);
+  if (!user) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const projectId = req.query.projectId as string | undefined;
+  const manager = getMemoryManager(user.userId, projectId);
+
+  const summary = manager.getSummary();
+  const editCount = manager.getUserEditCount();
+  const isStale = manager.isSummaryStale();
+  const graph = manager.readGraph();
+
+  res.json({
+    summary: summary?.summary || null,
+    summaryGeneratedAt: summary?.generatedAt || null,
+    isStale,
+    editCount,
+    entityCount: graph.entities.length,
+    observationCount: graph.entities.reduce((sum, e) => sum + e.observations.length, 0),
+  });
+});
+
+// POST /api/memory/edit - Add a user edit (explicit memory request)
+app.post("/api/memory/edit", (req: Request, res: Response) => {
+  const user = getUserFromRequest(req);
+  if (!user) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const { entityName, content, projectId } = req.body as {
+    entityName: string;
+    content: string;
+    projectId?: string;
+  };
+
+  if (!entityName || !content) {
+    res.status(400).json({ error: "entityName and content are required" });
+    return;
+  }
+
+  const manager = getMemoryManager(user.userId, projectId);
+
+  // Check if entity exists, create if not
+  const graph = manager.readGraph();
+  const entityExists = graph.entities.some(
+    e => e.name.toLowerCase() === entityName.toLowerCase()
+  );
+
+  if (!entityExists) {
+    manager.createEntities([{ name: entityName, entityType: "concept", observations: [] }], true);
+  }
+
+  // Add the observation as a user edit
+  const results = manager.addObservations([{ entityName, contents: [content] }], true);
+
+  if (results.length === 0) {
+    res.status(400).json({ error: "Failed to add memory edit" });
+    return;
+  }
+
+  res.json({ success: true, entityName, content });
+});
+
+// GET /api/memory/edits - List all user edits
+app.get("/api/memory/edits", (req: Request, res: Response) => {
+  const user = getUserFromRequest(req);
+  if (!user) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const projectId = req.query.projectId as string | undefined;
+  const manager = getMemoryManager(user.userId, projectId);
+
+  const edits = manager.getUserEdits();
+
+  res.json({
+    edits: edits.map(e => ({
+      entityName: e.entityName,
+      observation: e.observation,
+      createdAt: e.createdAt,
+    })),
+    count: edits.length,
+  });
+});
+
+// DELETE /api/memory/edits/:entityName/:observation - Delete a specific user edit
+app.delete("/api/memory/edits/:entityName/:observation", (req: Request, res: Response) => {
+  const user = getUserFromRequest(req);
+  if (!user) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const { entityName, observation } = req.params;
+  const projectId = req.query.projectId as string | undefined;
+  const manager = getMemoryManager(user.userId, projectId);
+
+  const deleted = manager.deleteUserEdit(
+    decodeURIComponent(entityName),
+    decodeURIComponent(observation)
+  );
+
+  if (!deleted) {
+    res.status(404).json({ error: "Edit not found" });
+    return;
+  }
+
+  res.json({ success: true });
+});
+
+// DELETE /api/memory/edits - Delete all user edits
+app.delete("/api/memory/edits", (req: Request, res: Response) => {
+  const user = getUserFromRequest(req);
+  if (!user) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const projectId = req.query.projectId as string | undefined;
+  const manager = getMemoryManager(user.userId, projectId);
+
+  const count = manager.deleteAllUserEdits();
+
+  res.json({ success: true, deletedCount: count });
+});
+
+// POST /api/memory/summary - Save a memory summary (for PWA-generated summaries)
+app.post("/api/memory/summary", (req: Request, res: Response) => {
+  const user = getUserFromRequest(req);
+  if (!user) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const { summary, projectId } = req.body as { summary: string; projectId?: string };
+
+  if (!summary || summary.trim().length < 10) {
+    res.status(400).json({ error: "Summary must be at least 10 characters" });
+    return;
+  }
+
+  const manager = getMemoryManager(user.userId, projectId);
+  manager.saveSummary(summary.trim());
+
+  res.json({ success: true });
 });
 
 // SSE endpoint for MCP connections

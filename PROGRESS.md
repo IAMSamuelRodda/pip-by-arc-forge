@@ -402,7 +402,7 @@ Deep research into alternative memory architectures. Key findings:
 
 ### Epic 2.1: Memory Architecture Modernization
 
-**Status**: 🟡 Partially Complete (audit done, patterns documented)
+**Status**: 🟡 4/5 Features Complete (UI remaining)
 **Priority**: HIGH (foundation for all features)
 **UX Reference**: `specs/spike-outputs/UX-PATTERNS-CLAUDE-AI-REFERENCE-20251201.md` (Pattern 0.7)
 
@@ -458,15 +458,24 @@ Key gap is **Claude.ai UI/UX patterns** - single memory with tracked user edits.
 - LLM generates summary from `read_graph`, then calls `save_memory_summary` to cache
 
 #### feature_2_1_4: Memory Management API
-**Status**: ⚪ Not Started
-**Complexity**: 2.3/5 | **Est**: 2 days
+**Status**: ✅ Complete
+**Complexity**: 2.3/5 | **Actual**: <1 day
 
 | Task | Status | Complexity | Notes |
 |------|--------|------------|-------|
-| task_2_1_4_1: GET /api/memory | ⚪ | 1.8 | Return summary + edit count |
-| task_2_1_4_2: POST /api/memory/edit | ⚪ | 2.0 | Add explicit edit from inline input |
-| task_2_1_4_3: GET/DELETE /api/memory/edits | ⚪ | 2.0 | List and remove user edits |
-| task_2_1_4_4: DELETE /api/memory/edits (clear all) | ⚪ | 1.5 | Clear all user edits |
+| task_2_1_4_1: GET /api/memory | ✅ | 1.8 | Return summary + edit count |
+| task_2_1_4_2: POST /api/memory/edit | ✅ | 2.0 | Add explicit edit from inline input |
+| task_2_1_4_3: GET/DELETE /api/memory/edits | ✅ | 2.0 | List and remove user edits |
+| task_2_1_4_4: DELETE /api/memory/edits (clear all) | ✅ | 1.5 | Clear all user edits |
+
+**Implementation**:
+- `index.ts`: REST API endpoints for PWA memory management
+- GET /api/memory - Returns summary, staleness, edit count, stats
+- POST /api/memory/edit - Add user edit via inline input
+- GET /api/memory/edits - List all user edits
+- DELETE /api/memory/edits/:entityName/:observation - Delete specific edit
+- DELETE /api/memory/edits - Clear all user edits
+- POST /api/memory/summary - Save LLM-generated summary
 
 #### feature_2_1_5: Memory Management UI (Pattern 0.7)
 **Status**: ⚪ Not Started
