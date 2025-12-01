@@ -14,6 +14,7 @@
     "@pip/agent-core": "workspace:*",
     "@pip/core": "workspace:*",
     "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^11.7.0",
     "compression": "^1.7.4",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
@@ -27,6 +28,7 @@
   },
   "devDependencies": {
     "@types/bcryptjs": "^3.0.0",
+    "@types/better-sqlite3": "^7.6.12",
     "@types/compression": "^1.7.5",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",

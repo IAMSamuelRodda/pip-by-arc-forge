@@ -29,6 +29,7 @@ import { createSessionRoutes } from './routes/sessions.js';
 import { createHealthRoutes } from './routes/health.js';
 import { createDocumentRoutes } from './routes/documents.js';
 import { createSettingsRoutes } from './routes/settings.js';
+import { createMemoryRoutes } from './routes/memory.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { requireAuth } from './middleware/auth.js';
 
@@ -95,6 +96,7 @@ async function createApp(db: DatabaseProvider): Promise<express.Application> {
   app.use('/api/sessions', requireAuth, createSessionRoutes(db));
   app.use('/api/documents', requireAuth, createDocumentRoutes(db));
   app.use('/api/settings', createSettingsRoutes(db));
+  app.use('/api/memory', createMemoryRoutes());
 
   // Auth routes (public)
   app.use('/auth', createUserAuthRoutes(db)); // signup, login, me
