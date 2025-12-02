@@ -61,3 +61,4 @@ tmp/
 *.db
 *.db-shm
 *.db-wal
+.vps-details

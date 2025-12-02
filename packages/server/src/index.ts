@@ -1,5 +1,5 @@
 /**
- * Zero Agent - Unified VPS Server
+ * Pip - Unified VPS Server
  *
  * Single Express server that handles:
  * - Chat API (POST /api/chat)
@@ -131,7 +131,7 @@ async function createApp(db: DatabaseProvider): Promise<express.Application> {
  * Start the server
  */
 async function start(): Promise<void> {
-  console.log('\n🚀 Starting Zero Agent Server...\n');
+  console.log('\n🚀 Starting Pip Server...\n');
 
   try {
     // Initialize database
@@ -144,7 +144,7 @@ async function start(): Promise<void> {
 
     // Start listening
     app.listen(PORT, () => {
-      console.log(`\n✨ Zero Agent Server running!`);
+      console.log(`\n✨ Pip Server running!`);
       console.log(`   Environment: ${NODE_ENV}`);
       console.log(`   Port: ${PORT}`);
       console.log(`   Database: ${db.name}`);
