@@ -40,6 +40,12 @@ See `ARCHITECTURE.md` for complete details.
 
 ---
 
+## UI/UX Philosophy
+
+**One word by default, two words reluctantly, never three.** Rely on context and placement for meaning; avoid verbose labels and explanatory empty states. See `UI-UX-DESIGN-PHILOSOPHY.md` for detailed guidelines.
+
+---
+
 ## Critical Constraints
 
 1. **ALWAYS use `pnpm`** for package management (NOT npm or yarn)
@@ -74,4 +80,4 @@ curl https://mcp.pip.arcforge.au/health
 
 ---
 
-**Last Updated**: 2025-12-01
+**Last Updated**: 2025-12-02
