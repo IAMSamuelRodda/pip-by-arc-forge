@@ -10,6 +10,7 @@ import { useChatStore } from '../store/chatStore';
 import { api } from '../api/client';
 import type { PersonalityInfo } from '../api/client';
 import { ChatSidebar } from '../components/ChatSidebar';
+import { ChatInputArea } from '../components/ChatInputArea';
 
 interface AuthStatus {
   connected: boolean;
@@ -35,7 +36,6 @@ export function ChatPage() {
   const [personalityInfo, setPersonalityInfo] = useState<PersonalityInfo | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { messages, isLoading, error, sendMessage, clearError, currentTitle } = useChatStore();
@@ -132,10 +132,6 @@ export function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Focus input on mount
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
 
   // Load documents on mount
   useEffect(() => {
@@ -147,13 +143,12 @@ export function ChatPage() {
     loadPersonalityInfo();
   }, [loadPersonalityInfo]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
-
-    const message = input.trim();
+  // Handler for ChatInputArea component (receives message directly)
+  const handleSubmitMessage = async (message: string, _attachments?: File[]) => {
+    if (!message.trim() || isLoading) return;
     setInput('');
     await sendMessage(message);
+    // TODO: Handle attachments when file upload is implemented (Epic 2.4)
   };
 
   const handleConnectXero = () => {
@@ -278,27 +273,18 @@ export function ChatPage() {
                 {personalityInfo?.role || 'Your bookkeeper'}
               </p>
 
-              {/* Centered input */}
-              <form onSubmit={handleSubmit} className="mb-6">
-                <div className="flex gap-2 items-center bg-arc-bg-tertiary border border-arc-border rounded-xl px-3 py-2 focus-within:border-arc-accent transition-colors">
-                  <input
-                    ref={inputRef}
-                    type="text"
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder="Ask about your finances..."
-                    className="flex-1 bg-transparent focus:outline-none text-sm text-arc-text-primary placeholder-arc-text-dim"
-                    disabled={isLoading}
-                  />
-                  <button
-                    type="submit"
-                    disabled={!input.trim() || isLoading}
-                    className="px-3 py-1.5 bg-arc-accent text-arc-bg-primary rounded-lg font-medium text-sm hover:bg-arc-accent-dim disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    Send
-                  </button>
-                </div>
-              </form>
+              {/* Centered input - Claude.ai pattern */}
+              <div className="mb-6 max-w-lg mx-auto">
+                <ChatInputArea
+                  value={input}
+                  onChange={setInput}
+                  onSubmit={handleSubmitMessage}
+                  placeholder="Ask about your finances..."
+                  isLoading={isLoading}
+                  variant="centered"
+                  autoFocus
+                />
+              </div>
 
               {/* Suggestions */}
               <div className="flex flex-wrap justify-center gap-2">
@@ -309,10 +295,7 @@ export function ChatPage() {
                 ].map((suggestion) => (
                   <button
                     key={suggestion}
-                    onClick={() => {
-                      setInput(suggestion);
-                      inputRef.current?.focus();
-                    }}
+                    onClick={() => setInput(suggestion)}
                     className="px-3 py-1.5 bg-arc-bg-tertiary border border-arc-border rounded-lg text-xs text-arc-text-secondary hover:border-arc-accent hover:text-arc-accent transition-colors"
                   >
                     {suggestion}
@@ -403,29 +386,19 @@ export function ChatPage() {
         </div>
       )}
 
-        {/* Input (only shown after first message) */}
+        {/* Input footer - Claude.ai pattern (only shown after first message) */}
         {messages.length > 0 && (
           <footer className="bg-arc-bg-secondary border-t border-arc-border">
-            <form onSubmit={handleSubmit} className="max-w-4xl mx-auto px-4 py-4">
-              <div className="flex gap-3 items-center bg-arc-bg-tertiary border border-arc-border rounded-xl px-3 py-2 focus-within:border-arc-accent transition-colors">
-                <span className="text-arc-text-dim text-sm">{'>'}</span>
-                <input
-                  type="text"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Ask about your finances..."
-                  className="flex-1 bg-transparent focus:outline-none text-sm text-arc-text-primary placeholder-arc-text-dim"
-                  disabled={isLoading}
-                />
-                <button
-                  type="submit"
-                  disabled={!input.trim() || isLoading}
-                  className="px-4 py-1.5 bg-arc-accent text-arc-bg-primary rounded-lg font-medium text-sm hover:bg-arc-accent-dim disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  Send
-                </button>
-              </div>
-            </form>
+            <div className="max-w-4xl mx-auto px-4 py-3">
+              <ChatInputArea
+                value={input}
+                onChange={setInput}
+                onSubmit={handleSubmitMessage}
+                placeholder="Ask about your finances..."
+                isLoading={isLoading}
+                variant="footer"
+              />
+            </div>
           </footer>
         )}
       </div>

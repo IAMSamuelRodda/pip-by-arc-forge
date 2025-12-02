@@ -35,13 +35,21 @@
 
 ### Just Completed (2025-12-02)
 
-1. **issue_032: Memory Context Injection** ✅ COMPLETE
+1. **issue_033: Chat Input Area Redesign** ✅ COMPLETE
+   - Created `ChatInputArea.tsx` component (~450 lines)
+   - Claude.ai pattern: `+` attachment button, `≡` tools menu, model selector
+   - Tools menu with: style selector, memory toggle, Xero connector status, settings link
+   - Attachment preview area with file cards and dismiss buttons
+   - Integrated into ChatPage.tsx (replaces both empty state and footer inputs)
+   - Build passes, ready for visual testing
+
+2. **issue_032: Memory Context Injection** ✅ COMPLETE
    - Agent now auto-injects knowledge graph into system prompt
    - Added `read_memory` and `search_memory` tools for explicit queries
    - "What do you know about me?" now returns stored facts
    - Commits: `97dd50e`, `a5b606e`
 
-2. **Epic 2.3: Projects Feature** ✅ COMPLETE
+3. **Epic 2.3: Projects Feature** ✅ COMPLETE
    - SQLite schema: `projects` table with CRUD operations
    - REST API: `/api/projects/*` endpoints (create, read, update, delete, set-default)
    - Session filtering by `projectId` added to `/api/sessions`
@@ -154,7 +162,7 @@
 
 | ID | Priority | Summary | Status |
 |----|----------|---------|--------|
-| issue_033 | P0 | Chat Input Area Redesign (Claude.ai Pattern) | 🟡 In Progress |
+| issue_033 | - | Chat Input Area Redesign (Claude.ai Pattern) | ✅ Resolved |
 | issue_023 | P1 | Empty chat delete + memory retrieval bugs | 🔴 Open |
 | issue_021 | P2 | Verify Response Styles in chat | 🔴 Open |
 | issue_019 | - | Safety Settings UI - explanation box placement | ✅ Resolved |
@@ -235,12 +243,11 @@
 
 ## Next Steps
 
-1. **issue_033: Chat Input Area Redesign** - P0 TOP PRIORITY
-   - `+` attachment button, `≡` tools menu, quick toggles
-   - Consolidates Epic 2.4 + issue_028 + UX patterns
-2. **Fix issue_023** - Empty chat delete + memory retrieval edge cases
-3. **Verify issue_021** - Test Response Styles in actual chat
-4. **Onboard beta users** - Share with trusted users for feedback
+1. **Fix issue_023** - P1: Empty chat delete + memory retrieval edge cases
+2. **Verify issue_021** - P2: Test Response Styles in actual chat
+3. **issue_034: Skills System** - P1: Report templates & agent capabilities
+4. **Deploy & Test** - Visual testing of new ChatInputArea component
+5. **Onboard beta users** - Share with trusted users for feedback
 
 ---
 
