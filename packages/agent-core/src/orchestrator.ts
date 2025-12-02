@@ -12,11 +12,16 @@ import {
   type ResponseStyleId,
   buildStylePrompt,
 } from '@pip/core';
+import Database from 'better-sqlite3';
 import { SessionManager } from './session/manager.js';
 import { MemoryManager } from './memory/manager.js';
 import { XeroClient } from './xero/client.js';
 import { createXeroTools, type Tool } from './tools/xero-tools.js';
+import { createMemoryTools } from './tools/memory-tools.js';
 import type { AgentRequest, AgentResponse } from './types.js';
+
+// Database path for knowledge graph access
+const DB_PATH = process.env.DATABASE_PATH || './data/pip.db';
 
 export class AgentOrchestrator {
   private sessionManager: SessionManager | null = null;
@@ -25,6 +30,7 @@ export class AgentOrchestrator {
   private dbProvider: DatabaseProvider | null = null;
   private xeroClient: XeroClient | null = null;
   private xeroTools: Tool[] = [];
+  private memoryTools: Tool[] = [];
   private initializationPromise: Promise<void> | null = null;
   private initialized = false;
 
@@ -68,6 +74,10 @@ export class AgentOrchestrator {
       } else {
         console.warn('⚠ Xero credentials not found - Xero tools will not be available');
       }
+
+      // Initialize memory tools (always available)
+      this.memoryTools = createMemoryTools();
+      console.log(`✓ Memory tools initialized with ${this.memoryTools.length} tools`);
 
       this.initialized = true;
     } catch (error) {
@@ -115,16 +125,20 @@ export class AgentOrchestrator {
       // 4. Load business context (uploaded documents)
       const businessContext = await this.getBusinessContext(userId);
 
-      // 5. Build conversation context with system prompt and history
-      const systemPrompt = this.buildSystemPrompt(memory, businessContext, responseStyle);
+      // 5. Load memory context from knowledge graph
+      const memoryContext = await this.getMemoryContext(userId, request.projectId);
+
+      // 6. Build conversation context with system prompt and history
+      const systemPrompt = this.buildSystemPrompt(memory, businessContext, memoryContext, responseStyle);
       const conversationHistory = [
         { role: 'system' as const, content: systemPrompt },
         ...(session?.messages || []),
         { role: 'user' as const, content: message },
       ];
 
-      // 4. Convert Xero tools to Anthropic tool format
-      const anthropicTools = this.xeroTools.map(tool => ({
+      // 7. Combine all available tools (Xero + Memory)
+      const allTools = [...this.xeroTools, ...this.memoryTools];
+      const anthropicTools = allTools.map(tool => ({
         name: tool.name,
         description: tool.description,
         input_schema: {
@@ -134,20 +148,20 @@ export class AgentOrchestrator {
         },
       }));
 
-      // 5. Invoke LLM provider to generate response with tools
+      // 8. Invoke LLM provider to generate response with tools
       let llmResponse = await this.llmProvider!.chat(conversationHistory, {
         tools: anthropicTools.length > 0 ? anthropicTools : undefined,
       });
 
-      // 6. Check if LLM wants to use a tool
+      // 9. Check if LLM wants to use a tool
       if (llmResponse.toolUse) {
         const toolName = llmResponse.toolUse.name;
         const toolInput = llmResponse.toolUse.input;
 
         console.log(`🔧 Tool called: ${toolName}`, toolInput);
 
-        // Find and execute the tool
-        const tool = this.xeroTools.find((t) => t.name === toolName);
+        // Find and execute the tool (search all tools)
+        const tool = allTools.find((t) => t.name === toolName);
         if (tool) {
           const toolResult = await tool.execute(toolInput, userId);
 
@@ -236,12 +250,94 @@ export class AgentOrchestrator {
   }
 
   /**
+   * Get memory context from knowledge graph for system prompt injection
+   * Returns formatted summary of what Pip knows about the user
+   */
+  private async getMemoryContext(userId: string, projectId?: string): Promise<string> {
+    try {
+      const db = new Database(DB_PATH);
+      try {
+        // Build scope clause for project isolation
+        const scopeClause = projectId
+          ? 'AND e.project_id = ?'
+          : 'AND e.project_id IS NULL';
+        const scopeParams = projectId ? [userId, projectId] : [userId];
+
+        // Get entities with their observations
+        const entities = db.prepare(`
+          SELECT e.name, e.entity_type, GROUP_CONCAT(o.observation, '||') as observations
+          FROM memory_entities e
+          LEFT JOIN memory_observations o ON e.id = o.entity_id
+          WHERE e.user_id = ? ${scopeClause}
+          GROUP BY e.id
+          ORDER BY e.created_at DESC
+          LIMIT 20
+        `).all(...scopeParams) as { name: string; entity_type: string; observations: string | null }[];
+
+        if (entities.length === 0) {
+          return '';
+        }
+
+        // Get relations
+        const relations = db.prepare(`
+          SELECT e1.name as from_name, r.relation_type, e2.name as to_name
+          FROM memory_relations r
+          JOIN memory_entities e1 ON r.from_entity_id = e1.id
+          JOIN memory_entities e2 ON r.to_entity_id = e2.id
+          WHERE r.user_id = ? ${scopeClause.replace(/e\./g, 'r.')}
+          ORDER BY r.created_at DESC
+          LIMIT 10
+        `).all(...scopeParams) as { from_name: string; relation_type: string; to_name: string }[];
+
+        // Format entities
+        const entityLines: string[] = [];
+        for (const entity of entities) {
+          const obs = entity.observations ? entity.observations.split('||') : [];
+          if (obs.length > 0) {
+            entityLines.push(`**${entity.name}** (${entity.entity_type}):`);
+            for (const o of obs.slice(0, 5)) { // Limit observations per entity
+              entityLines.push(`  - ${o}`);
+            }
+          }
+        }
+
+        // Format relations
+        const relationLines: string[] = [];
+        for (const rel of relations) {
+          relationLines.push(`- ${rel.from_name} ${rel.relation_type} ${rel.to_name}`);
+        }
+
+        // Build final context
+        let context = '';
+        if (entityLines.length > 0) {
+          context += entityLines.join('\n');
+        }
+        if (relationLines.length > 0) {
+          context += '\n\n**Relationships:**\n' + relationLines.join('\n');
+        }
+
+        return context;
+      } finally {
+        db.close();
+      }
+    } catch (error) {
+      console.error('Error retrieving memory context:', error);
+      return '';
+    }
+  }
+
+  /**
    * Build system prompt with user context, memory, and response style
    */
-  private buildSystemPrompt(memory: any, businessContext: string = '', responseStyle: ResponseStyleId = 'normal'): string {
+  private buildSystemPrompt(memory: any, businessContext: string = '', memoryContext: string = '', responseStyle: ResponseStyleId = 'normal'): string {
     const relationshipContext = memory?.relationshipStage
       ? `Your relationship with this user is at the "${memory.relationshipStage}" stage.`
       : 'This is your first conversation with this user.';
+
+    // Memory section - what Pip remembers about this user
+    const memorySection = memoryContext
+      ? `\n\n## What You Remember About This User\nYou have learned the following from previous conversations. Use this context to personalize your responses:\n\n${memoryContext}\n`
+      : '';
 
     const businessSection = businessContext
       ? `\n\n## Business Context (from uploaded documents)\nIMPORTANT: The user has uploaded these business documents. Reference specific numbers, targets, and criteria from these documents in your answers:\n\n${businessContext}\n`
@@ -253,7 +349,7 @@ export class AgentOrchestrator {
 
     return `You are Pip, a friendly AI bookkeeping assistant for Australian small business owners.
 
-${relationshipContext}
+${relationshipContext}${memorySection}
 ${businessSection}${styleSection}
 ## Your Approach
 
@@ -284,6 +380,12 @@ Use this structure when answering questions like "Can I afford X?" or "Am I on t
 **Recommendation**: [Specific, actionable advice]
 
 ## Tools Available
+
+### Memory Tools (Always Available)
+- read_memory: Get all stored memories about this user (use when they ask "what do you know about me?")
+- search_memory: Search memories for specific information about the user
+
+### Xero Tools (When Connected)
 - get_invoices: Fetch invoices (filter by status, date)
 - get_profit_and_loss: Get P&L report for date range
 - get_balance_sheet: Get current balance sheet

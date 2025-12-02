@@ -38,10 +38,16 @@ importers:
       '@pip/core':
         specifier: workspace:*
         version: link:../core
+      better-sqlite3:
+        specifier: ^11.7.0
+        version: 11.10.0
       zod:
         specifier: ^3.23.8
         version: 3.25.76
     devDependencies:
+      '@types/better-sqlite3':
+        specifier: ^7.6.12
+        version: 7.6.13
       '@types/node':
         specifier: ^20.17.10
         version: 20.19.25
