@@ -176,28 +176,34 @@
 - **Documentation**: Updated `docs/UI-UX-DESIGN-PHILOSOPHY.md` with Layout Patterns section
 - **Reference**: Claude.ai desktop layout, ChatGPT sidebar pattern
 
-#### issue_026: Sidebar UX Improvements (Collapsed State)
+#### issue_026: Sidebar UX Improvements (Claude.ai Pattern)
 - **Status**: 🔴 Open
 - **Priority**: P2 (Medium - UX polish)
 - **Component**: `packages/pwa-app` (ChatSidebar.tsx)
 - **Created**: 2025-12-02
-- **Description**: Several UX issues with collapsed sidebar state
-- **Problems Identified**:
-  1. **Chat list stacking**: Chats will stack up fast - need collapsible section toggle
-  2. **Collapsed icons**: Currently shows multiple chat icons when collapsed - should be single icon that expands sidebar
-  3. **Docs icon position**: Should be near top of sidebar (after New chat), not at bottom
-- **Target Pattern** (Claude.ai collapsed sidebar):
-  - Toggle icon (expand/collapse)
-  - New chat button (always visible)
-  - Single chat icon (expands sidebar to show list)
-  - Docs/files icon near top
-  - Profile at bottom
+- **Description**: Implement Claude.ai sidebar UX patterns for better chat management
+- **Current Problems**:
+  1. Chat list stacks up fast with no way to collapse
+  2. Collapsed sidebar shows multiple chat icons (should be single icon)
+  3. Docs icon at bottom instead of top
+  4. No starred/bookmarked chats feature
+  5. No pagination for large chat lists
+- **Target Pattern** (Claude.ai sidebar):
+  - **Sections**: Starred → Recents (collapsible)
+  - **Hide toggle**: "Hide" text on hover, collapses Recents section
+  - **Lazy loading**: Show ~20 recent chats, then "All chats" button
+  - **All chats page**: Full list with search, metadata, "+ New chat" button
+  - **Collapsed state**: Single icons for each section, not per-chat
 - **Acceptance Criteria**:
-  - [ ] Add collapsible "Chats" section with toggle
-  - [ ] Collapsed state: single chat icon instead of multiple
+  - [ ] Add "Bookmarked" section (starred chats at top)
+  - [ ] Add collapsible "Recents" section with hover-to-show "Hide" toggle
+  - [ ] Limit visible chats (~20), add "All chats" button at bottom
+  - [ ] Create `/chats` page with search, full list, metadata
+  - [ ] Collapsed state: single chat icon → expands sidebar
   - [ ] Move docs icon to top section (below New chat)
-  - [ ] Keep profile at bottom
-- **Complexity**: 2.0/5 (Low-Medium)
+  - [ ] Add bookmark/star action to chat context menu
+- **Complexity**: 2.5/5 (Medium)
+- **Reference**: Claude.ai sidebar screenshots (Hide toggle, Starred, All chats page)
 
 #### issue_027: Rich Projects Feature (Claude.ai Pattern)
 - **Status**: ⚠️ Flagged (needs spike)
