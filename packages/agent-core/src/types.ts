@@ -18,6 +18,7 @@ export interface AgentRequest {
   sessionId: string;
   message: string;
   projectId?: string; // Optional: scope to specific project
+  model?: string; // Optional: override default model
   context?: Record<string, any>;
 }
 

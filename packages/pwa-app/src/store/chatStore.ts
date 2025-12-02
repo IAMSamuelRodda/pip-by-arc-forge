@@ -5,6 +5,7 @@
  */
 
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { api } from '../api/client';
 import type { ChatSummary } from '../api/client';
 import { useProjectStore } from './projectStore';
@@ -16,6 +17,19 @@ interface Message {
   timestamp: number;
 }
 
+// Model selection
+export type ModelProvider = 'anthropic' | 'ollama';
+
+export interface ModelOption {
+  id: string;
+  name: string;
+  description: string;
+  provider: ModelProvider;
+}
+
+// Default model
+const DEFAULT_MODEL = 'claude-sonnet-4-20250514';
+
 interface ChatState {
   // Current chat
   messages: Message[];
@@ -23,6 +37,9 @@ interface ChatState {
   currentTitle: string | null;
   isLoading: boolean;
   error: string | null;
+
+  // Model selection (persisted)
+  selectedModel: string;
 
   // Chat history
   chatList: ChatSummary[];
@@ -38,14 +55,18 @@ interface ChatState {
   clearMessages: () => void;
   clearError: () => void;
   setError: (error: string) => void;
+  setSelectedModel: (modelId: string) => void;
 }
 
-export const useChatStore = create<ChatState>((set, get) => ({
+export const useChatStore = create<ChatState>()(
+  persist(
+    (set, get) => ({
   messages: [],
   sessionId: null,
   currentTitle: null,
   isLoading: false,
   error: null,
+  selectedModel: DEFAULT_MODEL,
   chatList: [],
   isLoadingList: false,
 
@@ -64,9 +85,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }));
 
     try {
-      // Get current project from project store
+      // Get current project and model from stores
       const currentProjectId = useProjectStore.getState().currentProjectId;
-      const response = await api.chat(content, get().sessionId || undefined, currentProjectId || undefined);
+      const selectedModel = get().selectedModel;
+      const response = await api.chat(content, get().sessionId || undefined, currentProjectId || undefined, selectedModel);
 
       const assistantMessage: Message = {
         id: `assistant-${Date.now()}`,
@@ -173,4 +195,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
   clearError: () => set({ error: null }),
 
   setError: (error: string) => set({ error }),
-}));
+
+  setSelectedModel: (modelId: string) => set({ selectedModel: modelId }),
+    }),
+    {
+      name: 'pip-chat-storage',
+      partialize: (state) => ({ selectedModel: state.selectedModel }),
+    }
+  )
+);

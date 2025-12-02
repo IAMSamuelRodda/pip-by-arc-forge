@@ -22,6 +22,7 @@ export class AnthropicProvider implements LLMProvider {
   readonly supportedModels = [
     "claude-opus-4-20250514",
     "claude-sonnet-4-20250514",
+    "claude-haiku-4-5-20251001",
     "claude-3-5-sonnet-20241022",
     "claude-3-5-haiku-20241022",
   ];
@@ -229,9 +230,10 @@ export class AnthropicProvider implements LLMProvider {
   }
 
   /**
-   * Calculate cost based on Anthropic pricing (Nov 2025)
+   * Calculate cost based on Anthropic pricing (Dec 2025)
    * Opus 4: $15 input / $75 output per MTok
    * Sonnet 4: $3 input / $15 output per MTok
+   * Haiku 4.5: $1 input / $5 output per MTok
    * Haiku 3.5: $0.80 input / $4 output per MTok
    */
   private calculateCost(
@@ -241,6 +243,7 @@ export class AnthropicProvider implements LLMProvider {
     const pricing: Record<string, { input: number; output: number }> = {
       "claude-opus-4-20250514": { input: 15.0, output: 75.0 },
       "claude-sonnet-4-20250514": { input: 3.0, output: 15.0 },
+      "claude-haiku-4-5-20251001": { input: 1.0, output: 5.0 },
       "claude-3-5-sonnet-20241022": { input: 3.0, output: 15.0 },
       "claude-3-5-haiku-20241022": { input: 0.8, output: 4.0 },
     };

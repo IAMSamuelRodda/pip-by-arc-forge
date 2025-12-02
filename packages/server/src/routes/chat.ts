@@ -21,7 +21,7 @@ export function createChatRoutes(db: DatabaseProvider): Router {
    */
   router.post('/', async (req, res, next) => {
     try {
-      const { message, sessionId, projectId } = req.body;
+      const { message, sessionId, projectId, model } = req.body;
 
       if (!message || typeof message !== 'string') {
         return res.status(400).json({
@@ -44,6 +44,7 @@ export function createChatRoutes(db: DatabaseProvider): Router {
         sessionId: activeSessionId,
         message,
         projectId: projectId || undefined,
+        model: model || undefined,
       });
 
       res.json({

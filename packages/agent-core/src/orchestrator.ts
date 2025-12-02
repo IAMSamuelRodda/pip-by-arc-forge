@@ -106,7 +106,7 @@ export class AgentOrchestrator {
    * Process user message and generate response
    */
   async processMessage(request: AgentRequest): Promise<AgentResponse> {
-    const { userId, sessionId, message } = request;
+    const { userId, sessionId, message, model } = request;
 
     try {
       // Ensure LLM provider is ready
@@ -151,6 +151,7 @@ export class AgentOrchestrator {
       // 8. Invoke LLM provider to generate response with tools
       let llmResponse = await this.llmProvider!.chat(conversationHistory, {
         tools: anthropicTools.length > 0 ? anthropicTools : undefined,
+        model: model || undefined,
       });
 
       // 9. Check if LLM wants to use a tool
@@ -178,7 +179,9 @@ export class AgentOrchestrator {
             },
           ];
 
-          llmResponse = await this.llmProvider!.chat(followUpConversation);
+          llmResponse = await this.llmProvider!.chat(followUpConversation, {
+            model: model || undefined,
+          });
         }
       }
 

@@ -106,14 +106,14 @@ export const api = {
   /**
    * Send a chat message
    */
-  async chat(message: string, sessionId?: string, projectId?: string): Promise<ChatResponse> {
+  async chat(message: string, sessionId?: string, projectId?: string, model?: string): Promise<ChatResponse> {
     const response = await fetch(`${API_BASE}/api/chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...getAuthHeaders(),
       },
-      body: JSON.stringify({ message, sessionId, projectId }),
+      body: JSON.stringify({ message, sessionId, projectId, model }),
     });
 
     if (!response.ok) {

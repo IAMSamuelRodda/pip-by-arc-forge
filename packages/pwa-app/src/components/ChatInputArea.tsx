@@ -12,6 +12,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { api, type ResponseStyleId, type ResponseStyleOption } from '../api/client';
+import { useChatStore } from '../store/chatStore';
 
 // ============================================================================
 // Types
@@ -317,10 +318,13 @@ export function ChatInputArea({
   const [toolsMenuOpen, setToolsMenuOpen] = useState(false);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const [memoryEnabled, setMemoryEnabled] = useState(true);
-  const [currentModel, setCurrentModel] = useState('claude-sonnet-4-20250514');
   const [styles, setStyles] = useState<ResponseStyleOption[]>([]);
   const [currentStyle, setCurrentStyle] = useState<ResponseStyleId>('normal');
   const [xeroConnected, setXeroConnected] = useState(false);
+
+  // Model selection from store (persisted)
+  const selectedModel = useChatStore((state) => state.selectedModel);
+  const setSelectedModel = useChatStore((state) => state.setSelectedModel);
 
   // Load settings
   useEffect(() => {
@@ -365,10 +369,8 @@ export function ChatInputArea({
   }, []);
 
   const handleModelChange = useCallback((modelId: string) => {
-    setCurrentModel(modelId);
-    // TODO: Wire to backend when model selection API is added
-    console.log('Model changed to:', modelId);
-  }, []);
+    setSelectedModel(modelId);
+  }, [setSelectedModel]);
 
   const handleSubmit = useCallback((e?: React.FormEvent) => {
     e?.preventDefault();
@@ -388,7 +390,7 @@ export function ChatInputArea({
   const canSubmit = value.trim() && !isLoading && !disabled;
 
   // Get display name for current model
-  const currentModelData = [...MODELS, ...MORE_MODELS].find(m => m.id === currentModel) || MODELS[0];
+  const currentModelData = [...MODELS, ...MORE_MODELS].find(m => m.id === selectedModel) || MODELS[0];
 
   return (
     <div className="w-full">
@@ -484,7 +486,7 @@ export function ChatInputArea({
               <ModelSelector
                 isOpen={modelMenuOpen}
                 onClose={() => setModelMenuOpen(false)}
-                currentModel={currentModel}
+                currentModel={selectedModel}
                 onModelChange={handleModelChange}
               />
             </div>
