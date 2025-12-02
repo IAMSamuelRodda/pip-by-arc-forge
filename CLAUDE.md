@@ -68,8 +68,8 @@ pnpm dev
 # Build (pre-commit check)
 pnpm build
 
-# Deploy to VPS (systematic - rebuilds ALL containers)
-ssh root@170.64.169.203 "cd /opt/pip && ./deploy/deploy.sh"
+# Deploy to VPS (with pre-flight checks)
+./deploy/deploy-local.sh
 
 # Quick health check
 curl https://app.pip.arcforge.au/health
