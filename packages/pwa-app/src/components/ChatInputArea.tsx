@@ -5,9 +5,9 @@
  * ┌─────────────────────────────────────────────────────┐
  * │  [Text input area - multiline capable]              │
  * │                                                     │
- * │  [+] [≡] [◐]                      Claude ▾   [↑]   │
+ * │  [+] [≡] [🧠]                   Sonnet 4.5 ▾  [↑]  │
  * └─────────────────────────────────────────────────────┘
- *    └─icons─┘ └memory┘              └─model─┘  └send┘
+ *    └─icons─┘ └memory┘              └─model─┘   └send┘
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
@@ -35,6 +35,27 @@ interface ChatInputAreaProps {
   autoFocus?: boolean;
 }
 
+interface ModelOption {
+  id: string;
+  name: string;
+  description: string;
+  provider: 'anthropic' | 'ollama';
+}
+
+// Available models
+const MODELS: ModelOption[] = [
+  { id: 'claude-sonnet-4-20250514', name: 'Sonnet 4.5', description: 'Smartest for everyday tasks', provider: 'anthropic' },
+  { id: 'claude-opus-4-20250514', name: 'Opus 4.5', description: 'Most capable for complex work', provider: 'anthropic' },
+  { id: 'claude-3-5-haiku-20241022', name: 'Haiku 3.5', description: 'Fastest for quick answers', provider: 'anthropic' },
+];
+
+const MORE_MODELS: ModelOption[] = [
+  { id: 'claude-opus-4-20250514', name: 'Opus 4', description: '', provider: 'anthropic' },
+  { id: 'claude-sonnet-4-20250514', name: 'Sonnet 4', description: '', provider: 'anthropic' },
+  { id: 'claude-3-opus-20240229', name: 'Opus 3', description: '', provider: 'anthropic' },
+  { id: 'ollama-local', name: 'Ollama (Local)', description: 'Local GPU', provider: 'ollama' },
+];
+
 // ============================================================================
 // Icon Components
 // ============================================================================
@@ -60,11 +81,13 @@ const SlidersIcon = () => (
   </svg>
 );
 
-// Memory icon - brain/circle style like Extended Thinking
-const MemoryIcon = () => (
+// Brain icon for memory
+const BrainIcon = () => (
   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="12" r="10" />
-    <path d="M12 6v6l4 2" />
+    <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z" />
+    <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z" />
+    <path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4" />
+    <path d="M12 18v-5" />
   </svg>
 );
 
@@ -209,6 +232,72 @@ function ToolsMenu({ isOpen, onClose, currentStyle, styles, onStyleChange, xeroC
   );
 }
 
+interface ModelSelectorProps {
+  isOpen: boolean;
+  onClose: () => void;
+  currentModel: string;
+  onModelChange: (modelId: string) => void;
+}
+
+function ModelSelector({ isOpen, onClose, currentModel, onModelChange }: ModelSelectorProps) {
+  const [showMoreModels, setShowMoreModels] = useState(false);
+
+  if (!isOpen) return null;
+
+  return (
+    <>
+      <div className="fixed inset-0 z-10" onClick={onClose} />
+      <div className="absolute bottom-full right-0 mb-2 w-56 bg-arc-bg-secondary border border-arc-border rounded-lg shadow-xl z-20">
+        <div className="py-1">
+          {/* Main models */}
+          {MODELS.map((model) => (
+            <button
+              key={model.id}
+              onClick={() => { onModelChange(model.id); onClose(); }}
+              className="w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-arc-bg-tertiary transition-colors"
+            >
+              <div className="text-left">
+                <div className="text-arc-text-primary font-medium">{model.name}</div>
+                <div className="text-xs text-arc-text-dim">{model.description}</div>
+              </div>
+              {currentModel === model.id && <CheckIcon />}
+            </button>
+          ))}
+
+          <div className="border-t border-arc-border my-1" />
+
+          {/* More models */}
+          <div className="relative">
+            <button
+              onClick={() => setShowMoreModels(!showMoreModels)}
+              className="w-full flex items-center justify-between px-3 py-1.5 text-sm text-arc-text-secondary hover:bg-arc-bg-tertiary transition-colors"
+            >
+              <span>More models</span>
+              <ChevronIcon direction="right" />
+            </button>
+            {showMoreModels && (
+              <div className="absolute left-full top-0 ml-1 w-40 bg-arc-bg-secondary border border-arc-border rounded-lg shadow-xl">
+                <div className="py-1">
+                  {MORE_MODELS.map((model) => (
+                    <button
+                      key={model.id}
+                      onClick={() => { onModelChange(model.id); setShowMoreModels(false); onClose(); }}
+                      className="w-full flex items-center justify-between px-3 py-1.5 text-sm text-arc-text-primary hover:bg-arc-bg-tertiary transition-colors"
+                    >
+                      <span>{model.name}</span>
+                      {currentModel === model.id && <CheckIcon />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ============================================================================
 // Main Component
 // ============================================================================
@@ -227,7 +316,9 @@ export function ChatInputArea({
 
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [toolsMenuOpen, setToolsMenuOpen] = useState(false);
+  const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const [memoryEnabled, setMemoryEnabled] = useState(true);
+  const [currentModel, setCurrentModel] = useState('claude-sonnet-4-20250514');
   const [styles, setStyles] = useState<ResponseStyleOption[]>([]);
   const [currentStyle, setCurrentStyle] = useState<ResponseStyleId>('normal');
   const [xeroConnected, setXeroConnected] = useState(false);
@@ -239,7 +330,7 @@ export function ChatInputArea({
     api.getAuthStatus().then((status) => setXeroConnected(status.connected)).catch(console.error);
   }, []);
 
-  // Auto-focus and auto-resize
+  // Auto-focus
   useEffect(() => {
     if (autoFocus && inputRef.current) {
       inputRef.current.focus();
@@ -274,6 +365,12 @@ export function ChatInputArea({
     }
   }, []);
 
+  const handleModelChange = useCallback((modelId: string) => {
+    setCurrentModel(modelId);
+    // TODO: Wire to backend when model selection API is added
+    console.log('Model changed to:', modelId);
+  }, []);
+
   const handleSubmit = useCallback((e?: React.FormEvent) => {
     e?.preventDefault();
     if (!value.trim() || isLoading || disabled) return;
@@ -291,6 +388,9 @@ export function ChatInputArea({
 
   const canSubmit = value.trim() && !isLoading && !disabled;
 
+  // Get display name for current model
+  const currentModelData = [...MODELS, ...MORE_MODELS].find(m => m.id === currentModel) || MODELS[0];
+
   return (
     <div className="w-full">
       <input
@@ -302,8 +402,8 @@ export function ChatInputArea({
         className="hidden"
       />
 
-      {/* Main container - slightly lighter than background */}
-      <div className="bg-[#2a2a2a] border border-arc-border rounded-2xl">
+      {/* Main container - uses arc theme colors */}
+      <div className="bg-arc-bg-tertiary border border-arc-border rounded-2xl">
         <AttachmentPreview attachments={attachments} onRemove={(id) => setAttachments(prev => prev.filter(a => a.id !== id))} />
 
         {/* Text area */}
@@ -354,32 +454,41 @@ export function ChatInputArea({
               />
             </div>
 
-            {/* Memory toggle - styled like Extended Thinking */}
+            {/* Memory toggle - brain icon, blue when enabled */}
             <button
               type="button"
               onClick={() => setMemoryEnabled(!memoryEnabled)}
               className={`p-2 rounded-lg transition-colors ${
                 memoryEnabled
-                  ? 'text-blue-400 bg-blue-400/10'
+                  ? 'text-arc-accent bg-arc-accent/10'
                   : 'text-arc-text-secondary hover:text-arc-text-primary hover:bg-arc-bg-secondary'
               }`}
-              title={`Memory ${memoryEnabled ? 'enabled' : 'disabled'}`}
+              title={`Memory ${memoryEnabled ? 'enabled' : 'disabled'} - Uses stored knowledge about you`}
             >
-              <MemoryIcon />
+              <BrainIcon />
             </button>
           </div>
 
           {/* Right side: Model selector + Send */}
           <div className="flex items-center gap-2">
             {/* Model selector */}
-            <button
-              type="button"
-              className="flex items-center gap-1 px-2 py-1.5 text-xs text-arc-text-secondary hover:text-arc-text-primary transition-colors"
-              title="Select model"
-            >
-              <span>Claude</span>
-              <ChevronIcon direction="down" />
-            </button>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setModelMenuOpen(!modelMenuOpen)}
+                className="flex items-center gap-1 px-2 py-1.5 text-xs text-arc-text-secondary hover:text-arc-text-primary transition-colors"
+                title="Select model"
+              >
+                <span>{currentModelData.name}</span>
+                <ChevronIcon direction="down" />
+              </button>
+              <ModelSelector
+                isOpen={modelMenuOpen}
+                onClose={() => setModelMenuOpen(false)}
+                currentModel={currentModel}
+                onModelChange={handleModelChange}
+              />
+            </div>
 
             {/* Send button */}
             <button
