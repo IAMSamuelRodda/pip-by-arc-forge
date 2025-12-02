@@ -46,12 +46,11 @@ interface ModelOption {
 const MODELS: ModelOption[] = [
   { id: 'claude-sonnet-4-20250514', name: 'Sonnet 4.5', description: 'Smartest for everyday tasks', provider: 'anthropic' },
   { id: 'claude-opus-4-20250514', name: 'Opus 4.5', description: 'Most capable for complex work', provider: 'anthropic' },
-  { id: 'claude-3-5-haiku-20241022', name: 'Haiku 3.5', description: 'Fastest for quick answers', provider: 'anthropic' },
+  { id: 'claude-haiku-4-5-20251001', name: 'Haiku 4.5', description: 'Fastest for quick answers', provider: 'anthropic' },
 ];
 
 const MORE_MODELS: ModelOption[] = [
-  { id: 'claude-opus-4-20250514', name: 'Opus 4', description: '', provider: 'anthropic' },
-  { id: 'claude-sonnet-4-20250514', name: 'Sonnet 4', description: '', provider: 'anthropic' },
+  { id: 'claude-3-5-haiku-20241022', name: 'Haiku 3.5', description: '', provider: 'anthropic' },
   { id: 'claude-3-opus-20240229', name: 'Opus 3', description: '', provider: 'anthropic' },
   { id: 'ollama-local', name: 'Ollama (Local)', description: 'Local GPU', provider: 'ollama' },
 ];
