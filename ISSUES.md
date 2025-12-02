@@ -153,6 +153,31 @@
 - **Complexity**: 2.5-3.0/5 (Medium - requires streaming infrastructure)
 - **Notes**: Makes the tool feel more responsive and trustworthy. Users see Pip is "working" not "stuck".
 
+#### issue_023: Edge Cases - Empty Chat + Memory Retrieval
+- **Status**: 🔴 Open
+- **Priority**: P1 (High - core functionality bugs)
+- **Component**: `packages/server`, `packages/agent-core`
+- **Discovered**: 2025-12-02
+- **Description**: Multiple edge cases discovered during testing that need investigation.
+- **Symptoms**:
+  1. **Empty chat delete fails**: Created a chat, didn't use it. Tried to delete → got error. After adding a message, delete worked.
+  2. **Memory not retrieved**: User has existing memory entry ("likes mushrooms") but Pip says "This is our first conversation". Memory lookup may be failing silently.
+  3. **New chat inherits nothing**: Starting a fresh chat in same session doesn't carry over user memory context.
+- **Investigation Areas**:
+  - [ ] Check delete endpoint - does it require messages to exist?
+  - [ ] Check memory retrieval in agent orchestrator - is it called on every chat?
+  - [ ] Check if memory is scoped per-session vs per-user
+  - [ ] Add logging to memory retrieval path
+  - [ ] Test: Create user memory → new chat → ask "what do you know about me?"
+- **Suspected Root Causes**:
+  - Delete: May be checking for session existence incorrectly
+  - Memory: Memory service may not be injected into chat context, OR memory search is returning empty
+- **Acceptance Criteria**:
+  - [ ] Empty chats can be deleted without error
+  - [ ] Memory is retrieved and injected into every new chat
+  - [ ] User can ask "what do you remember about me?" and get accurate response
+- **Related**: Epic 2.1 (Memory Architecture), Epic 2.2 (Chat History)
+
 #### issue_021: Verify Response Styles in Chat
 - **Status**: 🔴 Open
 - **Priority**: P2 (Medium - feature validation)
@@ -372,9 +397,9 @@
 - **Resolution**: Deployed with collapsible sidebar following Claude.ai Pattern 0. See commit `9699c96`.
 
 #### issue_013: Projects Feature (Epic 2.3)
-- **Status**: 🔴 Open
+- **Status**: 🟡 In Progress
 - **Priority**: P1 (High - differentiator)
-- **Component**: `packages/mcp-remote-server`, `packages/pwa-app`
+- **Component**: `packages/server`, `packages/pwa-app`, `packages/core`
 - **Blueprint**: feature_2_3_1 through feature_2_3_4
 - **Description**: Isolated context per project/client. Global context still applies, but project-specific details don't bleed across projects. Like Claude.ai Projects with cross-project reference capability.
 - **Use Cases**:
@@ -382,17 +407,19 @@
   - Client isolation for accountants
   - Project-specific memory and documents
 - **Acceptance Criteria**:
-  - [ ] Projects schema design and CRUD operations
+  - [x] Projects schema design and CRUD operations (SQLite)
+  - [x] Projects REST API (`/api/projects/*`)
+  - [x] Project switcher dropdown in header (ProjectSwitcher.tsx)
+  - [x] Session filtering by projectId
   - [ ] Refactor memory service for project_id scoping (decomposed into 4 subtasks)
-  - [ ] Refactor session service for project isolation
   - [ ] Multi-Xero org support (per-project OAuth tokens)
-  - [ ] Cross-project reference capability (**SPIKE REQUIRED**)
-  - [ ] Project switcher dropdown in header
-  - [ ] Project settings page
+  - [ ] Cross-project reference capability (**SPIKE COMPLETE**: spike_m2_001)
+  - [ ] Project settings page (full CRUD UI)
   - [ ] Project context indicator in chat UI
 - **Complexity**: 2.2-3.2/5 (task_2_3_1_3 decomposed)
 - **Flagged**: task_2_3_1_3 decomposed into 4 subtasks (all ≤2.5)
 - **Spike**: spike_m2_001 for cross-project reference patterns
+- **Commit**: `609c952` - Initial implementation (schema, API, UI)
 
 #### issue_014: Per-Chat Document Upload (Epic 2.4)
 - **Status**: 🔴 Open (spike complete - ready to implement)
