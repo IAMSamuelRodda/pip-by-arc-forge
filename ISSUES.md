@@ -178,6 +178,36 @@
   - [ ] User can ask "what do you remember about me?" and get accurate response
 - **Related**: Epic 2.1 (Memory Architecture), Epic 2.2 (Chat History)
 
+#### issue_024: DESIGN.md Enhancement - Visual Reference Workflow
+- **Status**: 🔴 Open
+- **Priority**: P3 (Low - future enhancement for new projects)
+- **Component**: `docs/UI-UX-DESIGN-PHILOSOPHY.md`, `docs/DESIGN.md`
+- **Created**: 2025-12-02
+- **Description**: Implement visual reference-based design direction workflow for future frontend projects.
+- **Context**:
+  - `blueprint-workflow-orchestrator` v2.2.0 added Step 1b: Design Direction
+  - Playwright MCP added to lazy-mcp for visual exploration
+  - Visual references > text descriptions for establishing design language
+- **Workflow** (from orchestrator):
+  1. Ask user for 2-3 design examples (URLs or screenshots)
+  2. Use Playwright (CLI preferred, MCP fallback) to explore websites
+  3. Extract visual patterns: typography, colors, layout, components
+  4. Pass `design_references` to DESIGN.md population step
+  5. Validate against `improving-visuals` anti-slop checklist
+- **For Pip PWA**:
+  - [ ] Create `DESIGN.md` document capturing current design system
+  - [ ] Document arc-* color palette and token mapping
+  - [ ] Extract typography choices (JetBrains Mono, etc.)
+  - [ ] Document component patterns (buttons, forms, cards)
+  - [ ] Add anti-slop checklist validation
+- **Tools Available**:
+  - Playwright CLI: `playwright screenshot <url> screenshot.png --full-page`
+  - Playwright MCP: `browser_navigate`, `browser_take_screenshot`, `browser_snapshot`
+- **Related Skills**:
+  - `frontend-aesthetics` (proactive anti-slop guidance)
+  - `improving-visuals` (8-dimension rubric assessment)
+- **Notes**: Apply to Pip when doing major UI work. For now, current design works well.
+
 #### issue_021: Verify Response Styles in Chat
 - **Status**: 🔴 Open
 - **Priority**: P2 (Medium - feature validation)
