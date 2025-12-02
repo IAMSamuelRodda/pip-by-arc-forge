@@ -378,6 +378,128 @@
 - **Complexity**: 3.5/5 (Medium-High - multiple components)
 - **Reference**: `specs/spike-outputs/UX-PATTERNS-CLAUDE-AI-REFERENCE-20251201.md`
 
+#### issue_034: Skills System - Report Templates & Agent Capabilities
+- **Status**: 🔴 Open
+- **Priority**: P1 (High - differentiator feature)
+- **Component**: `packages/core`, `packages/server`, `packages/pwa-app`
+- **Created**: 2025-12-02
+- **Description**: Implement a skills system (like Claude Code) for report templates and agent capabilities that users can activate and customize.
+- **Inspiration**: Claude Code's skills system where specialized knowledge/workflows can be loaded on demand
+- **Two-Tier Architecture**:
+  ```
+  ┌─────────────────────────────────────────────────────────┐
+  │  SYSTEM SKILLS (curated by maintainers)                 │
+  │  ├── report-profit-loss     (P&L report template)       │
+  │  ├── report-cash-flow       (Cash flow analysis)        │
+  │  ├── report-aged-receivables (Outstanding invoices)     │
+  │  ├── report-monthly-summary  (Month-end summary)        │
+  │  ├── report-tax-preparation  (BAS/tax ready report)     │
+  │  └── analysis-can-i-afford   (Affordability check)      │
+  ├─────────────────────────────────────────────────────────┤
+  │  USER SKILLS (personal customizations)                  │
+  │  ├── my-weekly-summary      (custom weekly format)      │
+  │  ├── client-invoice-style   (branded invoice format)    │
+  │  └── earthworks-kpi-report  (project-specific KPIs)     │
+  └─────────────────────────────────────────────────────────┘
+  ```
+- **Skill Structure**:
+  ```typescript
+  interface Skill {
+    id: string;
+    name: string;
+    description: string;
+    scope: 'system' | 'user';
+    userId?: string;           // null for system skills
+    projectId?: string;        // optional project scope
+    triggerPhrases: string[];  // "make me a P&L report", "show profit and loss"
+    promptTemplate: string;    // System prompt injection
+    outputFormat?: string;     // Markdown template for consistent output
+    requiredTools?: string[];  // Xero tools needed
+    createdAt: number;
+    updatedAt: number;
+  }
+  ```
+- **Example System Skill** (P&L Report):
+  ```yaml
+  id: report-profit-loss
+  name: Profit & Loss Report
+  triggerPhrases:
+    - "P&L report"
+    - "profit and loss"
+    - "income statement"
+  promptTemplate: |
+    When generating a P&L report, follow this structure:
+    1. Fetch data using get_profit_and_loss tool
+    2. Present in this format:
+       ## Profit & Loss: {period}
+       ### Revenue
+       - {line items with amounts}
+       ### Expenses
+       - {line items with amounts}
+       ### Summary
+       - **Gross Profit**: {amount}
+       - **Net Profit**: {amount}
+       - **Profit Margin**: {percentage}
+    3. Include trend comparison if previous period available
+    4. Highlight unusual variances (>20% change)
+  ```
+- **User Skill Creation Flow**:
+  1. User creates skill in Settings → Skills
+  2. Define trigger phrases and output format
+  3. Optionally scope to specific project
+  4. Skill injected into system prompt when triggered
+- **Agent Integration**:
+  - On message, check for skill trigger phrases
+  - If matched, inject skill's promptTemplate into system prompt
+  - Track skill usage for analytics ("level up" metrics)
+- **UI Components**:
+  - Settings → Skills page (list, create, edit, delete)
+  - Skill cards with enable/disable toggle
+  - "Skill activated" indicator in chat when skill is used
+  - Skill marketplace (future - community sharing)
+- **Database Schema**:
+  ```sql
+  CREATE TABLE skills (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+    scope TEXT NOT NULL CHECK (scope IN ('system', 'user')),
+    user_id TEXT,
+    project_id TEXT,
+    trigger_phrases TEXT NOT NULL,  -- JSON array
+    prompt_template TEXT NOT NULL,
+    output_format TEXT,
+    required_tools TEXT,            -- JSON array
+    enabled BOOLEAN DEFAULT TRUE,
+    usage_count INTEGER DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (project_id) REFERENCES projects(id)
+  );
+  ```
+- **Acceptance Criteria**:
+  - [ ] Design skills schema and seed system skills
+  - [ ] Skill trigger detection in agent orchestrator
+  - [ ] System prompt injection when skill activated
+  - [ ] Skills settings page (CRUD for user skills)
+  - [ ] System skills displayed (read-only, enable/disable)
+  - [ ] "Skill used" indicator in chat response
+  - [ ] Usage tracking for analytics
+- **Starter System Skills**:
+  1. `report-profit-loss` - P&L with variance analysis
+  2. `report-cash-flow` - Cash flow statement
+  3. `report-aged-receivables` - Outstanding invoices by age
+  4. `report-monthly-summary` - Month-end financial summary
+  5. `analysis-can-i-afford` - "Can I afford X?" decision framework
+- **Complexity**: 3.5/5 (Medium-High - new subsystem)
+- **Spike Required**: Research Claude Code skills implementation patterns
+- **Future Extensions**:
+  - Skill marketplace (share/import from other users)
+  - Skill versioning
+  - Skill dependencies (one skill can use another)
+  - AI-assisted skill creation ("Create a skill that...")
+
 #### issue_031: Memory Query Schema Mismatch
 - **Status**: 🟢 Resolved
 - **Priority**: - (Complete)
