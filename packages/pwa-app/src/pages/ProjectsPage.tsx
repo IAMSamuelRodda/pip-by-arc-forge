@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { useProjectStore, useCurrentProject } from '../store/projectStore';
 import { useChatStore } from '../store/chatStore';
 import { projectApi } from '../api/client';
+import { MainLayout } from '../components/MainLayout';
 
 // ============================================================================
 // Icons
@@ -213,18 +214,19 @@ export function ProjectsPage() {
   );
 
   return (
-    <div className="flex flex-col h-full bg-arc-bg-primary">
-      {/* Header */}
-      <div className="flex items-center gap-4 px-6 py-4 border-b border-arc-border">
-        <button
-          onClick={() => navigate('/')}
-          className="p-1 text-arc-text-secondary hover:text-arc-text-primary transition-colors"
-        >
-          <ChevronLeftIcon />
-        </button>
-        <h1 className="text-lg font-medium text-arc-text-primary">Projects</h1>
-        <span className="text-sm text-arc-text-dim">({projects.length})</span>
-      </div>
+    <MainLayout>
+      <div className="flex flex-col h-full">
+        {/* Header */}
+        <div className="flex items-center gap-4 px-6 py-4 border-b border-arc-border">
+          <button
+            onClick={() => navigate('/')}
+            className="p-1 text-arc-text-secondary hover:text-arc-text-primary transition-colors"
+          >
+            <ChevronLeftIcon />
+          </button>
+          <h1 className="text-lg font-medium text-arc-text-primary">Projects</h1>
+          <span className="text-sm text-arc-text-dim">({projects.length})</span>
+        </div>
 
       {/* Search and Actions */}
       <div className="flex items-center gap-3 px-6 py-3 border-b border-arc-border">
@@ -439,8 +441,9 @@ export function ProjectsPage() {
               </div>
             ))}
           </div>
-        )}
+          )}
+        </div>
       </div>
-    </div>
+    </MainLayout>
   );
 }

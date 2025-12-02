@@ -9,7 +9,7 @@ import ReactMarkdown from 'react-markdown';
 import { useChatStore } from '../store/chatStore';
 import { api } from '../api/client';
 import type { PersonalityInfo } from '../api/client';
-import { ChatSidebar } from '../components/ChatSidebar';
+import { MainLayout } from '../components/MainLayout';
 import { ChatInputArea } from '../components/ChatInputArea';
 import { QuickActionCategories } from '../components/QuickActionCategories';
 import { ChatHeader } from '../components/ChatHeader';
@@ -29,7 +29,6 @@ export function ChatPage() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [personalityInfo, setPersonalityInfo] = useState<PersonalityInfo | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -170,20 +169,13 @@ export function ChatPage() {
   };
 
   return (
-    <div className="flex h-screen bg-arc-bg-primary font-mono">
-      {/* Sidebar */}
-      <ChatSidebar
-        isOpen={sidebarOpen}
-        onToggle={() => setSidebarOpen(!sidebarOpen)}
-        docsCount={documents.length}
-        showDocs={showDocPanel}
-        onToggleDocs={() => setShowDocPanel(!showDocPanel)}
-      />
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Header - seamless background */}
-        <ChatHeader
+    <MainLayout
+      showDocsToggle
+      showDocs={showDocPanel}
+      onToggleDocs={() => setShowDocPanel(!showDocPanel)}
+    >
+      {/* Header - seamless background */}
+      <ChatHeader
           sessionId={sessionId}
           title={currentTitle || 'Pip'}
           isBookmarked={isCurrentChatBookmarked}
@@ -378,7 +370,6 @@ export function ChatPage() {
             </div>
           </footer>
         )}
-      </div>
-    </div>
+    </MainLayout>
   );
 }

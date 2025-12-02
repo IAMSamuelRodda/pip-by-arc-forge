@@ -7,6 +7,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '../store/chatStore';
+import { MainLayout } from '../components/MainLayout';
 
 // ============================================================================
 // Icons
@@ -151,19 +152,20 @@ export function ChatsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-arc-bg-primary font-mono">
-      {/* Header */}
-      <header className="bg-arc-bg-secondary border-b border-arc-border sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 py-3">
-          <div className="flex items-center gap-3">
-            {/* Back button */}
-            <button
-              onClick={() => navigate('/')}
-              className="p-1.5 rounded hover:bg-arc-bg-tertiary text-arc-text-secondary transition-colors"
-              title="Back to chat"
-            >
-              <ChevronLeftIcon />
-            </button>
+    <MainLayout>
+      <div className="flex-1 flex flex-col min-h-0">
+        {/* Header */}
+        <header className="bg-arc-bg-secondary border-b border-arc-border sticky top-0 z-10">
+          <div className="max-w-4xl mx-auto px-4 py-3">
+            <div className="flex items-center gap-3">
+              {/* Back button */}
+              <button
+                onClick={() => navigate('/')}
+                className="p-1.5 rounded hover:bg-arc-bg-tertiary text-arc-text-secondary transition-colors"
+                title="Back to chat"
+              >
+                <ChevronLeftIcon />
+              </button>
 
             {/* Title and count */}
             <div className="flex-1">
@@ -318,8 +320,9 @@ export function ChatsPage() {
               );
             })}
           </div>
-        )}
-      </main>
-    </div>
+          )}
+        </main>
+      </div>
+    </MainLayout>
   );
 }

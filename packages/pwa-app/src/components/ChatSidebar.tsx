@@ -115,9 +115,9 @@ export function ChatSidebar({ isOpen, onToggle, docsCount = 0, showDocs, onToggl
     loadChatList();
   }, [loadChatList]);
 
-  // Get recent chats (last 5)
+  // Get recent chats (last 30)
   const recentChats = useMemo(() => {
-    return chatList.slice(0, 5);
+    return chatList.slice(0, 30);
   }, [chatList]);
 
   // Get bookmarked chats
@@ -395,6 +395,18 @@ export function ChatSidebar({ isOpen, onToggle, docsCount = 0, showDocs, onToggl
                         </button>
                       </div>
                     ))}
+                  </div>
+                )}
+
+                {/* All chats button */}
+                {chatList.length > 0 && (
+                  <div className="px-2 pt-2 pb-1">
+                    <button
+                      onClick={() => navigate('/chats')}
+                      className="w-full text-left px-2 py-1.5 text-xs text-arc-text-dim hover:text-arc-text-secondary transition-colors"
+                    >
+                      All chats →
+                    </button>
                   </div>
                 )}
               </>
