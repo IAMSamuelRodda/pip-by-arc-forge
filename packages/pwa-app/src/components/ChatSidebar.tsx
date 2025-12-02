@@ -20,9 +20,18 @@ const CollapseIcon = () => (
   </svg>
 );
 
-const ExpandIcon = () => (
+// Sidebar toggle icon (hamburger menu)
+const SidebarToggleIcon = () => (
   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+  </svg>
+);
+
+// Pip Logo icon
+const PipLogo = () => (
+  <svg className="h-7 w-7" viewBox="0 0 32 32" fill="none">
+    <circle cx="16" cy="16" r="14" className="fill-arc-accent" />
+    <text x="16" y="21" textAnchor="middle" className="fill-arc-bg-primary font-bold" style={{ fontSize: '14px' }}>P</text>
   </svg>
 );
 
@@ -222,19 +231,44 @@ export function ChatSidebar({ isOpen, onToggle, docsCount = 0, showDocs, onToggl
     <>
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 h-full bg-arc-bg-secondary border-r border-arc-border z-40 transition-all duration-200 flex flex-col ${
+        className={`group/sidebar fixed left-0 top-0 h-full bg-arc-bg-secondary border-r border-arc-border z-40 transition-all duration-200 flex flex-col ${
           isOpen ? 'w-64' : 'w-12'
         }`}
       >
-        {/* Toggle Button */}
-        <div className="flex items-center justify-end p-2">
-          <button
-            onClick={onToggle}
-            className="p-1.5 rounded hover:bg-arc-bg-tertiary text-arc-text-secondary transition-colors"
-            title={isOpen ? 'Collapse sidebar' : 'Expand sidebar'}
-          >
-            {isOpen ? <CollapseIcon /> : <ExpandIcon />}
-          </button>
+        {/* Header - ChatGPT pattern: Logo becomes toggle on hover (collapsed), split (expanded) */}
+        <div className="flex items-center p-2 h-12">
+          {isOpen ? (
+            // Expanded: Logo left, toggle right
+            <>
+              <div className="flex items-center gap-2 flex-1">
+                <PipLogo />
+                <span className="text-sm font-semibold text-arc-text-primary">Pip</span>
+              </div>
+              <button
+                onClick={onToggle}
+                className="p-1.5 rounded hover:bg-arc-bg-tertiary text-arc-text-secondary transition-colors"
+                title="Collapse sidebar"
+              >
+                <CollapseIcon />
+              </button>
+            </>
+          ) : (
+            // Collapsed: Logo by default, toggle icon on sidebar hover
+            <button
+              onClick={onToggle}
+              className="w-full flex justify-center p-1.5 rounded hover:bg-arc-bg-tertiary text-arc-text-secondary transition-colors"
+              title="Expand sidebar"
+            >
+              {/* Logo - hidden on sidebar hover */}
+              <span className="group-hover/sidebar:hidden">
+                <PipLogo />
+              </span>
+              {/* Toggle - shown on sidebar hover */}
+              <span className="hidden group-hover/sidebar:block">
+                <SidebarToggleIcon />
+              </span>
+            </button>
+          )}
         </div>
 
         {/* New Chat Button */}
