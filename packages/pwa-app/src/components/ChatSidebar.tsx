@@ -1,17 +1,24 @@
 /**
- * Chat Sidebar - Collapsible chat history (Claude.ai Pattern 0)
+ * Chat Sidebar - Collapsible sidebar with projects, chats, and profile
+ * Pattern: Claude.ai sidebar layout
  * Epic 2.2: Chat History
+ * Epic 2.3: Projects integration
  */
 
 import { useEffect, useState } from 'react';
 import { useChatStore } from '../store/chatStore';
+import { ProjectSwitcher } from './ProjectSwitcher';
+import { ProfileDropdown } from './ProfileDropdown';
 
 interface ChatSidebarProps {
   isOpen: boolean;
   onToggle: () => void;
+  docsCount?: number;
+  showDocs?: boolean;
+  onToggleDocs?: () => void;
 }
 
-export function ChatSidebar({ isOpen, onToggle }: ChatSidebarProps) {
+export function ChatSidebar({ isOpen, onToggle, docsCount = 0, showDocs, onToggleDocs }: ChatSidebarProps) {
   const {
     chatList,
     sessionId,
@@ -69,11 +76,8 @@ export function ChatSidebar({ isOpen, onToggle }: ChatSidebarProps) {
           isOpen ? 'w-64' : 'w-12'
         }`}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between p-3 border-b border-arc-border">
-          {isOpen && (
-            <span className="text-sm font-medium text-arc-text-primary">Chats</span>
-          )}
+        {/* Toggle Button */}
+        <div className="flex items-center justify-end p-2">
           <button
             onClick={onToggle}
             className="p-1.5 rounded hover:bg-arc-bg-tertiary text-arc-text-secondary transition-colors"
@@ -96,7 +100,7 @@ export function ChatSidebar({ isOpen, onToggle }: ChatSidebarProps) {
         </div>
 
         {/* New Chat Button */}
-        <div className="p-2">
+        <div className="px-2 pb-2">
           <button
             onClick={newChat}
             className={`w-full flex items-center gap-2 p-2 rounded-lg bg-arc-accent text-arc-bg-primary hover:bg-arc-accent/90 transition-colors ${
@@ -116,6 +120,20 @@ export function ChatSidebar({ isOpen, onToggle }: ChatSidebarProps) {
             {isOpen && <span className="text-sm font-medium">New chat</span>}
           </button>
         </div>
+
+        {/* Project Switcher (in sidebar) */}
+        {isOpen && (
+          <div className="px-2 pb-2">
+            <ProjectSwitcher inSidebar />
+          </div>
+        )}
+
+        {/* Chat List Header */}
+        {isOpen && (
+          <div className="px-3 pt-2 pb-1">
+            <span className="text-xs font-medium text-arc-text-dim uppercase tracking-wide">Chats</span>
+          </div>
+        )}
 
         {/* Chat List */}
         <div className="flex-1 overflow-y-auto">
@@ -192,6 +210,44 @@ export function ChatSidebar({ isOpen, onToggle }: ChatSidebarProps) {
               })}
             </div>
           )}
+        </div>
+
+        {/* Docs button */}
+        {onToggleDocs && (
+          <div className="px-2 pb-2">
+            <button
+              onClick={onToggleDocs}
+              className={`w-full flex items-center gap-2 p-2 rounded-lg transition-colors ${
+                showDocs
+                  ? 'bg-arc-accent/20 text-arc-accent'
+                  : 'text-arc-text-secondary hover:bg-arc-bg-tertiary'
+              } ${isOpen ? '' : 'justify-center'}`}
+              title="Business documents"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              {isOpen && (
+                <>
+                  <span className="text-sm flex-1 text-left">Docs</span>
+                  {docsCount > 0 && (
+                    <span className="text-xs text-arc-text-dim">{docsCount}</span>
+                  )}
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* Profile Dropdown (bottom) */}
+        <div className="p-2 border-t border-arc-border">
+          <ProfileDropdown collapsed={!isOpen} />
         </div>
       </aside>
 

@@ -43,10 +43,12 @@ export function createSessionRoutes(db: DatabaseProvider): Router {
   router.post('/', async (req, res, next) => {
     try {
       const userId = req.userId!;
-      const sessionId = await orchestrator.createSession(userId);
+      const { projectId } = req.body;
+      const sessionId = await orchestrator.createSession(userId, projectId || undefined);
 
       res.status(201).json({
         sessionId,
+        projectId: projectId || null,
         createdAt: Date.now(),
       });
     } catch (error) {
@@ -59,13 +61,17 @@ export function createSessionRoutes(db: DatabaseProvider): Router {
    * List all sessions for a user (chat history)
    * Query params:
    *   - limit: max sessions to return (default 50)
-   *   - projectId: filter by project (optional)
+   *   - projectId: filter by project (optional, empty string = unassigned sessions)
    */
   router.get('/', async (req, res, next) => {
     try {
       const userId = req.userId!;
       const limit = parseInt(req.query.limit as string) || 50;
-      const projectId = req.query.projectId as string | undefined;
+      const rawProjectId = req.query.projectId as string | undefined;
+
+      // Convert empty string to null for "unassigned sessions" query
+      // undefined means "all sessions" (no filter)
+      const projectId = rawProjectId === '' ? null : rawProjectId;
 
       const sessions = await db.listSessions({
         userId,

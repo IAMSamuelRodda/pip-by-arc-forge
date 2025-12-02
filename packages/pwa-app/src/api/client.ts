@@ -106,14 +106,14 @@ export const api = {
   /**
    * Send a chat message
    */
-  async chat(message: string, sessionId?: string): Promise<ChatResponse> {
+  async chat(message: string, sessionId?: string, projectId?: string): Promise<ChatResponse> {
     const response = await fetch(`${API_BASE}/api/chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...getAuthHeaders(),
       },
-      body: JSON.stringify({ message, sessionId }),
+      body: JSON.stringify({ message, sessionId, projectId }),
     });
 
     if (!response.ok) {
@@ -273,9 +273,12 @@ export const api = {
   /**
    * List all chat sessions
    */
-  async listChats(limit?: number): Promise<{ sessions: ChatSummary[] }> {
-    const params = limit ? `?limit=${limit}` : '';
-    const response = await fetch(`${API_BASE}/api/sessions${params}`, {
+  async listChats(limit?: number, projectId?: string | null): Promise<{ sessions: ChatSummary[] }> {
+    const params = new URLSearchParams();
+    if (limit) params.set('limit', String(limit));
+    if (projectId !== undefined) params.set('projectId', projectId ?? '');
+    const queryString = params.toString();
+    const response = await fetch(`${API_BASE}/api/sessions${queryString ? `?${queryString}` : ''}`, {
       headers: getAuthHeaders(),
     });
     if (!response.ok) {

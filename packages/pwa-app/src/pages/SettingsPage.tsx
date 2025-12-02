@@ -4,11 +4,12 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { api, memoryApi } from '../api/client';
 import type { ResponseStyleId, ResponseStyleOption, MemoryStatus } from '../api/client';
 import { useAuthStore } from '../store/authStore';
 import { ManageMemoryModal } from '../components/ManageMemoryModal';
+import { ProjectsSettingsPanel } from '../components/ProjectsSettingsPanel';
 
 type PermissionLevel = 0 | 1 | 2 | 3;
 
@@ -50,7 +51,12 @@ const PERMISSION_LEVELS: { level: PermissionLevel; name: string; description: st
 
 export function SettingsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuthStore();
+
+  // Check for #projects hash to auto-expand projects section
+  const initialSection = location.hash === '#projects' ? 'projects' : null;
+  const [expandedSection, setExpandedSection] = useState<string | null>(initialSection);
 
   const [settings, setSettings] = useState<Settings | null>(null);
   const [styles, setStyles] = useState<ResponseStyleOption[]>([]);
@@ -340,6 +346,31 @@ export function SettingsPage() {
                   <span className="text-arc-text-secondary">&rarr;</span>
                 </div>
               </button>
+            </section>
+
+            {/* Projects Section */}
+            <section id="projects">
+              <button
+                onClick={() => setExpandedSection(expandedSection === 'projects' ? null : 'projects')}
+                className="w-full flex items-center justify-between mb-2"
+              >
+                <h2 className="text-lg font-medium text-arc-text-primary">Projects</h2>
+                <svg
+                  className={`w-5 h-5 text-arc-text-secondary transition-transform ${
+                    expandedSection === 'projects' ? 'rotate-180' : ''
+                  }`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              <p className="text-sm text-arc-text-secondary mb-4">
+                Organize your conversations by client or context.
+              </p>
+
+              {expandedSection === 'projects' && <ProjectsSettingsPanel />}
             </section>
 
             {/* Info Section */}

@@ -5,8 +5,13 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useProjectStore, useCurrentProject } from '../store/projectStore';
+import { useChatStore } from '../store/chatStore';
 
-export function ProjectSwitcher() {
+interface ProjectSwitcherProps {
+  inSidebar?: boolean;
+}
+
+export function ProjectSwitcher({ inSidebar = false }: ProjectSwitcherProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
@@ -57,10 +62,14 @@ export function ProjectSwitcher() {
     }
   };
 
+  const { loadChatList, newChat } = useChatStore();
+
   const handleSelectProject = (projectId: string) => {
     setCurrentProject(projectId);
     setIsOpen(false);
-    // TODO: Refresh chat list for the new project
+    // Refresh chat list for the new project and start fresh
+    newChat();
+    loadChatList();
   };
 
   // Show "Add Project" button when no projects exist
@@ -70,7 +79,9 @@ export function ProjectSwitcher() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-arc-border hover:border-arc-accent transition-colors"
+        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border border-arc-border hover:border-arc-accent transition-colors ${
+          inSidebar ? 'w-full' : ''
+        }`}
         disabled={isLoading}
       >
         {/* Project color badge */}

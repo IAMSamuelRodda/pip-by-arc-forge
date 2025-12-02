@@ -5,14 +5,11 @@
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { useChatStore } from '../store/chatStore';
-import { useAuthStore } from '../store/authStore';
 import { api } from '../api/client';
 import type { PersonalityInfo } from '../api/client';
 import { ChatSidebar } from '../components/ChatSidebar';
-import { ProjectSwitcher } from '../components/ProjectSwitcher';
 
 interface AuthStatus {
   connected: boolean;
@@ -41,14 +38,7 @@ export function ChatPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const navigate = useNavigate();
   const { messages, isLoading, error, sendMessage, clearError, currentTitle } = useChatStore();
-  const { user, logout } = useAuthStore();
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
 
   // Timer for loading state
   useEffect(() => {
@@ -174,43 +164,30 @@ export function ChatPage() {
   return (
     <div className="flex h-screen bg-arc-bg-primary font-mono">
       {/* Sidebar */}
-      <ChatSidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
+      <ChatSidebar
+        isOpen={sidebarOpen}
+        onToggle={() => setSidebarOpen(!sidebarOpen)}
+        docsCount={documents.length}
+        showDocs={showDocPanel}
+        onToggleDocs={() => setShowDocPanel(!showDocPanel)}
+      />
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
         <header className="bg-arc-bg-secondary border-b border-arc-border">
           <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              {/* Logo */}
-              <div className="flex items-center gap-3">
-                <svg className="w-8 h-8" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="50" cy="50" r="44" fill="#0f1419" stroke="#7eb88e" strokeWidth="6"/>
-                  <path d="M38 70 V30 h14 a10 10 0 0 1 0 20 H38" fill="none" stroke="#7eb88e" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                <div>
-                  <h1 className="text-lg font-semibold text-arc-text-primary">
-                    {currentTitle || 'Pip'}
-                  </h1>
-                  {!currentTitle && <span className="text-xs text-arc-text-dim">by Arc Forge</span>}
-                </div>
-              </div>
-
-              {/* Project Switcher */}
-              <ProjectSwitcher />
+            <div className="flex items-center gap-2">
+              {/* Logo + Title (tighter spacing) */}
+              <svg className="w-7 h-7" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="50" cy="50" r="44" fill="#0f1419" stroke="#7eb88e" strokeWidth="6"/>
+                <path d="M38 70 V30 h14 a10 10 0 0 1 0 20 H38" fill="none" stroke="#7eb88e" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span className="text-base font-medium text-arc-text-primary">
+                {currentTitle || 'Pip'}
+              </span>
             </div>
           <div className="flex items-center gap-4">
-            <button
-              onClick={() => setShowDocPanel(!showDocPanel)}
-              className={`text-sm flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors ${
-                showDocPanel
-                  ? 'bg-arc-accent/20 border-arc-accent text-arc-accent'
-                  : 'border-arc-border text-arc-text-secondary hover:border-arc-accent hover:text-arc-accent'
-              }`}
-            >
-              <span className="text-xs">docs</span>
-              <span className="text-arc-text-dim">{documents.length}</span>
-            </button>
             {authStatus?.connected ? (
               <span className="text-sm text-arc-accent flex items-center gap-2">
                 <span className="w-2 h-2 bg-arc-accent rounded-full animate-pulse"></span>
@@ -225,26 +202,6 @@ export function ChatPage() {
                 {isConnecting ? 'Connecting...' : 'Connect Xero'}
               </button>
             )}
-            {/* User menu */}
-            <div className="flex items-center gap-2 pl-2 border-l border-arc-border">
-              <span className="text-sm text-arc-text-secondary">
-                {user?.name || user?.email?.split('@')[0] || 'User'}
-              </span>
-              <button
-                onClick={() => navigate('/settings')}
-                className="text-sm px-2 py-1 text-arc-text-dim hover:text-arc-text-secondary transition-colors"
-                title="Settings"
-              >
-                Settings
-              </button>
-              <button
-                onClick={handleLogout}
-                className="text-sm px-2 py-1 text-arc-text-dim hover:text-arc-text-secondary transition-colors"
-                title="Sign out"
-              >
-                Logout
-              </button>
-            </div>
           </div>
         </div>
       </header>
@@ -304,27 +261,51 @@ export function ChatPage() {
         </div>
       )}
 
-      {/* Messages */}
+      {/* Messages / Empty State */}
       <main className="flex-1 overflow-y-auto">
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          {messages.length === 0 ? (
-            <div className="text-center mt-20">
-              <svg className="w-20 h-20 mx-auto mb-6" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        {messages.length === 0 ? (
+          /* Empty state: Centered content with inline input (golden ratio positioning) */
+          <div className="h-full flex flex-col items-center justify-center px-4" style={{ paddingBottom: '20vh' }}>
+            <div className="text-center max-w-xl w-full">
+              <svg className="w-16 h-16 mx-auto mb-4" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="50" cy="50" r="44" fill="#0f1419" stroke="#7eb88e" strokeWidth="6"/>
                 <path d="M38 70 V30 h14 a10 10 0 0 1 0 20 H38" fill="none" stroke="#7eb88e" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
-              <h2 className="text-2xl font-medium text-arc-text-primary mb-2">
+              <h2 className="text-xl font-medium text-arc-text-primary mb-1">
                 {personalityInfo?.greeting || 'Hi there'}
               </h2>
-              <p className="text-sm text-arc-text-secondary max-w-md mx-auto mb-8">
-                {personalityInfo?.role || 'Your bookkeeper'}. Connect Xero to check your finances,
-                or upload your business plan for advice.
+              <p className="text-sm text-arc-text-dim mb-6">
+                {personalityInfo?.role || 'Your bookkeeper'}
               </p>
+
+              {/* Centered input */}
+              <form onSubmit={handleSubmit} className="mb-6">
+                <div className="flex gap-2 items-center bg-arc-bg-tertiary border border-arc-border rounded-xl px-3 py-2 focus-within:border-arc-accent transition-colors">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder="Ask about your finances..."
+                    className="flex-1 bg-transparent focus:outline-none text-sm text-arc-text-primary placeholder-arc-text-dim"
+                    disabled={isLoading}
+                  />
+                  <button
+                    type="submit"
+                    disabled={!input.trim() || isLoading}
+                    className="px-3 py-1.5 bg-arc-accent text-arc-bg-primary rounded-lg font-medium text-sm hover:bg-arc-accent-dim disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Send
+                  </button>
+                </div>
+              </form>
+
+              {/* Suggestions */}
               <div className="flex flex-wrap justify-center gap-2">
                 {[
-                  'Show my unpaid invoices',
-                  'Can I afford to hire someone?',
-                  'How am I tracking against my goals?',
+                  'Unpaid invoices',
+                  'Can I hire?',
+                  'Goal progress',
                 ].map((suggestion) => (
                   <button
                     key={suggestion}
@@ -332,14 +313,17 @@ export function ChatPage() {
                       setInput(suggestion);
                       inputRef.current?.focus();
                     }}
-                    className="px-4 py-2 bg-arc-bg-tertiary border border-arc-border rounded-lg text-sm text-arc-text-secondary hover:border-arc-accent hover:text-arc-accent transition-colors"
+                    className="px-3 py-1.5 bg-arc-bg-tertiary border border-arc-border rounded-lg text-xs text-arc-text-secondary hover:border-arc-accent hover:text-arc-accent transition-colors"
                   >
                     {suggestion}
                   </button>
                 ))}
               </div>
             </div>
-          ) : (
+          </div>
+        ) : (
+          /* Conversation view */
+          <div className="max-w-4xl mx-auto px-4 py-6">
             <div className="space-y-4">
               {messages.map((message) => (
                 <div
@@ -400,8 +384,8 @@ export function ChatPage() {
               )}
               <div ref={messagesEndRef} />
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </main>
 
       {/* Error Banner */}
@@ -419,30 +403,31 @@ export function ChatPage() {
         </div>
       )}
 
-        {/* Input */}
-        <footer className="bg-arc-bg-secondary border-t border-arc-border">
-          <form onSubmit={handleSubmit} className="max-w-4xl mx-auto px-4 py-4">
-            <div className="flex gap-3 items-center bg-arc-bg-tertiary border border-arc-border rounded-xl px-3 py-2 focus-within:border-arc-accent transition-colors">
-              <span className="text-arc-text-dim text-sm">{'>'}</span>
-              <input
-                ref={inputRef}
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask about your finances, business goals, or anything else..."
-                className="flex-1 bg-transparent focus:outline-none text-sm text-arc-text-primary placeholder-arc-text-dim"
-                disabled={isLoading}
-              />
-              <button
-                type="submit"
-                disabled={!input.trim() || isLoading}
-                className="px-4 py-1.5 bg-arc-accent text-arc-bg-primary rounded-lg font-medium text-sm hover:bg-arc-accent-dim disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Send
-              </button>
-            </div>
-          </form>
-        </footer>
+        {/* Input (only shown after first message) */}
+        {messages.length > 0 && (
+          <footer className="bg-arc-bg-secondary border-t border-arc-border">
+            <form onSubmit={handleSubmit} className="max-w-4xl mx-auto px-4 py-4">
+              <div className="flex gap-3 items-center bg-arc-bg-tertiary border border-arc-border rounded-xl px-3 py-2 focus-within:border-arc-accent transition-colors">
+                <span className="text-arc-text-dim text-sm">{'>'}</span>
+                <input
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Ask about your finances..."
+                  className="flex-1 bg-transparent focus:outline-none text-sm text-arc-text-primary placeholder-arc-text-dim"
+                  disabled={isLoading}
+                />
+                <button
+                  type="submit"
+                  disabled={!input.trim() || isLoading}
+                  className="px-4 py-1.5 bg-arc-accent text-arc-bg-primary rounded-lg font-medium text-sm hover:bg-arc-accent-dim disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Send
+                </button>
+              </div>
+            </form>
+          </footer>
+        )}
       </div>
     </div>
   );

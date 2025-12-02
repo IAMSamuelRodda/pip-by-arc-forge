@@ -17,13 +17,14 @@ export class SessionManager {
   /**
    * Create a new session
    */
-  async createSession(userId: string): Promise<string> {
+  async createSession(userId: string, projectId?: string): Promise<string> {
     const sessionId = crypto.randomUUID();
     const expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000; // 30 days
 
     await this.db.createSession({
       sessionId,
       userId,
+      projectId,
       messages: [],
       agentContext: {},
       expiresAt,

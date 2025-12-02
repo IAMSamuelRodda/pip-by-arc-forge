@@ -21,7 +21,7 @@ export function createChatRoutes(db: DatabaseProvider): Router {
    */
   router.post('/', async (req, res, next) => {
     try {
-      const { message, sessionId } = req.body;
+      const { message, sessionId, projectId } = req.body;
 
       if (!message || typeof message !== 'string') {
         return res.status(400).json({
@@ -32,10 +32,10 @@ export function createChatRoutes(db: DatabaseProvider): Router {
       // Get userId from auth middleware
       const userId = req.userId!;
 
-      // Create session if not provided
+      // Create session if not provided (with optional project scope)
       let activeSessionId = sessionId;
       if (!activeSessionId) {
-        activeSessionId = await orchestrator.createSession(userId);
+        activeSessionId = await orchestrator.createSession(userId, projectId || undefined);
       }
 
       // Process message through orchestrator
@@ -43,6 +43,7 @@ export function createChatRoutes(db: DatabaseProvider): Router {
         userId,
         sessionId: activeSessionId,
         message,
+        projectId: projectId || undefined,
       });
 
       res.json({

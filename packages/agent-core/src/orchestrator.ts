@@ -302,9 +302,9 @@ Use this structure when answering questions like "Can I afford X?" or "Am I on t
   /**
    * Create new conversation session
    */
-  async createSession(userId: string): Promise<string> {
+  async createSession(userId: string, projectId?: string): Promise<string> {
     await this.ensureReady();
-    return await this.sessionManager!.createSession(userId);
+    return await this.sessionManager!.createSession(userId, projectId);
   }
 
   /**

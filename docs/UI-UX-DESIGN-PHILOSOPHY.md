@@ -100,6 +100,68 @@ Prefer visual indicators to text explanations:
 
 ---
 
+## Layout Patterns
+
+### Sidebar-Centric Navigation (Claude.ai/ChatGPT Pattern)
+
+Primary navigation lives in a collapsible left sidebar:
+
+| Position | Element | Behavior |
+|----------|---------|----------|
+| Top | Toggle button | Collapse/expand sidebar |
+| Below toggle | Primary action | "New chat" - always visible |
+| Below action | Context switcher | Project selector (when expanded) |
+| Middle | Item list | Scrollable list of chats |
+| Above footer | Secondary nav | Docs, utilities |
+| Bottom | Profile | Avatar + dropdown (Settings, Logout) |
+
+**Why**: Vertical real estate is abundant. Horizontal space is precious for content. Sidebar contains navigation; main area is for work.
+
+### Centered Input Pattern (Empty State)
+
+When no conversation exists, center the input with golden ratio positioning:
+
+```
+┌─────────────────────────┐
+│         (38%)           │
+│                         │
+│     [Logo]              │
+│     Greeting            │
+│     [Input field]       │
+│     [Suggestions]       │
+│                         │
+│         (62%)           │
+└─────────────────────────┘
+```
+
+**After first message**: Input moves to fixed footer. Chat messages fill the main area.
+
+**Why**: The centered input creates visual focus on the primary action. Users immediately know where to type. After conversation starts, the fixed footer provides consistent input location.
+
+### Header Minimalism
+
+Headers should contain only:
+- Logo/title (identity)
+- Status indicators (connection state)
+
+**Move to sidebar**: User account, settings, navigation, feature toggles.
+
+**Why**: Headers compete with content. Keep them thin. Let the sidebar handle navigation.
+
+### Progressive Disclosure
+
+Show UI elements only when relevant:
+
+| Element | Hidden State | Revealed State |
+|---------|--------------|----------------|
+| Document panel | Button in sidebar | Slides in below header |
+| Profile dropdown | Avatar only | Click to expand menu |
+| Chat options | Hidden | Hover to reveal |
+
+**Why**: Reduce visual noise. Show options when the user signals intent.
+
+---
+
 ## Summary
 
 **One word by default. Two words reluctantly. Never three.**

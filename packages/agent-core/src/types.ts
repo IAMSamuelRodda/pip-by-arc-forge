@@ -17,6 +17,7 @@ export interface AgentRequest {
   userId: string;
   sessionId: string;
   message: string;
+  projectId?: string; // Optional: scope to specific project
   context?: Record<string, any>;
 }
 

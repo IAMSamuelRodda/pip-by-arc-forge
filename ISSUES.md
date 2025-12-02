@@ -4,7 +4,7 @@
 > **Lifecycle**: Living (add when issues arise, remove when resolved)
 > **Resolved Issues**: Move to `CHANGELOG.md` under the appropriate version's "Fixed" section
 
-**Last Updated**: 2025-12-02 (Response Styles complete)
+**Last Updated**: 2025-12-02 (Layout refactor + design philosophies)
 
 ---
 
@@ -152,6 +152,29 @@
   - [ ] Elapsed time per operation (not just total)
 - **Complexity**: 2.5-3.0/5 (Medium - requires streaming infrastructure)
 - **Notes**: Makes the tool feel more responsive and trustworthy. Users see Pip is "working" not "stuck".
+
+#### issue_025: Header Cleanup + Claude.ai Layout Pattern
+- **Status**: 🟢 Resolved
+- **Priority**: - (Complete)
+- **Component**: `packages/pwa-app`
+- **Created**: 2025-12-02
+- **Resolved**: 2025-12-02
+- **Description**: Refactor layout to follow Claude.ai/ChatGPT patterns for cleaner UX.
+- **Acceptance Criteria**:
+  - [x] Tighten logo + tagline spacing in header (removed tagline)
+  - [x] Move ProjectSwitcher into sidebar
+  - [x] Move docs indicator into sidebar
+  - [x] Add profile circle (bottom-left) with dropdown (settings, account, logout)
+  - [x] Center chat input on new chat (empty state with golden ratio positioning)
+  - [x] Move chat input to bottom after first message
+  - [x] Header shows only: logo, title, Xero connection status
+- **Components Created/Updated**:
+  - `ProfileDropdown.tsx` - New component for user avatar + dropdown
+  - `ChatSidebar.tsx` - Added ProjectSwitcher, docs button, ProfileDropdown
+  - `ProjectSwitcher.tsx` - Added `inSidebar` prop
+  - `ChatPage.tsx` - Simplified header, centered empty state, conditional footer
+- **Documentation**: Updated `docs/UI-UX-DESIGN-PHILOSOPHY.md` with Layout Patterns section
+- **Reference**: Claude.ai desktop layout, ChatGPT sidebar pattern
 
 #### issue_023: Edge Cases - Empty Chat + Memory Retrieval
 - **Status**: 🔴 Open
@@ -427,9 +450,9 @@
 - **Resolution**: Deployed with collapsible sidebar following Claude.ai Pattern 0. See commit `9699c96`.
 
 #### issue_013: Projects Feature (Epic 2.3)
-- **Status**: 🟡 In Progress
+- **Status**: ✅ Resolved
 - **Priority**: P1 (High - differentiator)
-- **Component**: `packages/server`, `packages/pwa-app`, `packages/core`
+- **Component**: `packages/server`, `packages/pwa-app`, `packages/core`, `packages/agent-core`
 - **Blueprint**: feature_2_3_1 through feature_2_3_4
 - **Description**: Isolated context per project/client. Global context still applies, but project-specific details don't bleed across projects. Like Claude.ai Projects with cross-project reference capability.
 - **Use Cases**:
@@ -441,15 +464,23 @@
   - [x] Projects REST API (`/api/projects/*`)
   - [x] Project switcher dropdown in header (ProjectSwitcher.tsx)
   - [x] Session filtering by projectId
-  - [ ] Refactor memory service for project_id scoping (decomposed into 4 subtasks)
-  - [ ] Multi-Xero org support (per-project OAuth tokens)
-  - [ ] Cross-project reference capability (**SPIKE COMPLETE**: spike_m2_001)
-  - [ ] Project settings page (full CRUD UI)
-  - [ ] Project context indicator in chat UI
-- **Complexity**: 2.2-3.2/5 (task_2_3_1_3 decomposed)
-- **Flagged**: task_2_3_1_3 decomposed into 4 subtasks (all ≤2.5)
+  - [x] **Chat ↔ Project Integration** (2025-12-02)
+    - Chat API accepts projectId parameter
+    - Sessions created with project scope
+    - Chat list filters by current project
+    - Project switch refreshes chat list
+  - [x] **Project Settings Page** (2025-12-02)
+    - Collapsible panel in Settings (/settings#projects)
+    - Inline editing (name, description)
+    - Color picker (8 presets)
+    - Set default / delete with confirmation
+  - [ ] Multi-Xero org support (per-project OAuth tokens) - **deferred to future**
+  - [ ] Cross-project reference capability - **deferred to future** (spike complete)
+  - [ ] Project context indicator in chat UI - **nice-to-have**
+- **Complexity**: 2.2-3.2/5
 - **Spike**: spike_m2_001 for cross-project reference patterns
-- **Commit**: `609c952` - Initial implementation (schema, API, UI)
+- **Resolution**: Core projects feature complete. Multi-Xero org and cross-project reference deferred to future work.
+- **Commits**: `609c952` - Initial implementation (schema, API, UI)
 
 #### issue_014: Per-Chat Document Upload (Epic 2.4)
 - **Status**: 🔴 Open (spike complete - ready to implement)

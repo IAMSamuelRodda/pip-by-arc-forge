@@ -1,11 +1,13 @@
 /**
  * Chat Store - Zustand state management for chat
  * Epic 2.2: Chat History support
+ * Epic 2.3: Projects integration
  */
 
 import { create } from 'zustand';
 import { api } from '../api/client';
 import type { ChatSummary } from '../api/client';
+import { useProjectStore } from './projectStore';
 
 interface Message {
   id: string;
@@ -62,7 +64,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }));
 
     try {
-      const response = await api.chat(content, get().sessionId || undefined);
+      // Get current project from project store
+      const currentProjectId = useProjectStore.getState().currentProjectId;
+      const response = await api.chat(content, get().sessionId || undefined, currentProjectId || undefined);
 
       const assistantMessage: Message = {
         id: `assistant-${Date.now()}`,
@@ -93,7 +97,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
   loadChatList: async () => {
     set({ isLoadingList: true });
     try {
-      const result = await api.listChats(50);
+      // Filter by current project
+      const currentProjectId = useProjectStore.getState().currentProjectId;
+      const result = await api.listChats(50, currentProjectId);
       set({ chatList: result.sessions, isLoadingList: false });
     } catch (error) {
       console.error('Failed to load chat list:', error);

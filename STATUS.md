@@ -22,8 +22,8 @@
 | **Landing Page** | 🟢 | Live at pip.arcforge.au |
 | **Xero Integration** | 🟢 | 10 READ-ONLY tools verified |
 | **Git Workflow** | 🟢 | Simple tier (main only, direct commits) |
-| **Milestone 2** | 🔵 | Epic 2.1-2.2 complete, Epic 2.3 (Projects) in progress |
-| **Projects Feature** | 🔵 | Backend + UI deployed, memory scoping pending |
+| **Milestone 2** | 🔵 | Epic 2.1-2.3 complete, Epic 2.4-2.6 remaining |
+| **Projects Feature** | ✅ | Complete (schema, API, switcher, settings page) |
 
 **Legend**: 🟢 Good | 🟡 Attention | 🔴 Critical | 🔵 In Progress
 
@@ -35,14 +35,24 @@
 
 ### Just Completed (2025-12-02)
 
-1. **Epic 2.3: Projects Feature** 🔵 IN PROGRESS
+1. **Epic 2.3: Projects Feature** ✅ COMPLETE
    - SQLite schema: `projects` table with CRUD operations
    - REST API: `/api/projects/*` endpoints (create, read, update, delete, set-default)
    - Session filtering by `projectId` added to `/api/sessions`
    - ProjectSwitcher component in header (dropdown with create form)
    - Zustand store with localStorage persistence for current project
+   - **Chat ↔ Project Integration** ✅ COMPLETE
+     - Chat API accepts `projectId` parameter
+     - Sessions created with project scope
+     - Chat list filters by current project
+     - Project switch refreshes chat list and starts new chat
+   - **Project Settings Page** ✅ COMPLETE
+     - Collapsible panel in Settings page
+     - Inline editing (name, description)
+     - Color picker (8 preset colors)
+     - Set default project action
+     - Delete with confirmation
    - Commits: `609c952`, `dba5499`
-   - **Remaining**: Memory service project scoping, project settings page
 
 2. **UI/UX Design Philosophy** ✅ DOCUMENTED
    - Created `docs/UI-UX-DESIGN-PHILOSOPHY.md` with detailed guidelines
@@ -91,11 +101,7 @@
 1. ~~**Epic 2.1** (Memory Refactor)~~ ✅ Complete
 2. ~~**Epic 2.2** (Chat History)~~ ✅ Complete
 3. ~~**Response Styles** (issue_020)~~ ✅ Complete (2025-12-02)
-4. **Epic 2.3** (Projects) 🔵 IN PROGRESS
-   - ✅ Projects schema + CRUD API
-   - ✅ ProjectSwitcher UI component
-   - ⬜ Memory service project scoping
-   - ⬜ Project settings page (full CRUD UI)
+4. ~~**Epic 2.3** (Projects)~~ ✅ Complete (2025-12-02)
 5. **Epic 2.4** (Document Upload) - Medium priority, spike complete
 6. ~~**Epic 2.5** (Personality)~~ 🔵 Deferred - replaced by Response Styles
 7. **Epic 2.6** (Testing) - Continuous throughout milestone

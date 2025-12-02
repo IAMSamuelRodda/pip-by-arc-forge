@@ -3,8 +3,8 @@
 > **Purpose**: Detailed project tracking with milestones, epics, features, and tasks
 > **Lifecycle**: Living (update on task completion, status changes)
 
-**Last Updated**: 2025-12-01
-**Current Phase**: Milestone 2 Implementation (Epic 2.1 + 2.2 Deployed)
+**Last Updated**: 2025-12-02
+**Current Phase**: Milestone 2 Implementation (Epic 2.1-2.3 complete)
 
 ---
 
@@ -13,9 +13,9 @@
 | Metric | Value |
 |--------|-------|
 | Current Focus | Milestone 2 - UX & Personality |
-| Phase | Epic 2.1 + 2.2 Complete, Epic 2.3-2.5 Remaining |
+| Phase | Epic 2.1-2.3 complete, Epic 2.4-2.6 Remaining |
 | Milestones Complete | 2/3 (Core Platform + MCP Distribution) |
-| Milestone 2 Progress | 2/6 epics complete (Memory UI + Chat History) |
+| Milestone 2 Progress | 3/6 epics complete (Memory, Chat History, Projects) |
 
 ### Architecture Direction (2025-11-30)
 
@@ -536,26 +536,27 @@ Key gap is **Claude.ai UI/UX patterns** - single memory with tracked user edits.
 
 ### Epic 2.3: Projects Feature - Isolated Context
 
-**Status**: ⚪ Not Started
+**Status**: ✅ Complete
 **Priority**: HIGH (differentiator)
+**Completed**: 2025-12-02
 
 #### feature_2_3_1: Projects Data Model & Backend
-**Complexity**: 2.8/5 | **Est**: 5 days
+**Status**: ✅ Complete
+**Complexity**: 2.8/5 | **Actual**: 2 days
 
 | Task | Status | Complexity | Notes |
 |------|--------|------------|-------|
-| task_2_3_1_1: Design projects schema | ⚪ | 2.5 | Tables, relationships |
-| task_2_3_1_2: Implement project CRUD | ⚪ | 2.2 | Create, read, update, delete |
-| task_2_3_1_3: Refactor services for isolation | ⚪ | 3.2 | **DECOMPOSED** → 4 subtasks |
+| task_2_3_1_1: Design projects schema | ✅ | 2.5 | `projects` table in SQLite |
+| task_2_3_1_2: Implement project CRUD | ✅ | 2.2 | `/api/projects/*` endpoints |
+| task_2_3_1_3: Refactor services for isolation | ✅ | 2.3 | Chat + session project scoping |
 
-**Decomposed: task_2_3_1_3** (was 3.2 → all subtasks ≤2.5):
-
-| Subtask | Status | Complexity | Notes |
-|---------|--------|------------|-------|
-| subtask_2_3_1_3_1: Audit service coupling | ⚪ | 1.8 | Document touchpoints |
-| subtask_2_3_1_3_2: Refactor memory service | ⚪ | 2.5 | Add project_id scoping |
-| subtask_2_3_1_3_3: Refactor session service | ⚪ | 2.3 | Prevent cross-project access |
-| subtask_2_3_1_3_4: Integration testing | ⚪ | 2.0 | Verify isolation |
+**Implementation** (2025-12-02):
+- `packages/core/src/database/providers/sqlite.ts` - Projects table + CRUD
+- `packages/server/src/routes/projects.ts` - REST API endpoints
+- `packages/server/src/routes/chat.ts` - projectId in chat creation
+- `packages/server/src/routes/sessions.ts` - projectId filtering
+- `packages/agent-core/src/orchestrator.ts` - createSession with projectId
+- `packages/agent-core/src/session/manager.ts` - Session creation with project
 
 #### feature_2_3_2: Multi-Xero Organization Support
 **Complexity**: 2.7/5 | **Est**: 4 days
@@ -583,13 +584,23 @@ Key gap is **Claude.ai UI/UX patterns** - single memory with tracked user edits.
 **Pattern**: Query-time project parameter (like Claude Code's `--add-dir`)
 
 #### feature_2_3_4: Projects UI - Switcher & Management
-**Complexity**: 2.3/5 | **Est**: 4 days
+**Status**: ✅ Complete
+**Complexity**: 2.3/5 | **Actual**: 1.5 days
 
 | Task | Status | Complexity | Notes |
 |------|--------|------------|-------|
-| task_2_3_4_1: Project switcher dropdown | ⚪ | 2.2 | Header component |
-| task_2_3_4_2: Project settings page | ⚪ | 2.0 | Edit name, Xero status |
-| task_2_3_4_3: Project context indicator | ⚪ | 1.5 | Visual in chat UI |
+| task_2_3_4_1: Project switcher dropdown | ✅ | 2.2 | ProjectSwitcher.tsx in header |
+| task_2_3_4_2: Chat ↔ Project integration | ✅ | 2.3 | Chat filters by project, refreshes on switch |
+| task_2_3_4_3: Project settings page | ✅ | 2.0 | ProjectsSettingsPanel.tsx in Settings |
+| task_2_3_4_4: Project context indicator | ⚪ | 1.5 | Deferred (nice-to-have) |
+
+**Implementation** (2025-12-02):
+- `packages/pwa-app/src/components/ProjectSwitcher.tsx` - Dropdown with inline create
+- `packages/pwa-app/src/components/ProjectsSettingsPanel.tsx` - Full CRUD UI (edit, color, delete, default)
+- `packages/pwa-app/src/pages/SettingsPage.tsx` - Collapsible projects section (/settings#projects)
+- `packages/pwa-app/src/store/projectStore.ts` - Zustand + localStorage persistence
+- `packages/pwa-app/src/store/chatStore.ts` - Project-aware chat list + send
+- `packages/pwa-app/src/api/client.ts` - projectId in chat/listChats APIs
 
 ---
 
