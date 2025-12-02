@@ -108,8 +108,8 @@ export class KnowledgeGraphManager {
         ).get(entityId, obs);
         if (!obsExists) {
           this.db.prepare(`
-            INSERT INTO memory_observations (id, entity_id, observation, created_at, is_user_edit) VALUES (?, ?, ?, ?, ?)
-          `).run(crypto.randomUUID(), entityId, obs, now, userEditFlag);
+            INSERT INTO memory_observations (id, entity_id, observation, created_at, updated_at, is_user_edit) VALUES (?, ?, ?, ?, ?, ?)
+          `).run(crypto.randomUUID(), entityId, obs, now, now, userEditFlag);
         }
       }
       created.push(entity);
@@ -161,8 +161,8 @@ export class KnowledgeGraphManager {
         ).get(entity.id, content);
         if (!exists) {
           this.db.prepare(
-            `INSERT INTO memory_observations (id, entity_id, observation, created_at, is_user_edit) VALUES (?, ?, ?, ?, ?)`
-          ).run(crypto.randomUUID(), entity.id, content, now, userEditFlag);
+            `INSERT INTO memory_observations (id, entity_id, observation, created_at, updated_at, is_user_edit) VALUES (?, ?, ?, ?, ?, ?)`
+          ).run(crypto.randomUUID(), entity.id, content, now, now, userEditFlag);
           added.push(content);
         }
       }
@@ -536,6 +536,7 @@ export function initializeMemoryDb(dbPath?: string): Database.Database {
       entity_id TEXT NOT NULL,
       observation TEXT NOT NULL,
       created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
       is_user_edit INTEGER NOT NULL DEFAULT 0,
       FOREIGN KEY (entity_id) REFERENCES memory_entities(id) ON DELETE CASCADE
     );
