@@ -4,7 +4,7 @@
 > **Lifecycle**: Living (add when issues arise, remove when resolved)
 > **Resolved Issues**: Move to `CHANGELOG.md` under the appropriate version's "Fixed" section
 
-**Last Updated**: 2025-12-02 (Memory context injection issue)
+**Last Updated**: 2025-12-02 (Resolved issue_032)
 
 ---
 
@@ -120,58 +120,6 @@
   - [ ] Respect `prefers-color-scheme` media query
   - [ ] Consistent theming across all pages (PWA, MCP login, landing)
 - **Notes**: Low priority - current dark theme is consistent with brand. Implement when user feedback requests it.
-
-#### issue_032: Memory Context Injection at Conversation Start
-- **Status**: 🔴 Open
-- **Priority**: P1 (High - core feature gap)
-- **Component**: `packages/server`, `packages/agent-core`
-- **Created**: 2025-12-02
-- **Description**: Agent doesn't use stored memory - says "I don't have any information about your business yet" despite having 4 memories with 14 observations stored.
-- **Problem**:
-  - Memory CRUD works (verified via MCP connector)
-  - "Manage memory" modal shows stored data
-  - But agent never queries memory at conversation start
-  - User context is lost between conversations
-- **Proposed Solution: Dual-Trigger Approach**
-
-  **Trigger 1: Automatic (Conversation Start)**
-  1. Check `memory_summaries` for cached summary
-  2. If fresh → inject into system prompt
-  3. If stale/missing → generate from graph, cache it
-  4. System prompt: "You know the following about {user}: {summary}"
-
-  **Trigger 2: Explicit Request (User Asks)**
-  - User says: "What do you know about me?", "What's in your memory?", etc.
-  - Agent should call `read_graph` tool to get fresh, complete data
-  - Returns accurate, up-to-date information (not stale summary)
-  - This ensures user gets real-time view of stored memory
-
-- **Implementation Steps**:
-  - [ ] Add memory retrieval hook in conversation initialization
-  - [ ] Create summary generation prompt (LLM summarizes knowledge graph)
-  - [ ] Cache summary in `memory_summaries` table (already exists)
-  - [ ] Add staleness check (regenerate if entity/observation count changed)
-  - [ ] Inject summary into system prompt dynamically
-  - [ ] Expose memory tools (read_graph, search_nodes) to agent
-  - [ ] Add system prompt guidance: "When user asks about their memory, use read_graph tool"
-- **System Prompt Example**:
-  ```
-  You know the following about Samuel:
-  - Owns Arc Forge, focused on AI-accounting integration
-  - Arc Forge serves Earthworks Client
-  - Interested in mushroom foraging
-  - Rebranded from "Grounded AI" to "Arc Forge"
-  ```
-- **Acceptance Criteria**:
-  - [ ] New conversation shows personalized greeting using memory
-  - [ ] Agent references stored facts without user re-explaining
-  - [ ] Summary regenerates when memory changes
-  - [ ] Works across MCP (Claude.ai) and native (Pip app) entry points
-  - [ ] "What do you know about me?" returns accurate, fresh memory data
-  - [ ] Agent has access to read_graph/search_nodes tools for on-demand queries
-- **Complexity**: 2.5/5 (Medium - plumbing exists, need orchestration)
-- **Dependencies**: Memory schema fixes (issue_031) - DONE
-- **Reference**: Claude.ai "Memory" feature, ChatGPT memory injection
 
 #### issue_022: Enhanced "Thinking" Indicator (Claude Code Pattern)
 - **Status**: 🔴 Open

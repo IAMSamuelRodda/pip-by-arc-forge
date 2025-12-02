@@ -51,6 +51,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated all documentation for Simple tier
 
 ### Fixed
+- **issue_032: Memory Context Injection** (2025-12-02)
+  - Agent now auto-injects stored memory into system prompt at conversation start
+  - Added `read_memory` and `search_memory` tools for explicit user queries
+  - "What do you know about me?" now returns actual stored facts
+  - `packages/agent-core/src/orchestrator.ts` - getMemoryContext() queries knowledge graph
+  - `packages/agent-core/src/tools/memory-tools.ts` - New memory tools
 - **Memory modal loading forever**: Added memory API routes to main server (was only in MCP server)
 - **"no such column: project_id" error**: Added schema migration for memory tables on startup
 - **"no such column: content" error**: SQL queries used `content` but schema has `observation`
