@@ -24,6 +24,7 @@ import type { DatabaseProvider } from '@pip/core';
 
 import { createChatRoutes } from './routes/chat.js';
 import { createAuthRoutes } from './routes/auth.js';
+import { createGmailAuthRoutes } from './routes/auth-gmail.js';
 import { createUserAuthRoutes } from './routes/user-auth.js';
 import { createSessionRoutes } from './routes/sessions.js';
 import { createHealthRoutes } from './routes/health.js';
@@ -105,6 +106,7 @@ async function createApp(db: DatabaseProvider): Promise<express.Application> {
   // Auth routes (public)
   app.use('/auth', createUserAuthRoutes(db)); // signup, login, me
   app.use('/auth', createAuthRoutes(db)); // Xero OAuth
+  app.use('/auth/google/gmail', createGmailAuthRoutes(db)); // Gmail OAuth
 
   // Health check (public)
   app.use('/health', createHealthRoutes(db));

@@ -31,6 +31,7 @@ import {
 import * as xeroTools from "./handlers/xero-tools.js";
 import { getXeroStatus } from "./services/xero.js";
 import { memoryToolDefinitions, executeMemoryTool } from "./handlers/memory-tools.js";
+import { gmailToolDefinitions, executeGmailTool } from "./handlers/gmail-tools.js";
 import { getMemoryManager } from "./services/memory.js";
 import * as safetyService from "./services/safety.js";
 
@@ -88,6 +89,12 @@ Use get_tools_in_category to discover tools, then execute_tool to run them.
 - banking: get_bank_accounts, get_bank_transactions
 - contacts: get_contacts, search_contacts
 - organisation: get_organisation
+
+**Gmail Category (Email Integration):**
+- search_gmail: Search emails using Gmail query syntax
+- get_email_content: Get full email body and attachment list
+- download_attachment: Download email attachments (base64)
+- list_email_attachments: List all attachments matching a query
 
 **Memory Category (Knowledge Graph):**
 - create_entities: Store people, businesses, concepts, events
@@ -228,6 +235,9 @@ const toolRegistry: ToolDefinition[] = [
 
   // MEMORY category - Knowledge Graph (imported from memory-tools.ts)
   ...memoryToolDefinitions,
+
+  // GMAIL category - Email integration (imported from gmail-tools.ts)
+  ...gmailToolDefinitions,
 ];
 
 // Get unique categories with tool counts
@@ -449,11 +459,12 @@ function createMcpServer(userId?: string): Server {
         };
       }
 
-      // Check if this is a memory tool (doesn't require Xero auth)
+      // Check if this is a memory or Gmail tool (doesn't require Xero auth)
       const isMemoryTool = tool.category === "memory";
+      const isGmailTool = tool.category === "gmail";
 
       // Check if user is authenticated for Xero tools
-      if (!isMemoryTool && !userId) {
+      if (!isMemoryTool && !isGmailTool && !userId) {
         return {
           content: [
             {
@@ -476,11 +487,26 @@ function createMcpServer(userId?: string): Server {
         };
       }
 
+      // Gmail tools require auth but not Xero connection
+      if (isGmailTool && !userId) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `To use Gmail features, please authenticate first.`,
+            },
+          ],
+        };
+      }
+
       // Execute the actual tool
       try {
         if (isMemoryTool) {
           console.log(`[Execute] Memory tool: ${tool_name}`);
           return await executeMemoryTool(userId!, tool_name, toolArgs || {});
+        } else if (isGmailTool) {
+          console.log(`[Execute] Gmail tool: ${tool_name}`);
+          return await executeGmailTool(userId!, tool_name, toolArgs || {});
         } else {
           // Check permission level for Xero tools
           console.log(`[Execute] Checking permissions for Xero tool: ${tool_name}`);

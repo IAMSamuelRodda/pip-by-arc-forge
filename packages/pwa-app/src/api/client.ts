@@ -501,6 +501,70 @@ interface UpdateProjectInput {
   isDefault?: boolean;
 }
 
+// Gmail integration types
+interface GmailStatus {
+  connected: boolean;
+  expired?: boolean;
+  email?: string;
+  expiresAt?: number;
+}
+
+export const gmailApi = {
+  /**
+   * Get Gmail connection status
+   */
+  async getStatus(): Promise<GmailStatus> {
+    const response = await fetch(`${API_BASE}/auth/google/gmail/status`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to get Gmail status');
+    }
+    return response.json();
+  },
+
+  /**
+   * Get Gmail OAuth URL for connecting
+   * Since this requires auth and redirects, we pass token as query param
+   */
+  getConnectUrl(): string {
+    const token = useAuthStore.getState().token;
+    if (token) {
+      return `${API_BASE}/auth/google/gmail?token=${encodeURIComponent(token)}`;
+    }
+    return `${API_BASE}/auth/google/gmail`;
+  },
+
+  /**
+   * Disconnect Gmail
+   */
+  async disconnect(): Promise<{ success: boolean }> {
+    const response = await fetch(`${API_BASE}/auth/google/gmail/disconnect`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to disconnect Gmail');
+    }
+    return response.json();
+  },
+
+  /**
+   * Refresh Gmail tokens
+   */
+  async refresh(): Promise<{ success: boolean; expiresAt: number }> {
+    const response = await fetch(`${API_BASE}/auth/google/gmail/refresh`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Refresh failed' }));
+      throw new Error(error.message || error.error || 'Failed to refresh Gmail tokens');
+    }
+    return response.json();
+  },
+};
+
 export const projectApi = {
   /**
    * List all projects
@@ -609,4 +673,4 @@ export const projectApi = {
   },
 };
 
-export type { ResponseStyleId, ResponseStyleOption, StyleInfo, PersonalityId, UserSettings, PersonalityInfo, PersonalityOption, MemoryStatus, MemoryEdit, ChatSummary, ChatSession, Project, CreateProjectInput, UpdateProjectInput };
+export type { ResponseStyleId, ResponseStyleOption, StyleInfo, PersonalityId, UserSettings, PersonalityInfo, PersonalityOption, MemoryStatus, MemoryEdit, ChatSummary, ChatSession, Project, CreateProjectInput, UpdateProjectInput, GmailStatus };

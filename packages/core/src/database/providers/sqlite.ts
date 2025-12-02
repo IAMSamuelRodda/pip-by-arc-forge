@@ -173,12 +173,26 @@ export class SQLiteProvider implements DatabaseProvider {
         scopes TEXT NOT NULL, -- JSON array
         tenant_id TEXT,
         tenant_name TEXT,
+        provider_user_id TEXT,  -- Google: user ID
+        provider_email TEXT,    -- Google: user's email
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         PRIMARY KEY (user_id, provider)
       );
       CREATE INDEX IF NOT EXISTS idx_oauth_tokens_expires_at ON oauth_tokens(expires_at);
     `);
+
+    // Migration: Add Google-specific columns if they don't exist
+    try {
+      this.db.exec(`ALTER TABLE oauth_tokens ADD COLUMN provider_user_id TEXT`);
+    } catch {
+      // Column already exists
+    }
+    try {
+      this.db.exec(`ALTER TABLE oauth_tokens ADD COLUMN provider_email TEXT`);
+    } catch {
+      // Column already exists
+    }
 
     // Business Context table (RAG-ready schema)
     this.db.exec(`
@@ -897,8 +911,8 @@ export class SQLiteProvider implements DatabaseProvider {
     try {
       const stmt = this.db.prepare(`
         INSERT OR REPLACE INTO oauth_tokens
-        (user_id, provider, access_token, refresh_token, token_type, expires_at, scopes, tenant_id, tenant_name, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (user_id, provider, access_token, refresh_token, token_type, expires_at, scopes, tenant_id, tenant_name, provider_user_id, provider_email, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       stmt.run(
@@ -911,6 +925,8 @@ export class SQLiteProvider implements DatabaseProvider {
         JSON.stringify(tokens.scopes),
         tokens.tenantId || null,
         tokens.tenantName || null,
+        tokens.providerUserId || null,
+        tokens.providerEmail || null,
         tokens.createdAt,
         tokens.updatedAt
       );
@@ -948,6 +964,8 @@ export class SQLiteProvider implements DatabaseProvider {
         scopes: JSON.parse(row.scopes),
         tenantId: row.tenant_id,
         tenantName: row.tenant_name,
+        providerUserId: row.provider_user_id,
+        providerEmail: row.provider_email,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
       };

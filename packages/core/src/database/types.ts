@@ -74,19 +74,27 @@ export interface ExtendedMemory {
 }
 
 /**
+ * OAuth Provider types
+ */
+export type OAuthProvider = "xero" | "gmail" | "google_drive" | "google_sheets";
+
+/**
  * OAuth Tokens
- * Stores Xero OAuth credentials for API access
+ * Stores OAuth credentials for API access (Xero, Gmail, etc.)
  */
 export interface OAuthTokens {
   userId: string;
-  provider: "xero"; // Future: could support other providers
+  provider: OAuthProvider;
   accessToken: string;
   refreshToken: string;
   tokenType: string; // Usually "Bearer"
-  expiresAt: number; // Unix timestamp (30 minutes from issue)
+  expiresAt: number; // Unix timestamp (Xero: 30min, Google: 1hr)
   scopes: string[]; // OAuth scopes granted
-  tenantId?: string; // Xero organization ID
-  tenantName?: string; // Xero organization name
+  // Provider-specific fields
+  tenantId?: string; // Xero: organization ID
+  tenantName?: string; // Xero: organization name
+  providerUserId?: string; // Google: user ID (e.g., '108234567890123456789')
+  providerEmail?: string; // Google: user's email address
   createdAt: number;
   updatedAt: number;
 }

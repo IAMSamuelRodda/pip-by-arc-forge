@@ -4,7 +4,7 @@
 > **Lifecycle**: Living (add when issues arise, remove when resolved)
 > **Resolved Issues**: Move to `CHANGELOG.md` under the appropriate version's "Fixed" section
 
-**Last Updated**: 2025-12-02 (Resolved issue_032)
+**Last Updated**: 2025-12-03 (CRITICAL: Gmail scope is RESTRICTED not sensitive - requires CASA for production. Demo uses Testing Mode with 100-user limit)
 
 ---
 
@@ -86,6 +86,34 @@
 - **Resolution**: Merged into Epic 2.1 (feature_2_1_2 through feature_2_1_5) on 2025-12-01
 - **See**: PROGRESS.md → Epic 2.1 for detailed tasks
 - **UX Reference**: `specs/spike-outputs/UX-PATTERNS-CLAUDE-AI-REFERENCE-20251201.md` Pattern 0.7
+
+#### issue_035: Ollama Reasoning Model Context Length Configuration
+- **Status**: 🔴 Open
+- **Priority**: P2 (Medium - performance optimization)
+- **Component**: Local Ollama setup
+- **Created**: 2025-12-03
+- **Description**: Reasoning models (DeepSeek-R1, QwQ) need increased context length for optimal performance. Default 4096 is insufficient for chain-of-thought reasoning.
+- **Models to Pull** (RTX 4090 24GB):
+  - `deepseek-r1:32b` - Best reasoning within 24GB (~20GB VRAM, ~22 tok/s)
+  - `deepseek-r1:14b` - Faster alternative (~10GB VRAM, ~45 tok/s)
+  - `qwq:32b` - Alternative reasoning model (~20GB VRAM, ~20 tok/s)
+- **Configuration Required**:
+  ```
+  # Create Modelfile for each reasoning model
+  FROM deepseek-r1:32b
+  PARAMETER num_ctx 16384
+
+  # Then: ollama create deepseek-r1-16k -f Modelfile
+  ```
+- **Additional Optimization**:
+  - Set `OLLAMA_KV_CACHE_TYPE=q8_0` (q4_0 may reduce reasoning quality)
+  - Flash Attention should be enabled
+- **Acceptance Criteria**:
+  - [ ] Pull deepseek-r1:32b, deepseek-r1:14b, qwq:32b
+  - [ ] Create Modelfiles with 16k context for each
+  - [ ] Test reasoning quality with extended context
+  - [ ] Update Pip app to show new models in selector
+- **Reference**: [DeepSeek R1 on RTX 4090](https://www.jamesflare.com/ollama-deepseek-r1-distill/)
 
 #### issue_017: Ollama Model Warm-Up Strategy
 - **Status**: 🔴 Open
@@ -236,11 +264,13 @@
 - **Reference**: Claude.ai Projects UI (screenshots provided)
 
 #### issue_028: Connectors Menu (Multi-Integration Pattern)
-- **Status**: ⚠️ Flagged (needs spike)
-- **Priority**: P2 (Medium - future feature)
+- **Status**: 🟡 In Progress (spike complete)
+- **Priority**: P0 (Critical - demo blocker for dental client)
 - **Component**: `packages/pwa-app`, `packages/server`, `packages/mcp-remote-server`
 - **Created**: 2025-12-02
+- **Spike Complete**: 2025-12-03
 - **Description**: Move from "Xero-only" to multi-connector architecture
+- **Research Output**: `specs/spike-outputs/GOOGLE-WORKSPACE-INTEGRATION-RESEARCH-20251203.md`
 - **Current State**:
   - Xero is hardcoded as primary/only connector
   - Connection status in header
@@ -250,21 +280,99 @@
   - Manage connectors page (add/remove/configure)
   - Per-connector, per-tool permissions (see issue_030)
   - Per-project default connectors
-- **Potential Connectors**:
-  - Xero (accounting - existing)
-  - Google Drive (files, sheets)
-  - Gmail (email context)
-  - Google Calendar (scheduling context)
-  - Notion (notes/docs)
-- **Acceptance Criteria**:
-  - [ ] Design connector abstraction layer
-  - [ ] Connectors menu UI (chat input area)
-  - [ ] Manage connectors page
-  - [ ] Per-connector enable/disable
-  - [ ] Integrate with issue_030 permissions model
-- **Complexity**: 4.5/5 (High - OAuth + integration work)
-- **Spike Required**: Research Google OAuth, connector abstraction patterns
-- **Reference**: Claude.ai connectors menu (screenshot provided)
+
+### Priority: Gmail First (Dental Demo Critical Path)
+
+**Use Case**: Dental practice receives POs, invoices, and documents via email. Pip must:
+1. Search emails for invoices/POs (by sender, subject, date)
+2. Extract PDF/image attachments
+3. Parse attachment contents (reuse existing PDF parsing)
+4. Serve content to user for financial queries
+
+**⚠️ CRITICAL FINDING: Gmail Scope Classification (Corrected)**
+
+| Scope | Category | Verification |
+|-------|----------|-------------|
+| `gmail.labels` | Non-Sensitive | Minimal |
+| `gmail.send` | **Sensitive** | 3-5 days |
+| `gmail.readonly` | **⚠️ RESTRICTED** | CASA annual audit |
+| `gmail.modify` | **⚠️ RESTRICTED** | CASA annual audit |
+
+**CASA Security Assessment Reality**:
+- Annual third-party security audit required for production
+- Cost: Tier 2 ($500-$4,500), Tier 3 ($15,000-$75,000+)
+- Timeline: Several weeks for initial verification
+- **NO workarounds** for apps storing restricted scope data on servers
+
+**Demo Strategy (Recommended)**:
+1. **Keep app in Testing mode** - bypasses CASA requirement
+2. **Add dental practice email(s) as test users** (max 100 users)
+3. **Full Gmail functionality** - no CASA needed for testing
+4. **7-day refresh token expiry** - acceptable for demo, re-auth weekly
+5. **Validate product-market fit** before investing in CASA
+
+**Alternative: Google Workspace Domain-Wide Delegation**:
+If dental practice uses Google Workspace (not personal Gmail):
+- Service account with domain-wide delegation
+- Admin configures permissions (no user consent flow)
+- **No CASA required** for internal apps
+- Scopes granted at admin level
+
+**Gmail MCP Tools** (Priority Order):
+```typescript
+1. search_gmail(query, maxResults?)
+   // "from:supplier@dental.com has:attachment filename:pdf after:2025/01/01"
+   // Returns: [{id, subject, from, date, hasAttachments}]
+
+2. get_email_content(messageId)
+   // Returns: {subject, from, to, date, body, attachments: [{id, filename, mimeType, size}]}
+
+3. download_attachment(messageId, attachmentId)
+   // Returns: base64 content or parsed text (if PDF/image)
+   // Reuse existing PDF parsing from document upload
+
+4. list_email_attachments(query?, maxResults?)
+   // Convenience: Search + extract attachment metadata in one call
+   // "Show me all invoice PDFs from last month"
+```
+
+**Gmail Implementation Plan**:
+1. **Database**: Add `provider_user_id`, `provider_metadata` to `oauth_tokens`
+2. **OAuth**: `/auth/google/gmail` route with `gmail.readonly` scope
+3. **Service**: `getGmailClient()` with auto-refresh (reuse Xero pattern)
+4. **MCP Tools**: Implement 4 Gmail tools above
+5. **PDF Parsing**: Integrate existing document parsing for attachments
+6. **UI**: "Connect Gmail" in Settings, show in connectors menu
+
+**Revised Phased Implementation**:
+- **Phase 1: Gmail Read-Only** (1-2 weeks) ← PRIORITY
+  - OAuth flow + token storage
+  - 4 Gmail MCP tools
+  - Attachment download + PDF parsing
+  - UI: Connect Gmail button
+- Phase 2: Drive + Sheets (2-3 weeks)
+- Phase 3: Write operations + permissions UI (1 week)
+
+- **Acceptance Criteria** (Gmail Phase - Testing Mode):
+  - [ ] Database schema: `provider_user_id`, `provider_metadata` columns
+  - [ ] Google OAuth route (`/auth/google/gmail`) with `gmail.readonly` scope
+  - [ ] `getGmailClient()` service with auto-refresh (handle 7-day token expiry)
+  - [ ] Gmail MCP tools: `search_gmail`, `get_email_content`, `download_attachment`, `list_email_attachments`
+  - [ ] PDF/image attachment parsing (reuse document upload logic)
+  - [ ] UI: Connect Gmail in Settings (with "Testing mode" indicator)
+  - [ ] Add dental practice email(s) to Google Cloud Console test users
+  - [ ] Privacy policy update for Gmail data disclosure
+- **Risks**:
+  - **100-user cap** (testing mode limit) - sufficient for demo phase
+  - **7-day refresh token expiry** (testing mode) - users re-auth weekly, acceptable for demo
+  - **CASA cost for production** ($4,500+/year) - defer until PMF validated
+  - **Google Workspace alternative** - if client uses Workspace, domain-wide delegation bypasses CASA
+- **Complexity**: 3.5/5 (Medium-High - OAuth + PDF parsing already exists)
+- **Estimate**: 1-2 weeks for Gmail MVP (Testing Mode)
+- **Reference**:
+  - `specs/spike-outputs/GOOGLE-WORKSPACE-INTEGRATION-RESEARCH-20251203.md`
+  - [Gmail API Scopes](https://developers.google.com/workspace/gmail/api/auth/scopes)
+  - [CASA Assessment](https://appdefensealliance.dev/casa)
 
 #### issue_030: Per-Tool Permissions (Claude.ai Pattern)
 - **Status**: 🔴 Open
