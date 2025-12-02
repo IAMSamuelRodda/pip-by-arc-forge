@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { ChatPage } from './pages/ChatPage';
+import { ChatsPage } from './pages/ChatsPage';
 import { LoginPage } from './pages/LoginPage';
 import { SignupPage } from './pages/SignupPage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -35,6 +36,14 @@ function App() {
         element={
           <ProtectedRoute>
             <SettingsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/chats"
+        element={
+          <ProtectedRoute>
+            <ChatsPage />
           </ProtectedRoute>
         }
       />
