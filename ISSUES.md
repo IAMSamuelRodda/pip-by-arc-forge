@@ -248,7 +248,7 @@
   - Connectors menu in chat input area (+ icon dropdown)
   - Toggle individual connectors on/off per chat
   - Manage connectors page (add/remove/configure)
-  - Per-connector safety settings
+  - Per-connector, per-tool permissions (see issue_030)
   - Per-project default connectors
 - **Potential Connectors**:
   - Xero (accounting - existing)
@@ -261,27 +261,81 @@
   - [ ] Connectors menu UI (chat input area)
   - [ ] Manage connectors page
   - [ ] Per-connector enable/disable
-  - [ ] Per-connector safety levels
+  - [ ] Integrate with issue_030 permissions model
 - **Complexity**: 4.5/5 (High - OAuth + integration work)
 - **Spike Required**: Research Google OAuth, connector abstraction patterns
 - **Reference**: Claude.ai connectors menu (screenshot provided)
 
-#### issue_029: MCP Auth Flow - Database Reference Issue
+#### issue_030: Per-Tool Permissions (Claude.ai Pattern)
 - **Status**: 🔴 Open
-- **Priority**: P2 (Medium - potential bug)
-- **Component**: `packages/mcp-remote-server`
+- **Priority**: P1 (High - security + UX improvement)
+- **Component**: `packages/pwa-app`, `packages/server`, `packages/mcp-remote-server`
 - **Created**: 2025-12-02
-- **Description**: MCP auth flow may be referencing old/stale database. User with Protonmail login wasn't recognized.
-- **Investigation**:
-  - [ ] Check OAuth token storage in pip.db vs old zero-agent.db
-  - [ ] Verify database migration was complete
-  - [ ] Check if MCP server is using correct database path
-  - [ ] Test fresh login flow
-- **Potential Causes**:
-  - Database path mismatch after naming migration
-  - User record created in old database
-  - OAuth tokens not migrated
-- **Notes**: User reported Protonmail login not recognized during MCP connector auth
+- **Description**: Replace single "safety level" dropdown with per-tool three-tier permissions
+- **Current State**:
+  - Single dropdown: Read-only → Create drafts → Approve/Update → Delete/Void
+  - All tools in a level are enabled/disabled together
+  - No granular control
+- **Target Pattern** (Claude.ai Tool Permissions):
+  - **Three tiers per tool**: Always allow ✓ / Needs approval 👆 / Blocked ⊘
+  - **Per-connector view**: Inside each connector (Xero), show all its MCP tools
+  - **Full tool list**: Show actual tool names, not lazy-mcp interface
+  - **Section separators**: Safety levels become visual groupings with warnings
+    - Safe (read-only tools)
+    - Moderate (create/draft tools)
+    - Serious (update/approve tools) - with warning
+    - Extreme (delete/void tools) - with strong warning
+- **UI Layout**:
+  ```
+  Xero                                    [Uninstall]
+  ─────────────────────────────────────────────────
+  Tool permissions           [Always allow ▼]
+
+  ── Safe ──────────────────────────────────────
+  get_invoices                    [✓] [👆] [⊘]
+  get_bank_transactions           [✓] [👆] [⊘]
+  get_profit_loss                 [✓] [👆] [⊘]
+
+  ── Moderate ──────────────────────────────────
+  create_invoice_draft            [✓] [👆] [⊘]
+
+  ── Serious ⚠️ ─────────────────────────────────
+  approve_invoice                 [✓] [👆] [⊘]
+  update_invoice                  [✓] [👆] [⊘]
+
+  ── Extreme ⛔ ─────────────────────────────────
+  void_invoice                    [✓] [👆] [⊘]
+  delete_invoice                  [✓] [👆] [⊘]
+  ```
+- **Database Changes**:
+  - New `tool_permissions` table: (user_id, connector, tool_name, permission)
+  - permission: 'always' | 'approval' | 'blocked'
+- **Acceptance Criteria**:
+  - [ ] Design tool_permissions schema
+  - [ ] Create connector detail page with full tool list
+  - [ ] Three-tier toggle component per tool
+  - [ ] Section separators with safety level labels + warnings
+  - [ ] "Always allow" bulk dropdown (sets all tools)
+  - [ ] MCP server checks permissions before tool execution
+  - [ ] "Needs approval" shows confirmation dialog before execution
+- **Complexity**: 3.5/5 (Medium-High)
+- **Replaces**: Current safety level dropdown (issue_004 enhancement)
+- **Reference**: Claude.ai connector tool permissions UI (screenshot provided)
+
+#### issue_029: MCP Auth Flow - Missing OAuth Env Vars
+- **Status**: 🟢 Resolved
+- **Priority**: - (Complete)
+- **Component**: `packages/mcp-remote-server`, `deploy/deploy.sh`
+- **Created**: 2025-12-02
+- **Resolved**: 2025-12-02
+- **Description**: MCP OAuth flow returning `invalid_client` error
+- **Root Causes Found**:
+  1. Email typo: User registered as `samuelroda` but typing `samuelrodda`
+  2. Missing env vars: `MCP_OAUTH_CLIENT_ID` and `MCP_OAUTH_CLIENT_SECRET` not passed to container
+- **Resolution**:
+  - Fixed email in database
+  - Added OAuth env vars to `deploy/deploy.sh` for pip-mcp container
+- **Commit**: `b46a301`
 
 #### issue_023: Edge Cases - Empty Chat + Memory Retrieval
 - **Status**: 🔴 Open
