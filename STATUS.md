@@ -22,7 +22,7 @@
 | **Landing Page** | 🟢 | Live at pip.arcforge.au |
 | **Xero Integration** | 🟢 | 10 READ-ONLY tools verified |
 | **Gmail Integration** | 🟢 | 4 read-only tools (Testing mode: 100 users) |
-| **Ollama Local** | 🟢 | 4 models via Tailscale (deepseek-r1:32b, qwq:32b, deepseek-r1:14b, deepseek-coder:33b) |
+| **Ollama Local** | 🟢 | 5 models via Tailscale (+ deepseek-r1:1.5b fast reasoning) |
 | **Git Workflow** | 🟢 | Simple tier (main only, direct commits) |
 | **Milestone 2** | 🔵 | Epic 2.1-2.3 complete, Epic 2.4-2.6 remaining |
 | **Projects Feature** | ✅ | Complete (schema, API, switcher, settings page) |
@@ -37,7 +37,27 @@
 
 ### Just Completed (2025-12-03)
 
-1. **Font Loading Fix** ✅ COMPLETE
+1. **Native Ollama Tool Calling** ✅ COMPLETE
+   - Implemented native function calling for tool-capable models (qwq, llama3.x, mistral, qwen2.5)
+   - Added `isToolCapableModel()` detection in ollama.ts
+   - Updated orchestrator to use capability check instead of blanket disable
+   - Verified qwq:32b successfully calling Xero tools (get_profit_and_loss)
+   - Commit: `7328329`
+
+2. **Title Generation Fix** ✅ COMPLETE
+   - Fixed chat titles showing `<think>` blocks from reasoning models
+   - Added regex to strip `<think>...</think>` from generated titles
+   - Deployed to production
+
+3. **Fast Reasoning Model** ✅ COMPLETE
+   - Pulled `deepseek-r1:1.5b` (1.1GB) - fastest thinking model
+   - Downloads in progress: `llama3.1:8b`, `qwen2.5:7b` (tool-capable)
+
+4. **UX Issue Created** (issue_036)
+   - Collapsible `<think>` blocks (Claude Code pattern)
+   - Tool call data visibility for debugging
+
+5. **Font Loading Fix** ✅ COMPLETE
    - Root cause: All page layouts (`LoginPage`, `SignupPage`, `SettingsPage`, `MainLayout`) had `font-mono` class
    - This applied JetBrains Mono to all text, so Plus Jakarta Sans was never loaded
    - Fix: Changed `font-mono` → `font-sans` on root layout divs
