@@ -36,10 +36,10 @@ const PipLogo = () => (
   </svg>
 );
 
-// Plus icon for New Chat button
+// Plus icon for New Chat button (compact size)
 const PlusIcon = () => (
-  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
   </svg>
 );
 
@@ -215,7 +215,7 @@ export function ChatSidebar({ isOpen, onToggle, docsCount = 0, showDocs, onToggl
             }`}
             title="New chat"
           >
-            <span className="p-1.5 bg-arc-accent rounded-lg text-white flex-shrink-0">
+            <span className="p-1 bg-arc-accent rounded-md text-white flex-shrink-0">
               <PlusIcon />
             </span>
             {isOpen && <span className="text-sm text-arc-text-primary">New chat</span>}
