@@ -14,18 +14,18 @@ import { ChatInputArea } from '../components/ChatInputArea';
 import { QuickActionCategories } from '../components/QuickActionCategories';
 import { ChatHeader } from '../components/ChatHeader';
 
-// Personalized greetings with {name} placeholder
+// Personalized greetings with {name} placeholder - short, quirky, endearing
 const GREETINGS = [
-  "What's on your mind, {name}?",
-  "Ready when you are, {name}",
-  "How can I help today, {name}?",
-  "Let's get to work, {name}",
-  "What are we working on, {name}?",
-  "Good to see you, {name}",
-  "What's the plan, {name}?",
-  "Need something, {name}?",
-  "At your service, {name}",
-  "What's next, {name}?",
+  "Hey {name}",
+  "G'day {name}",
+  "What's up, {name}?",
+  "Heya {name}",
+  "Oi {name}",
+  "Yo {name}",
+  "'Sup {name}",
+  "Hiya {name}",
+  "Hey there, {name}",
+  "Howdy {name}",
 ];
 
 // Scroll to bottom icon
