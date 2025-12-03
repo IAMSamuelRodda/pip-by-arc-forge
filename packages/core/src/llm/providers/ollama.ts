@@ -131,8 +131,11 @@ export class OllamaProvider implements LLMProvider {
       );
     }
 
+    const modelToUse = options?.model || this.defaultModel;
+    console.log(`🤖 Ollama chat: using model=${modelToUse}, requested=${options?.model || 'none'}, default=${this.defaultModel}`);
+
     const requestBody: OllamaChatRequest = {
-      model: options?.model || this.defaultModel,
+      model: modelToUse,
       messages: messages.map((msg) => ({
         role: msg.role,
         content: msg.content,
