@@ -32,25 +32,33 @@ body {
 @keyframes pulse-loading {
   0%, 100% {
     background-color: #7eb88e; /* arc-accent - base state */
+    opacity: 1;
   }
   50% {
-    background-color: #d4a84a; /* Warm yellow/amber tone */
+    background-color: #a8965e; /* Gentle warm amber/gold tone */
+    opacity: 0.85;
   }
 }
 
-@keyframes flash-ready {
+@keyframes pulse-ready {
   0% {
-    background-color: #4ade80; /* Bright green flash */
+    background-color: #7eb88e; /* arc-accent */
+    opacity: 0.85;
+  }
+  40% {
+    background-color: #8fcc9f; /* Gentle brighter green */
+    opacity: 1;
   }
   100% {
     background-color: #7eb88e; /* arc-accent */
+    opacity: 1;
   }
 }
 
 .btn-model-loading {
-  animation: pulse-loading 1s ease-in-out infinite;
+  animation: pulse-loading 1.5s ease-in-out infinite;
 }
 
 .btn-model-ready {
-  animation: flash-ready 0.5s ease-out forwards;
+  animation: pulse-ready 0.8s ease-out forwards;
 }
