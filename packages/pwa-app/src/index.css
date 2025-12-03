@@ -28,18 +28,17 @@ body {
   width: 100%;
 }
 
-/* Model loading state animation for model selector */
+/* Model loading state animation for model selector button */
 @keyframes pulse-model-loading {
   0%, 100% {
-    color: #7eb88e; /* arc-accent */
-    opacity: 1;
+    background-color: rgba(126, 184, 142, 0.15); /* arc-accent with low opacity */
   }
   50% {
-    color: #9ed4ae; /* Brighter green */
-    opacity: 0.7;
+    background-color: rgba(126, 184, 142, 0.35); /* arc-accent with higher opacity */
   }
 }
 
 .model-selector-loading {
   animation: pulse-model-loading 1.5s ease-in-out infinite;
+  border-radius: 0.5rem;
 }

@@ -553,10 +553,8 @@ export function ChatInputArea({
               <button
                 type="button"
                 onClick={() => setModelMenuOpen(!modelMenuOpen)}
-                className={`flex items-center gap-1 px-2 py-1.5 text-xs transition-colors ${
-                  isModelLoading
-                    ? 'model-selector-loading'
-                    : 'text-arc-text-secondary hover:text-arc-text-primary'
+                className={`flex items-center gap-1 px-2 py-1.5 text-xs text-arc-text-secondary hover:text-arc-text-primary transition-colors ${
+                  isModelLoading ? 'model-selector-loading' : ''
                 }`}
                 title={isModelLoading ? 'Loading model...' : 'Select model'}
               >
