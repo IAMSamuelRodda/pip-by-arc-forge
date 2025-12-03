@@ -14,18 +14,18 @@ import { ChatInputArea } from '../components/ChatInputArea';
 import { QuickActionCategories } from '../components/QuickActionCategories';
 import { ChatHeader } from '../components/ChatHeader';
 
-// Personalized greetings with {name} placeholder - short, quirky, endearing
+// Personalized greetings - warm, helpful assistant tone
 const GREETINGS = [
-  "Hey {name}",
-  "G'day {name}",
-  "What's up, {name}?",
-  "Heya {name}",
-  "Oi {name}",
-  "Yo {name}",
-  "'Sup {name}",
-  "Hiya {name}",
-  "Hey there, {name}",
-  "Howdy {name}",
+  "Welcome back, {name}~",
+  "Hi {name}! What's good today?",
+  "Greetings, {name}.",
+  "Good to see you, {name}.",
+  "Hi there, {name}!",
+  "Hello, {name}.",
+  "Ready when you are, {name}.",
+  "Hi {name}, how can I help?",
+  "Hello there, {name}!",
+  "Welcome, {name}.",
 ];
 
 // Scroll to bottom icon
