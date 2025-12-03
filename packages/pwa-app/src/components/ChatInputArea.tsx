@@ -484,7 +484,7 @@ export function ChatInputArea({
         <AttachmentPreview attachments={attachments} onRemove={(id) => setAttachments(prev => prev.filter(a => a.id !== id))} />
 
         {/* Text area */}
-        <div className="px-4 pt-3 pb-1">
+        <div className="px-4 pt-4 pb-3">
           <textarea
             ref={inputRef}
             value={value}

@@ -186,7 +186,7 @@ export function ChatActionsMenu({
           }}
           className="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-arc-bg-tertiary transition-colors text-arc-text-primary"
         >
-          <span className="text-base font-medium truncate max-w-xs">{title}</span>
+          <span className="text-base font-medium">{title}</span>
           <ChevronDownIcon />
         </button>
       ) : (

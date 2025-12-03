@@ -35,6 +35,7 @@ body {
   display: flex;
   min-width: 320px;
   min-height: 100vh;
+  font-family: 'Plus Jakarta Sans', system-ui, Avenir, Helvetica, Arial, sans-serif;
 }
 
 #root {

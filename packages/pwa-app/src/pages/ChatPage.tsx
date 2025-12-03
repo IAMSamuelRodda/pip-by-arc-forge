@@ -294,22 +294,22 @@ export function ChatPage() {
         <div className="pointer-events-none absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-arc-bg-primary to-transparent z-10" />
 
         {messages.length === 0 ? (
-          /* Empty state: Left-aligned logo with greeting, centered input */
+          /* Empty state: Centered logo with greeting, centered input */
           <div className="h-full flex flex-col items-center justify-center px-4" style={{ paddingBottom: '20vh' }}>
-            <div className="max-w-2xl w-full">
-              {/* Logo + Greeting - Left aligned, inline */}
-              <div className="flex items-center gap-4 mb-8 px-4">
-                <svg className="w-12 h-12 flex-shrink-0" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <div className="max-w-3xl w-full">
+              {/* Logo + Greeting - Centered, inline, logo matches text height */}
+              <div className="flex items-center justify-center gap-3 mb-8">
+                <svg className="h-[1.2em] w-[1.2em] flex-shrink-0" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style={{ fontSize: '2.25rem' }}>
                   <circle cx="50" cy="50" r="44" fill="var(--arc-bg-secondary)" stroke="var(--arc-accent)" strokeWidth="6"/>
                   <path d="M38 70 V30 h14 a10 10 0 0 1 0 20 H38" fill="none" stroke="var(--arc-accent)" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-                <h2 className="text-2xl font-medium text-arc-text-primary">
+                <h2 className="text-3xl font-medium text-arc-text-primary">
                   {greeting}
                 </h2>
               </div>
 
               {/* Input */}
-              <div className="w-full px-4">
+              <div className="w-full">
                 <ChatInputArea
                   value={input}
                   onChange={setInput}
