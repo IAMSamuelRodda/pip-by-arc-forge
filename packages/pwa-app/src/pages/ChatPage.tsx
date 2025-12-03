@@ -14,6 +14,13 @@ import { ChatInputArea } from '../components/ChatInputArea';
 import { QuickActionCategories } from '../components/QuickActionCategories';
 import { ChatHeader } from '../components/ChatHeader';
 
+// Scroll to bottom icon
+const ArrowDownIcon = () => (
+  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M12 5v14M5 12l7 7 7-7" />
+  </svg>
+);
+
 interface Document {
   docName: string;
   docType: string;
@@ -29,7 +36,9 @@ export function ChatPage() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [personalityInfo, setPersonalityInfo] = useState<PersonalityInfo | null>(null);
+  const [showScrollButton, setShowScrollButton] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -149,6 +158,21 @@ export function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Track scroll position to show/hide scroll button
+  const handleScroll = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+    setShowScrollButton(!isNearBottom);
+  }, []);
+
+  // Scroll to bottom function
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
+
 
   // Load documents on mount
   useEffect(() => {
@@ -242,7 +266,10 @@ export function ChatPage() {
       )}
 
       {/* Messages / Empty State */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto relative">
+        {/* Top fade gradient */}
+        <div className="pointer-events-none absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-arc-bg-primary to-transparent z-10" />
+
         {messages.length === 0 ? (
           /* Empty state: Centered content with inline input (golden ratio positioning) */
           <div className="h-full flex flex-col items-center justify-center px-4" style={{ paddingBottom: '20vh' }}>
@@ -259,7 +286,7 @@ export function ChatPage() {
               </p>
 
               {/* Centered input - Claude.ai pattern */}
-              <div className="max-w-4xl mx-auto w-full px-4">
+              <div className="max-w-2xl mx-auto w-full px-4">
                 <ChatInputArea
                   value={input}
                   onChange={setInput}
@@ -276,49 +303,61 @@ export function ChatPage() {
           </div>
         ) : (
           /* Conversation view */
-          <div className="max-w-4xl mx-auto px-4 py-6">
-            <div className="space-y-4">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
+          <div
+            ref={messagesContainerRef}
+            onScroll={handleScroll}
+            className="h-full overflow-y-auto"
+          >
+            <div className="max-w-2xl mx-auto px-4 py-6">
+              <div className="space-y-6">
+                {messages.map((message) => (
                   <div
-                    className={`max-w-[80%] rounded-xl px-4 py-3 ${
-                      message.role === 'user'
-                        ? 'bg-arc-accent text-arc-bg-primary'
-                        : 'bg-arc-bg-tertiary border border-arc-border text-arc-text-primary'
-                    }`}
+                    key={message.id}
+                    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     {message.role === 'user' ? (
-                      <p className="whitespace-pre-wrap text-sm leading-relaxed">
-                        {message.content}
-                      </p>
-                    ) : (
-                      <div className="prose prose-sm prose-invert max-w-none">
-                        <ReactMarkdown
-                          components={{
-                            p: ({ children }) => <p className="mb-2 last:mb-0 text-arc-text-primary">{children}</p>,
-                            ul: ({ children }) => <ul className="list-disc pl-4 mb-2 text-arc-text-primary">{children}</ul>,
-                            ol: ({ children }) => <ol className="list-decimal pl-4 mb-2 text-arc-text-primary">{children}</ol>,
-                            li: ({ children }) => <li className="mb-1 text-arc-text-primary">{children}</li>,
-                            strong: ({ children }) => <strong className="font-semibold text-arc-accent">{children}</strong>,
-                            h1: ({ children }) => <h1 className="text-base font-bold mb-2 text-arc-text-primary">{children}</h1>,
-                            h2: ({ children }) => <h2 className="text-sm font-bold mb-2 text-arc-text-primary">{children}</h2>,
-                            h3: ({ children }) => <h3 className="text-sm font-semibold mb-1 text-arc-accent">{children}</h3>,
-                          }}
-                        >
+                      /* User message - pill style */
+                      <div className="max-w-[85%] bg-arc-accent/90 text-arc-bg-primary rounded-2xl px-4 py-2.5">
+                        <p className="whitespace-pre-wrap text-sm leading-relaxed">
                           {message.content}
-                        </ReactMarkdown>
+                        </p>
+                      </div>
+                    ) : (
+                      /* Assistant message - plain markdown, no background */
+                      <div className="w-full">
+                        <div className="prose prose-sm prose-invert max-w-none text-arc-text-primary">
+                          <ReactMarkdown
+                            components={{
+                              p: ({ children }) => <p className="mb-3 last:mb-0 text-arc-text-primary leading-relaxed">{children}</p>,
+                              ul: ({ children }) => <ul className="list-disc pl-5 mb-3 text-arc-text-primary space-y-1">{children}</ul>,
+                              ol: ({ children }) => <ol className="list-decimal pl-5 mb-3 text-arc-text-primary space-y-1">{children}</ol>,
+                              li: ({ children }) => <li className="text-arc-text-primary">{children}</li>,
+                              strong: ({ children }) => <strong className="font-semibold text-arc-text-primary">{children}</strong>,
+                              h1: ({ children }) => <h1 className="text-lg font-bold mb-3 mt-4 first:mt-0 text-arc-text-primary">{children}</h1>,
+                              h2: ({ children }) => <h2 className="text-base font-bold mb-2 mt-4 first:mt-0 text-arc-text-primary">{children}</h2>,
+                              h3: ({ children }) => <h3 className="text-sm font-semibold mb-2 mt-3 first:mt-0 text-arc-text-primary">{children}</h3>,
+                              code: ({ children, className }) => {
+                                const isInline = !className;
+                                return isInline ? (
+                                  <code className="bg-arc-bg-tertiary px-1.5 py-0.5 rounded text-arc-accent text-sm">{children}</code>
+                                ) : (
+                                  <code className="block bg-arc-bg-tertiary p-3 rounded-lg text-sm overflow-x-auto">{children}</code>
+                                );
+                              },
+                              pre: ({ children }) => <pre className="bg-arc-bg-tertiary p-3 rounded-lg mb-3 overflow-x-auto">{children}</pre>,
+                              blockquote: ({ children }) => <blockquote className="border-l-2 border-arc-accent pl-4 italic text-arc-text-secondary mb-3">{children}</blockquote>,
+                            }}
+                          >
+                            {message.content}
+                          </ReactMarkdown>
+                        </div>
                       </div>
                     )}
                   </div>
-                </div>
-              ))}
-              {isLoading && (
-                <div className="flex justify-start">
-                  <div className="bg-arc-bg-tertiary border border-arc-border rounded-xl px-4 py-3">
-                    <div className="flex items-center gap-3">
+                ))}
+                {isLoading && (
+                  <div className="flex justify-start">
+                    <div className="flex items-center gap-3 py-2">
                       <div className="flex items-center gap-1">
                         <div className="w-2 h-2 bg-arc-accent rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                         <div className="w-2 h-2 bg-arc-accent rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
@@ -333,11 +372,22 @@ export function ChatPage() {
                       </span>
                     </div>
                   </div>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
+                )}
+                <div ref={messagesEndRef} />
+              </div>
             </div>
           </div>
+        )}
+
+        {/* Scroll to bottom button - Claude pattern: subtle, blends in */}
+        {showScrollButton && messages.length > 0 && (
+          <button
+            onClick={scrollToBottom}
+            className="absolute bottom-4 left-1/2 -translate-x-1/2 p-1.5 bg-arc-bg-secondary/80 backdrop-blur-sm rounded-full text-arc-text-secondary hover:text-arc-text-primary hover:bg-arc-bg-tertiary transition-all z-20"
+            title="Scroll to bottom"
+          >
+            <ArrowDownIcon />
+          </button>
         )}
       </main>
 
@@ -358,8 +408,8 @@ export function ChatPage() {
 
         {/* Input footer (only shown after first message) */}
         {messages.length > 0 && (
-          <footer className="bg-arc-bg-secondary border-t border-arc-border">
-            <div className="max-w-4xl mx-auto px-4 py-3">
+          <footer className="bg-arc-bg-primary">
+            <div className="max-w-2xl mx-auto px-4 py-3">
               <ChatInputArea
                 value={input}
                 onChange={setInput}
