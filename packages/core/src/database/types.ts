@@ -488,6 +488,34 @@ export interface DatabaseProvider {
   updateProject(userId: string, projectId: string, updates: Partial<Project>): Promise<Project>;
   deleteProject(userId: string, projectId: string): Promise<void>;
 
+  // Business context operations (document upload)
+  createBusinessContext(context: {
+    userId: string;
+    docType: string;
+    docName: string;
+    chunkIndex: number;
+    content: string;
+    metadata?: Record<string, any>;
+  }): Promise<{ id: string }>;
+  getBusinessContext(userId: string, options?: {
+    docType?: string;
+    docName?: string;
+  }): Promise<Array<{
+    id: string;
+    docType: string;
+    docName: string;
+    chunkIndex: number;
+    content: string;
+    metadata?: Record<string, any>;
+  }>>;
+  deleteBusinessContext(userId: string, docName?: string): Promise<void>;
+  listBusinessDocuments(userId: string): Promise<Array<{
+    docName: string;
+    docType: string;
+    chunkCount: number;
+    createdAt: number;
+  }>>;
+
   // Operation snapshot operations (audit trail)
   createOperationSnapshot(snapshot: Omit<OperationSnapshot, "id" | "createdAt">): Promise<OperationSnapshot>;
   getOperationSnapshot(id: string): Promise<OperationSnapshot | null>;

@@ -156,12 +156,12 @@ export function createDocumentRoutes(db: DatabaseProvider): Router {
       console.log(`   Extracted ${text.length} chars, split into ${chunks.length} chunks`);
 
       // Delete existing document with same name (replace)
-      await (db as any).deleteBusinessContext(userId, docName);
+      await db.deleteBusinessContext(userId, docName);
 
       // Store each chunk
       const chunkIds: string[] = [];
       for (let i = 0; i < chunks.length; i++) {
-        const result = await (db as any).createBusinessContext({
+        const result = await db.createBusinessContext({
           userId,
           docType,
           docName,
@@ -201,7 +201,7 @@ export function createDocumentRoutes(db: DatabaseProvider): Router {
     try {
       const userId = req.userId!;
 
-      const documents = await (db as any).listBusinessDocuments(userId);
+      const documents = await db.listBusinessDocuments(userId);
 
       res.json({ documents });
     } catch (error) {
@@ -219,7 +219,7 @@ export function createDocumentRoutes(db: DatabaseProvider): Router {
       const userId = req.userId!;
       const { docName } = req.params;
 
-      const chunks = await (db as any).getBusinessContext(userId, { docName });
+      const chunks = await db.getBusinessContext(userId, { docName });
 
       if (chunks.length === 0) {
         res.status(404).json({ error: 'Document not found' });
@@ -230,7 +230,7 @@ export function createDocumentRoutes(db: DatabaseProvider): Router {
         document: {
           name: docName,
           type: chunks[0].docType,
-          chunks: chunks.map((c: any) => ({
+          chunks: chunks.map((c) => ({
             index: c.chunkIndex,
             content: c.content,
           })),
@@ -251,7 +251,7 @@ export function createDocumentRoutes(db: DatabaseProvider): Router {
       const userId = req.userId!;
       const { docName } = req.params;
 
-      await (db as any).deleteBusinessContext(userId, docName);
+      await db.deleteBusinessContext(userId, docName);
 
       res.json({ success: true, message: `Deleted ${docName}` });
     } catch (error) {
