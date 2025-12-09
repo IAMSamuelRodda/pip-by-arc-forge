@@ -132,12 +132,40 @@ export interface OAuthTokens {
 3. No regulatory/accounting implications
 4. Agent can implement undo via version restore
 
+### Programmatic Enforcement (NOT Prompt Instructions)
+
+**Critical**: Safety is enforced programmatically at the tool execution layer, NOT via system prompt instructions:
+
+1. **Tool Visibility Filtering**: `getVisibleTools()` hides tools the user can't use from the agent entirely
+2. **Execution-Time Permission Check**: `checkToolPermission()` returns `allowed: false` if user lacks permission
+3. **Hard Denial**: Tool execution fails with clear error message if permission insufficient
+4. **Default Read-Only**: New users get `permissionLevel: 0` automatically in `user_settings` table
+
+```typescript
+// From packages/pip-mcp/src/services/safety.ts
+export async function checkToolPermission(userId: string, toolName: string): Promise<PermissionCheckResult> {
+  const settings = await getUserSettingsOrDefault(userId);  // Creates default if none
+  const requiredLevel = TOOL_PERMISSION_LEVELS[toolName];
+
+  if (settings.permissionLevel < requiredLevel) {
+    return {
+      allowed: false,  // HARD DENIAL - tool cannot execute
+      reason: `This operation requires "${PERMISSION_LEVEL_NAMES[requiredLevel]}" permission...`,
+    };
+  }
+  return { allowed: true };
+}
+```
+
+**Agent cannot bypass this**: Even if an agent tries to call a write tool, the MCP server will reject the request at execution time (line 578-591 in `packages/pip-mcp/src/index.ts`).
+
 ### Permission Levels for Google Sheets
 
 #### Level 0: Read-Only (Default) - No Special Permission Required
 
 **Risk**: None
 **Operations**: All read operations, no confirmation needed
+**Enforcement**: Automatic - all new users start here
 
 | Tool | Category | Risk | Notes |
 |------|----------|------|-------|
@@ -291,6 +319,61 @@ Just like Xero, tools are dynamically shown/hidden based on user's permission le
 | `delete_sheet` | ❌ | ❌ | ✅ |
 | `trash_spreadsheet` | ❌ | ❌ | ✅ |
 | `permanently_delete` | ❌ | ❌ | ❌ (never exposed) |
+
+### Implementation: Extending the Safety Service
+
+The existing `packages/pip-mcp/src/services/safety.ts` needs to be extended for Google Sheets tools:
+
+```typescript
+// Add to TOOL_PERMISSION_LEVELS in safety.ts
+export const TOOL_PERMISSION_LEVELS: Record<string, PermissionLevel> = {
+  // Existing Xero tools (Level 0 - read-only)
+  get_invoices: 0,
+  get_aged_receivables: 0,
+  // ... existing Xero tools ...
+
+  // Google Sheets - Level 0 (read-only)
+  read_sheet_range: 0,
+  get_sheet_metadata: 0,
+  search_spreadsheets: 0,
+  list_sheets: 0,
+  get_spreadsheet_revisions: 0,
+
+  // Google Sheets - Level 1 (write/create)
+  write_sheet_range: 1,
+  append_sheet_rows: 1,
+  update_cell: 1,
+  create_spreadsheet: 1,
+  add_sheet: 1,
+  clear_range: 1,
+
+  // Google Sheets - Level 2 (delete)
+  delete_sheet: 2,
+  delete_rows: 2,
+  delete_columns: 2,
+  trash_spreadsheet: 2,
+
+  // Level 3 NOT EXPOSED for Google Sheets
+};
+```
+
+**Design Decision: Shared vs Per-Connector Permissions**
+
+Current implementation uses a **single global permission level** across all connectors. This is simpler but means:
+- User sets Level 1 → can write to BOTH Xero drafts AND Google Sheets
+- User sets Level 2 → can delete in BOTH Xero AND Sheets
+
+**Future Enhancement** (issue_030): Per-connector permissions via `tool_permissions` table:
+```sql
+CREATE TABLE tool_permissions (
+  user_id TEXT NOT NULL,
+  connector TEXT NOT NULL,  -- 'xero', 'google_sheets', 'gmail'
+  permission_level INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (user_id, connector)
+);
+```
+
+**For MVP**: Use shared permission level (simpler, Xero has no write tools yet anyway).
 
 ---
 
