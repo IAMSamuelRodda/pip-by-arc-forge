@@ -239,11 +239,13 @@ export function ChatSidebar({ isOpen, onToggle }: ChatSidebarProps) {
             className={`w-full flex items-center gap-2 p-2 rounded-lg transition-colors ${
               isChatsPage
                 ? 'bg-arc-accent/20 text-arc-accent'
-                : 'text-arc-text-secondary hover:bg-arc-bg-tertiary'
+                : 'text-arc-text-primary hover:bg-arc-bg-tertiary'
             } ${isOpen ? '' : 'justify-center'}`}
             title="Browse all chats"
           >
-            <ChatsIcon />
+            <span className={isChatsPage ? '' : 'text-arc-accent/70'}>
+              <ChatsIcon />
+            </span>
             {isOpen && (
               <>
                 <span className="text-sm flex-1 text-left">Chats</span>
@@ -260,11 +262,13 @@ export function ChatSidebar({ isOpen, onToggle }: ChatSidebarProps) {
             className={`w-full flex items-center gap-2 p-2 rounded-lg transition-colors ${
               isProjectsPage
                 ? 'bg-arc-accent/20 text-arc-accent'
-                : 'text-arc-text-secondary hover:bg-arc-bg-tertiary'
+                : 'text-arc-text-primary hover:bg-arc-bg-tertiary'
             } ${isOpen ? '' : 'justify-center'}`}
             title="Browse projects"
           >
-            <ProjectsIcon />
+            <span className={isProjectsPage ? '' : 'text-arc-accent/70'}>
+              <ProjectsIcon />
+            </span>
             {isOpen && (
               <>
                 <span className="text-sm flex-1 text-left">Projects</span>
@@ -281,8 +285,10 @@ export function ChatSidebar({ isOpen, onToggle }: ChatSidebarProps) {
           <div className="flex-1 overflow-y-auto">
             {/* Bookmarked Section */}
             <div className="px-3 pt-3 pb-1">
-              <div className="flex items-center gap-1.5 text-xs font-medium text-arc-text-dim uppercase tracking-wide">
-                <BookmarkIcon />
+              <div className="flex items-center gap-1.5 text-xs font-medium text-arc-text-secondary uppercase tracking-wide">
+                <span className="text-arc-accent/70">
+                  <BookmarkIcon />
+                </span>
                 <span>Bookmarked</span>
               </div>
             </div>
@@ -324,8 +330,10 @@ export function ChatSidebar({ isOpen, onToggle }: ChatSidebarProps) {
             {/* Recents Section */}
             <div className="px-3 pt-4 pb-1 group/recents">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5 text-xs font-medium text-arc-text-dim uppercase tracking-wide">
-                  <ClockIcon />
+                <div className="flex items-center gap-1.5 text-xs font-medium text-arc-text-secondary uppercase tracking-wide">
+                  <span className="text-arc-accent/70">
+                    <ClockIcon />
+                  </span>
                   <span>Recents</span>
                 </div>
                 <button
