@@ -5,8 +5,8 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { api, memoryApi, gmailApi } from '../api/client';
-import type { ResponseStyleId, ResponseStyleOption, MemoryStatus, GmailStatus } from '../api/client';
+import { api, memoryApi } from '../api/client';
+import type { ResponseStyleId, ResponseStyleOption, MemoryStatus } from '../api/client';
 import { useAuthStore } from '../store/authStore';
 import { ManageMemoryModal } from '../components/ManageMemoryModal';
 import { ProjectsSettingsPanel } from '../components/ProjectsSettingsPanel';
@@ -69,27 +69,11 @@ export function SettingsPage() {
   const [memory, setMemory] = useState<MemoryStatus | null>(null);
   const [isMemoryModalOpen, setIsMemoryModalOpen] = useState(false);
 
-  // Gmail state
-  const [gmail, setGmail] = useState<GmailStatus | null>(null);
-  const [isGmailLoading, setIsGmailLoading] = useState(false);
-
-  // Load settings, styles, memory, and Gmail on mount
+  // Load settings, styles, and memory on mount
   useEffect(() => {
     loadSettings();
     loadStyles();
     loadMemory();
-    loadGmail();
-
-    // Check for Gmail connection success from URL params
-    const params = new URLSearchParams(location.search);
-    if (params.get('gmail') === 'connected') {
-      const email = params.get('email');
-      setSuccess(`Gmail connected${email ? `: ${email}` : ''}`);
-      // Clean up URL params
-      window.history.replaceState({}, '', location.pathname + location.hash);
-      // Reload Gmail status
-      loadGmail();
-    }
   }, []);
 
   const loadMemory = async () => {
@@ -98,39 +82,6 @@ export function SettingsPage() {
       setMemory(result);
     } catch (err) {
       console.error('Failed to load memory:', err);
-    }
-  };
-
-  const loadGmail = async () => {
-    try {
-      const result = await gmailApi.getStatus();
-      setGmail(result);
-    } catch (err) {
-      console.error('Failed to load Gmail status:', err);
-      setGmail({ connected: false });
-    }
-  };
-
-  const connectGmail = () => {
-    // Redirect to Gmail OAuth flow
-    window.location.href = gmailApi.getConnectUrl();
-  };
-
-  const disconnectGmail = async () => {
-    if (!confirm('Disconnect Gmail? Pip will no longer be able to search your emails.')) {
-      return;
-    }
-
-    try {
-      setIsGmailLoading(true);
-      await gmailApi.disconnect();
-      setGmail({ connected: false });
-      setSuccess('Gmail disconnected');
-      setTimeout(() => setSuccess(null), 3000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to disconnect Gmail');
-    } finally {
-      setIsGmailLoading(false);
     }
   };
 
@@ -403,64 +354,30 @@ export function SettingsPage() {
               </button>
             </section>
 
-            {/* Gmail Integration Section */}
+            {/* Connectors Section */}
             <section>
-              <h2 className="text-lg font-medium text-arc-text-primary mb-2">Gmail</h2>
+              <h2 className="text-lg font-medium text-arc-text-primary mb-2">Connectors</h2>
               <p className="text-sm text-arc-text-secondary mb-6">
-                Connect Gmail to let Pip search your emails for invoices and documents.
+                Connect external services like Xero, Gmail, and Google Sheets.
               </p>
 
-              <div className="p-4 rounded-xl bg-arc-bg-tertiary border border-arc-border">
-                {gmail?.connected ? (
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-arc-text-primary">Connected</span>
-                        <span className="text-xs bg-green-900/30 text-green-400 px-2 py-0.5 rounded">
-                          Active
-                        </span>
-                      </div>
-                      <p className="text-sm text-arc-text-secondary mt-1">
-                        {gmail.email || 'Gmail account connected'}
-                      </p>
-                      {gmail.expired && (
-                        <p className="text-xs text-yellow-400 mt-1">
-                          Token expired - please reconnect
-                        </p>
-                      )}
-                    </div>
-                    <button
-                      onClick={disconnectGmail}
-                      disabled={isGmailLoading}
-                      className="text-sm px-3 py-1.5 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded transition-colors disabled:opacity-50"
-                    >
-                      {isGmailLoading ? 'Disconnecting...' : 'Disconnect'}
-                    </button>
+              <button
+                onClick={() => {
+                  const mcpUrl = import.meta.env.VITE_MCP_URL || 'https://mcp.pip.arcforge.au';
+                  window.location.href = `${mcpUrl}/integrations?user=${encodeURIComponent(user?.id || '')}&email=${encodeURIComponent(user?.email || '')}`;
+                }}
+                className="w-full text-left p-4 rounded-xl bg-arc-bg-tertiary border border-arc-border hover:border-arc-accent/50 transition-all"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="font-medium text-arc-text-primary">Manage Connectors</span>
+                    <p className="text-sm text-arc-text-secondary mt-1">
+                      Connect or disconnect Xero, Gmail, and other services
+                    </p>
                   </div>
-                ) : (
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="font-medium text-arc-text-primary">Not connected</span>
-                      <p className="text-sm text-arc-text-secondary mt-1">
-                        Connect to search emails for invoices and attachments
-                      </p>
-                    </div>
-                    <button
-                      onClick={connectGmail}
-                      disabled={isGmailLoading}
-                      className="px-4 py-2 bg-arc-accent text-arc-bg-primary font-medium rounded-lg hover:bg-arc-accent/90 transition-colors disabled:opacity-50"
-                    >
-                      Connect Gmail
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Gmail info note */}
-              <p className="mt-4 text-xs text-arc-text-dim leading-relaxed">
-                Pip uses read-only access to search and read emails. It cannot send, delete, or modify your emails.
-                {gmail?.connected && ' You can disconnect at any time.'}
-              </p>
+                  <span className="text-arc-text-secondary">&rarr;</span>
+                </div>
+              </button>
             </section>
 
             {/* Projects Section */}

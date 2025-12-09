@@ -986,196 +986,668 @@ app.post("/messages", async (req: Request, res: Response) => {
 });
 
 // ===========================================
-// Pending OAuth Flows (for unified Xero + MCP OAuth)
+// Pending OAuth Flows (for Connectors page)
 // ===========================================
 
-// Store pending MCP OAuth flows while user completes Xero OAuth
+// Store pending MCP OAuth flows while user manages integrations
 const pendingOAuthFlows = new Map<string, {
   userId: string;
+  userEmail: string;
   redirectUri: string;
   state: string;
   expiresAt: number;
 }>();
 
 // ===========================================
-// Xero OAuth Flow (integrated with MCP OAuth)
+// Connectors
 // ===========================================
 
 /**
- * Start Xero OAuth flow
- * Can be called directly or as part of MCP OAuth flow
+ * Connectors Page
+ * Shows all available connectors with Connect/Disconnect buttons
+ *
+ * Can be accessed two ways:
+ * 1. MCP OAuth flow: /integrations?flow={flowId} - has pending flow, redirects to caller on Done
+ * 2. Standalone (PWA): /integrations?user={userId}&email={email} - creates temp flow, redirects to app on Done
  */
-app.get("/auth/xero", (req: Request, res: Response) => {
-  const { flow_id } = req.query;
+app.get("/integrations", async (req: Request, res: Response) => {
+  const flowId = req.query.flow as string;
+  const standaloneUserId = req.query.user as string;
+  const standaloneEmail = req.query.email as string;
+  const connectedService = req.query.connected as string;
+  const disconnectedService = req.query.disconnected as string;
+  const errorService = req.query.error as string;
+
+  let flow: { userId: string; userEmail: string; redirectUri: string; state: string; expiresAt: number } | undefined;
+  let effectiveFlowId = flowId;
+
+  if (flowId) {
+    // MCP OAuth flow - lookup existing flow
+    flow = pendingOAuthFlows.get(flowId);
+    if (!flow) {
+      res.status(400).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Session Expired</title>
+          <style>
+            body { font-family: system-ui; background: #0a0e14; color: #e6e6e6; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+            .container { text-align: center; padding: 2rem; max-width: 400px; }
+            h1 { color: #e57373; }
+            a { color: #7eb88e; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>Session Expired</h1>
+            <p>Your integration session has expired. Please return to Claude.ai or ChatGPT and reconnect Pip.</p>
+          </div>
+        </body>
+        </html>
+      `);
+      return;
+    }
+
+    // Check expiry
+    if (flow.expiresAt < Date.now()) {
+      pendingOAuthFlows.delete(flowId);
+      res.status(400).send("Flow expired. Please try again.");
+      return;
+    }
+  } else if (standaloneUserId && standaloneEmail) {
+    // Standalone access from PWA app - create temporary flow
+    effectiveFlowId = crypto.randomUUID();
+    flow = {
+      userId: standaloneUserId,
+      userEmail: decodeURIComponent(standaloneEmail),
+      redirectUri: "https://app.pip.arcforge.au/settings", // Redirect back to PWA settings
+      state: "",
+      expiresAt: Date.now() + 30 * 60 * 1000,
+    };
+    pendingOAuthFlows.set(effectiveFlowId, flow);
+
+    // Redirect to clean URL with flow parameter
+    res.redirect(`/integrations?flow=${effectiveFlowId}`);
+    return;
+  } else {
+    res.status(400).send("Missing flow or user parameter");
+    return;
+  }
+
+  try {
+    const { getDb } = await import("./services/xero.js");
+    const db = await getDb();
+
+    // Get connector statuses
+    const xeroTokens = await db.getOAuthTokens(flow.userId, "xero");
+    const gmailTokens = await db.getOAuthTokens(flow.userId, "gmail");
+    const sheetsTokens = await db.getOAuthTokens(flow.userId, "google_sheets");
+
+    // Build success/error messages
+    let statusMessage = "";
+    if (connectedService) {
+      const serviceName = connectedService === "xero" ? "Xero" : connectedService === "gmail" ? "Gmail" : "Google Sheets";
+      statusMessage = `<div class="status success">✓ ${serviceName} connected successfully</div>`;
+    }
+    if (disconnectedService) {
+      const serviceName = disconnectedService === "xero" ? "Xero" : disconnectedService === "gmail" ? "Gmail" : "Google Sheets";
+      statusMessage = `<div class="status info">${serviceName} disconnected</div>`;
+    }
+    if (errorService) {
+      statusMessage = `<div class="status error">Failed to connect. Please try again.</div>`;
+    }
+
+    const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pip Connectors</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0e14;
+      color: #e6e6e6;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .container {
+      background: #1a1f29;
+      padding: 2rem;
+      border-radius: 12px;
+      max-width: 480px;
+      width: 100%;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    h1 {
+      color: #7eb88e;
+      margin-bottom: 0.5rem;
+      font-size: 1.5rem;
+      text-align: center;
+    }
+    .subtitle {
+      color: #999;
+      margin-bottom: 1.5rem;
+      font-size: 0.9rem;
+      text-align: center;
+    }
+    .user-info {
+      background: #0f1419;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      font-size: 0.85rem;
+      color: #999;
+    }
+    .user-info strong { color: #e6e6e6; }
+    .status {
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+    }
+    .status.success { background: rgba(126, 184, 142, 0.15); color: #7eb88e; }
+    .status.error { background: rgba(229, 115, 115, 0.15); color: #e57373; }
+    .status.info { background: rgba(100, 181, 246, 0.15); color: #64b5f6; }
+    .connector {
+      background: #0f1419;
+      border: 1px solid #2a3441;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .connector.connected {
+      border-color: #7eb88e;
+    }
+    .connector-info {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .connector-icon {
+      font-size: 1.5rem;
+    }
+    .connector-name {
+      font-weight: 600;
+      color: #e6e6e6;
+    }
+    .connector-status {
+      font-size: 0.8rem;
+      color: #999;
+      margin-top: 0.25rem;
+    }
+    .connector-status.connected { color: #7eb88e; }
+    .connector-btn {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .connector-btn.connect {
+      background: #7eb88e;
+      color: #0a0e14;
+    }
+    .connector-btn.connect:hover { background: #6aa87e; }
+    .connector-btn.disconnect {
+      background: transparent;
+      border: 1px solid #666;
+      color: #999;
+    }
+    .connector-btn.disconnect:hover {
+      border-color: #e57373;
+      color: #e57373;
+    }
+    .connector-btn.coming-soon {
+      background: #333;
+      color: #666;
+      cursor: not-allowed;
+    }
+    .divider {
+      border-top: 1px solid #2a3441;
+      margin: 1.5rem 0;
+    }
+    .done-btn {
+      width: 100%;
+      padding: 0.875rem;
+      background: #7eb88e;
+      color: #0a0e14;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    .done-btn:hover { background: #6aa87e; }
+    .footer-note {
+      text-align: center;
+      margin-top: 1rem;
+      font-size: 0.8rem;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Connectors</h1>
+    <p class="subtitle">Connect the services you want Pip to access</p>
+
+    <div class="user-info">
+      Signed in as <strong>${flow.userEmail}</strong>
+    </div>
+
+    ${statusMessage}
+
+    <!-- Xero -->
+    <div class="connector ${xeroTokens ? 'connected' : ''}">
+      <div class="connector-info">
+        <span class="connector-icon">${xeroTokens ? '✅' : '🔗'}</span>
+        <div>
+          <div class="connector-name">Xero</div>
+          <div class="connector-status ${xeroTokens ? 'connected' : ''}">
+            ${xeroTokens ? xeroTokens.tenantName || 'Connected' : 'Access invoices, bank accounts, reports'}
+          </div>
+        </div>
+      </div>
+      ${xeroTokens
+        ? `<form method="POST" action="/integrations/xero/disconnect" style="margin:0">
+             <input type="hidden" name="flowId" value="${flowId}">
+             <button type="submit" class="connector-btn disconnect">Disconnect</button>
+           </form>`
+        : `<form method="POST" action="/integrations/xero" style="margin:0">
+             <input type="hidden" name="flowId" value="${flowId}">
+             <button type="submit" class="connector-btn connect">Connect</button>
+           </form>`
+      }
+    </div>
+
+    <!-- Gmail -->
+    <div class="connector ${gmailTokens ? 'connected' : ''}">
+      <div class="connector-info">
+        <span class="connector-icon">${gmailTokens ? '✅' : '📧'}</span>
+        <div>
+          <div class="connector-name">Gmail</div>
+          <div class="connector-status ${gmailTokens ? 'connected' : ''}">
+            ${gmailTokens ? gmailTokens.providerEmail || 'Connected' : 'Search emails and download invoices'}
+          </div>
+        </div>
+      </div>
+      ${gmailTokens
+        ? `<form method="POST" action="/integrations/gmail/disconnect" style="margin:0">
+             <input type="hidden" name="flowId" value="${flowId}">
+             <button type="submit" class="connector-btn disconnect">Disconnect</button>
+           </form>`
+        : `<form method="POST" action="/integrations/gmail" style="margin:0">
+             <input type="hidden" name="flowId" value="${flowId}">
+             <button type="submit" class="connector-btn connect">Connect</button>
+           </form>`
+      }
+    </div>
+
+    <!-- Google Sheets -->
+    <div class="connector ${sheetsTokens ? 'connected' : ''}">
+      <div class="connector-info">
+        <span class="connector-icon">${sheetsTokens ? '✅' : '📊'}</span>
+        <div>
+          <div class="connector-name">Google Sheets</div>
+          <div class="connector-status ${sheetsTokens ? 'connected' : ''}">
+            ${sheetsTokens ? sheetsTokens.providerEmail || 'Connected' : 'Read and write spreadsheet data'}
+          </div>
+        </div>
+      </div>
+      <button class="connector-btn coming-soon" disabled>Coming Soon</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <form method="POST" action="/integrations/complete">
+      <input type="hidden" name="flowId" value="${effectiveFlowId}">
+      <button type="submit" class="done-btn">Done</button>
+    </form>
+
+    <p class="footer-note">You can manage integrations later from app.pip.arcforge.au</p>
+  </div>
+</body>
+</html>
+    `;
+
+    res.setHeader("Content-Type", "text/html");
+    res.send(html);
+  } catch (error) {
+    console.error("Integrations page error:", error);
+    res.status(500).send("An error occurred loading integrations");
+  }
+});
+
+/**
+ * Start Xero OAuth from Connectors page
+ */
+app.post("/integrations/xero", express.urlencoded({ extended: true }), (req: Request, res: Response) => {
+  const { flowId } = req.body;
+  const flow = pendingOAuthFlows.get(flowId);
+
+  if (!flow) {
+    res.status(400).send("Invalid flow");
+    return;
+  }
+
   const baseUrl = process.env.BASE_URL || "https://mcp.pip.arcforge.au";
 
   // Build Xero OAuth URL
   const xeroAuthUrl = new URL("https://login.xero.com/identity/connect/authorize");
   xeroAuthUrl.searchParams.set("client_id", process.env.XERO_CLIENT_ID || "");
-  xeroAuthUrl.searchParams.set("redirect_uri", `${baseUrl}/auth/xero/callback`);
+  xeroAuthUrl.searchParams.set("redirect_uri", `${baseUrl}/integrations/xero/callback`);
   xeroAuthUrl.searchParams.set("response_type", "code");
   xeroAuthUrl.searchParams.set("scope", "offline_access openid profile email accounting.transactions accounting.reports.read accounting.contacts.read accounting.settings.read");
+  xeroAuthUrl.searchParams.set("state", flowId);
 
-  // Pass flow_id through Xero OAuth via state parameter
-  if (flow_id) {
-    xeroAuthUrl.searchParams.set("state", flow_id as string);
-  }
-
-  console.log("Starting Xero OAuth, flow_id:", flow_id);
+  console.log("Starting Xero OAuth from Connectors, flowId:", flowId);
   res.redirect(xeroAuthUrl.toString());
 });
 
 /**
- * Xero OAuth callback
- * Exchanges code for tokens and completes any pending MCP OAuth flow
+ * Xero OAuth callback (from Connectors flow)
  */
-app.get("/auth/xero/callback", async (req: Request, res: Response) => {
+app.get("/integrations/xero/callback", async (req: Request, res: Response) => {
   const { code, state: flowId, error } = req.query;
+  const baseUrl = process.env.BASE_URL || "https://mcp.pip.arcforge.au";
 
-  console.log("Xero OAuth callback:", { code: code ? "present" : "missing", flowId, error });
+  console.log("Xero OAuth callback (integrations):", { code: code ? "present" : "missing", flowId, error });
 
-  if (error) {
-    res.status(400).send(`Xero authorization failed: ${error}`);
+  if (error || !code) {
+    res.redirect(`/integrations?flow=${flowId}&error=xero`);
     return;
   }
 
-  if (!code) {
-    res.status(400).send("No authorization code received from Xero");
+  const flow = pendingOAuthFlows.get(flowId as string);
+  if (!flow) {
+    res.status(400).send("Invalid or expired flow");
     return;
   }
 
   try {
-    const baseUrl = process.env.BASE_URL || "https://mcp.pip.arcforge.au";
+    const { getDb } = await import("./services/xero.js");
+    const db = await getDb();
 
     // Exchange code for tokens
     const tokenResponse = await fetch("https://identity.xero.com/connect/token", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        "Authorization": `Basic ${Buffer.from(`${process.env.XERO_CLIENT_ID}:${process.env.XERO_CLIENT_SECRET}`).toString("base64")}`,
-      },
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
         grant_type: "authorization_code",
         code: code as string,
-        redirect_uri: `${baseUrl}/auth/xero/callback`,
+        redirect_uri: `${baseUrl}/integrations/xero/callback`,
+        client_id: process.env.XERO_CLIENT_ID || "",
+        client_secret: process.env.XERO_CLIENT_SECRET || "",
       }),
     });
 
     if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text();
-      console.error("Xero token exchange failed:", errorText);
-      res.status(400).send("Failed to exchange Xero authorization code");
+      console.error("Xero token exchange failed:", await tokenResponse.text());
+      res.redirect(`/integrations?flow=${flowId}&error=xero`);
       return;
     }
 
     const tokens = await tokenResponse.json() as {
       access_token: string;
       refresh_token: string;
+      token_type: string;
       expires_in: number;
+      scope?: string;
     };
-    console.log("Xero tokens received, expires_in:", tokens.expires_in);
 
-    // Get connected tenants (organizations)
-    const connectionsResponse = await fetch("https://api.xero.com/connections", {
-      headers: {
-        "Authorization": `Bearer ${tokens.access_token}`,
-        "Content-Type": "application/json",
-      },
+    // Get tenant info
+    const tenantsResponse = await fetch("https://api.xero.com/connections", {
+      headers: { Authorization: `Bearer ${tokens.access_token}` },
     });
 
-    if (!connectionsResponse.ok) {
-      console.error("Failed to get Xero connections");
-      res.status(400).send("Failed to get Xero organization info");
-      return;
-    }
-
-    const connections = await connectionsResponse.json() as Array<{
+    const tenants = await tenantsResponse.json() as Array<{
       tenantId: string;
       tenantName: string;
-      tenantType: string;
     }>;
+    const tenant = tenants[0];
 
-    if (!connections || connections.length === 0) {
-      res.status(400).send("No Xero organizations found. Please ensure you have access to at least one organization.");
+    if (!tenant) {
+      res.redirect(`/integrations?flow=${flowId}&error=xero`);
       return;
     }
 
-    // Use first tenant
-    const tenant = connections[0];
-    console.log("Xero tenant:", tenant.tenantName, tenant.tenantId);
+    // Save tokens
+    await db.saveOAuthTokens({
+      userId: flow.userId,
+      provider: "xero",
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token,
+      tokenType: tokens.token_type,
+      expiresAt: Date.now() + tokens.expires_in * 1000,
+      scopes: tokens.scope?.split(" ") || [],
+      tenantId: tenant.tenantId,
+      tenantName: tenant.tenantName,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
 
-    // Check if this is part of an MCP OAuth flow
-    const pendingFlow = flowId ? pendingOAuthFlows.get(flowId as string) : null;
-
-    if (pendingFlow && pendingFlow.expiresAt > Date.now()) {
-      // Store tokens for the user from the pending flow
-      const { getDb } = await import("./services/xero.js");
-      const db = await getDb();
-
-      await db.saveOAuthTokens({
-        userId: pendingFlow.userId,
-        provider: "xero",
-        accessToken: tokens.access_token,
-        refreshToken: tokens.refresh_token,
-        tokenType: "Bearer",
-        expiresAt: Date.now() + (tokens.expires_in * 1000),
-        scopes: ["offline_access", "openid", "profile", "email", "accounting.transactions", "accounting.reports.read", "accounting.contacts.read", "accounting.settings.read"],
-        tenantId: tenant.tenantId,
-        tenantName: tenant.tenantName,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      });
-
-      console.log("Xero tokens saved for user:", pendingFlow.userId);
-
-      // Clean up pending flow
-      pendingOAuthFlows.delete(flowId as string);
-
-      // Generate MCP OAuth authorization code
-      const authCode = crypto.randomUUID();
-      authorizationCodes.set(authCode, {
-        userId: pendingFlow.userId,
-        redirectUri: pendingFlow.redirectUri,
-        expiresAt: Date.now() + 10 * 60 * 1000,
-      });
-
-      // Redirect back to Claude.ai with the auth code
-      const redirectUrl = new URL(pendingFlow.redirectUri);
-      redirectUrl.searchParams.set("code", authCode);
-      if (pendingFlow.state) {
-        redirectUrl.searchParams.set("state", pendingFlow.state);
-      }
-
-      console.log("MCP OAuth flow complete, redirecting to Claude.ai");
-      res.redirect(redirectUrl.toString());
-    } else {
-      // Standalone Xero OAuth (not part of MCP flow)
-      // Show success page
-      res.send(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>Pip by Arc Forge</title>
-          <style>
-            body { font-family: system-ui; background: #0a0e14; color: #e6e6e6; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-            .container { text-align: center; padding: 2rem; }
-            h1 { color: #7eb88e; }
-            p { color: #999; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <h1>✅ Xero Connected!</h1>
-            <p>Connected to: ${tenant.tenantName}</p>
-            <p>You can close this window and return to Claude.ai.</p>
-          </div>
-        </body>
-        </html>
-      `);
-    }
+    console.log("Xero connected successfully:", tenant.tenantName);
+    res.redirect(`/integrations?flow=${flowId}&connected=xero`);
   } catch (error) {
     console.error("Xero callback error:", error);
-    res.status(500).send("An error occurred connecting to Xero. Please try again.");
+    res.redirect(`/integrations?flow=${flowId}&error=xero`);
+  }
+});
+
+/**
+ * Disconnect Xero
+ */
+app.post("/integrations/xero/disconnect", express.urlencoded({ extended: true }), async (req: Request, res: Response) => {
+  const { flowId } = req.body;
+  const flow = pendingOAuthFlows.get(flowId);
+
+  if (!flow) {
+    res.status(400).send("Invalid flow");
+    return;
+  }
+
+  try {
+    const { getDb } = await import("./services/xero.js");
+    const db = await getDb();
+    await db.deleteOAuthTokens(flow.userId, "xero");
+    console.log("Xero disconnected for user:", flow.userId);
+    res.redirect(`/integrations?flow=${flowId}&disconnected=xero`);
+  } catch (error) {
+    console.error("Xero disconnect error:", error);
+    res.redirect(`/integrations?flow=${flowId}&error=disconnect`);
+  }
+});
+
+/**
+ * Start Gmail OAuth from Connectors page
+ */
+app.post("/integrations/gmail", express.urlencoded({ extended: true }), (req: Request, res: Response) => {
+  const { flowId } = req.body;
+  const flow = pendingOAuthFlows.get(flowId);
+
+  if (!flow) {
+    res.status(400).send("Invalid flow");
+    return;
+  }
+
+  const baseUrl = process.env.BASE_URL || "https://mcp.pip.arcforge.au";
+
+  // Build Google OAuth URL for Gmail
+  const googleAuthUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
+  googleAuthUrl.searchParams.set("client_id", process.env.GOOGLE_CLIENT_ID || "");
+  googleAuthUrl.searchParams.set("redirect_uri", `${baseUrl}/integrations/gmail/callback`);
+  googleAuthUrl.searchParams.set("response_type", "code");
+  googleAuthUrl.searchParams.set("scope", "https://www.googleapis.com/auth/gmail.readonly openid email profile");
+  googleAuthUrl.searchParams.set("access_type", "offline");
+  googleAuthUrl.searchParams.set("prompt", "consent");
+  googleAuthUrl.searchParams.set("state", flowId);
+
+  console.log("Starting Gmail OAuth from Connectors, flowId:", flowId);
+  res.redirect(googleAuthUrl.toString());
+});
+
+/**
+ * Gmail OAuth callback (from Connectors flow)
+ */
+app.get("/integrations/gmail/callback", async (req: Request, res: Response) => {
+  const { code, state: flowId, error } = req.query;
+  const baseUrl = process.env.BASE_URL || "https://mcp.pip.arcforge.au";
+
+  console.log("Gmail OAuth callback (integrations):", { code: code ? "present" : "missing", flowId, error });
+
+  if (error || !code) {
+    res.redirect(`/integrations?flow=${flowId}&error=gmail`);
+    return;
+  }
+
+  const flow = pendingOAuthFlows.get(flowId as string);
+  if (!flow) {
+    res.status(400).send("Invalid or expired flow");
+    return;
+  }
+
+  try {
+    const { getDb } = await import("./services/xero.js");
+    const db = await getDb();
+
+    // Exchange code for tokens
+    const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "authorization_code",
+        code: code as string,
+        redirect_uri: `${baseUrl}/integrations/gmail/callback`,
+        client_id: process.env.GOOGLE_CLIENT_ID || "",
+        client_secret: process.env.GOOGLE_CLIENT_SECRET || "",
+      }),
+    });
+
+    if (!tokenResponse.ok) {
+      console.error("Gmail token exchange failed:", await tokenResponse.text());
+      res.redirect(`/integrations?flow=${flowId}&error=gmail`);
+      return;
+    }
+
+    const tokens = await tokenResponse.json() as {
+      access_token: string;
+      refresh_token: string;
+      token_type: string;
+      expires_in: number;
+      scope?: string;
+    };
+
+    // Get user info
+    const userInfoResponse = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+      headers: { Authorization: `Bearer ${tokens.access_token}` },
+    });
+
+    const userInfo = await userInfoResponse.json() as {
+      id: string;
+      email: string;
+    };
+
+    // Save tokens
+    await db.saveOAuthTokens({
+      userId: flow.userId,
+      provider: "gmail",
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token,
+      tokenType: tokens.token_type,
+      expiresAt: Date.now() + tokens.expires_in * 1000,
+      scopes: tokens.scope?.split(" ") || [],
+      providerUserId: userInfo.id,
+      providerEmail: userInfo.email,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+
+    console.log("Gmail connected successfully:", userInfo.email);
+    res.redirect(`/integrations?flow=${flowId}&connected=gmail`);
+  } catch (error) {
+    console.error("Gmail callback error:", error);
+    res.redirect(`/integrations?flow=${flowId}&error=gmail`);
+  }
+});
+
+/**
+ * Disconnect Gmail
+ */
+app.post("/integrations/gmail/disconnect", express.urlencoded({ extended: true }), async (req: Request, res: Response) => {
+  const { flowId } = req.body;
+  const flow = pendingOAuthFlows.get(flowId);
+
+  if (!flow) {
+    res.status(400).send("Invalid flow");
+    return;
+  }
+
+  try {
+    const { getDb } = await import("./services/xero.js");
+    const db = await getDb();
+    await db.deleteOAuthTokens(flow.userId, "gmail");
+    console.log("Gmail disconnected for user:", flow.userId);
+    res.redirect(`/integrations?flow=${flowId}&disconnected=gmail`);
+  } catch (error) {
+    console.error("Gmail disconnect error:", error);
+    res.redirect(`/integrations?flow=${flowId}&error=disconnect`);
+  }
+});
+
+/**
+ * Complete integrations and return to caller
+ * - MCP flow: generates auth code and redirects to Claude.ai/ChatGPT
+ * - Standalone flow: just redirects back to PWA app
+ */
+app.post("/integrations/complete", express.urlencoded({ extended: true }), async (req: Request, res: Response) => {
+  const { flowId } = req.body;
+  const flow = pendingOAuthFlows.get(flowId);
+
+  if (!flow) {
+    res.status(400).send("Invalid or expired flow");
+    return;
+  }
+
+  // Clean up flow
+  pendingOAuthFlows.delete(flowId);
+
+  // Check if this is an MCP OAuth flow (has state) or standalone (no state)
+  const isMcpFlow = flow.state !== "";
+
+  if (isMcpFlow) {
+    // MCP flow - generate auth code for Claude.ai/ChatGPT
+    const authCode = crypto.randomUUID();
+    authorizationCodes.set(authCode, {
+      userId: flow.userId,
+      redirectUri: flow.redirectUri,
+      expiresAt: Date.now() + 10 * 60 * 1000,
+    });
+
+    const redirectUrl = new URL(flow.redirectUri);
+    redirectUrl.searchParams.set("code", authCode);
+    redirectUrl.searchParams.set("state", flow.state);
+
+    console.log("MCP integrations complete, redirecting to caller");
+    res.redirect(redirectUrl.toString());
+  } else {
+    // Standalone flow - just redirect back to PWA app
+    console.log("Standalone integrations complete, redirecting to app");
+    res.redirect(flow.redirectUri);
   }
 });
 
@@ -1504,49 +1976,22 @@ app.post("/oauth/authorize/submit", express.urlencoded({ extended: true }), asyn
       return;
     }
 
-    // Check if user has Xero connected
-    const xeroTokens = await db.getOAuthTokens(user.id, "xero");
+    // Redirect to Connectors page where user can manage all connectors
+    const flowId = crypto.randomUUID();
 
-    if (!xeroTokens) {
-      // User needs to connect Xero first
-      // Store the pending OAuth flow and redirect to Xero OAuth
-      const flowId = crypto.randomUUID();
-
-      pendingOAuthFlows.set(flowId, {
-        userId: user.id,
-        redirectUri: redirect_uri,
-        state: state || "",
-        expiresAt: Date.now() + 30 * 60 * 1000, // 30 minutes to complete Xero OAuth
-      });
-
-      console.log("User needs Xero connection, starting Xero OAuth. Flow ID:", flowId);
-
-      // Redirect to Xero OAuth with flow_id
-      res.redirect(`/auth/xero?flow_id=${flowId}`);
-      return;
-    }
-
-    // User has Xero connected - generate authorization code
-    const code = crypto.randomUUID();
-
-    authorizationCodes.set(code, {
+    pendingOAuthFlows.set(flowId, {
       userId: user.id,
+      userEmail: user.email,
       redirectUri: redirect_uri,
-      expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
+      state: state || "",
+      expiresAt: Date.now() + 30 * 60 * 1000, // 30 minutes to manage integrations
     });
 
-    // Redirect back to Claude.ai with the code
-    const redirectUrl = new URL(redirect_uri);
-    redirectUrl.searchParams.set("code", code);
-    if (state) {
-      redirectUrl.searchParams.set("state", state);
-    }
-
     // Store this submission for debounce protection
-    const finalRedirectUrl = redirectUrl.toString();
+    const integrationsUrl = `/integrations?flow=${flowId}`;
     recentOAuthSubmissions.set(submissionKey, {
-      code,
-      redirectUrl: finalRedirectUrl,
+      code: flowId, // Use flowId as the "code" for debounce tracking
+      redirectUrl: integrationsUrl,
       timestamp: Date.now()
     });
 
@@ -1555,8 +2000,8 @@ app.post("/oauth/authorize/submit", express.urlencoded({ extended: true }), asyn
       recentOAuthSubmissions.delete(submissionKey);
     }, 30000);
 
-    console.log("OAuth code generated for user:", user.id, "redirecting to:", finalRedirectUrl);
-    res.redirect(finalRedirectUrl);
+    console.log("Redirecting to Connectors. Flow ID:", flowId, "User:", user.id);
+    res.redirect(integrationsUrl);
   } catch (error) {
     console.error("OAuth login error:", error);
     res.redirect(`/oauth/authorize?error=server_error&redirect_uri=${encodeURIComponent(redirect_uri)}&state=${state}&client_id=${OAUTH_CLIENT_ID}&response_type=code`);
@@ -1642,20 +2087,21 @@ app.post("/oauth/register/submit", express.urlencoded({ extended: true }), async
 
     console.log("New user registered via OAuth:", user.id, email);
 
-    // Now continue with OAuth flow - redirect to Xero OAuth
+    // Redirect to Connectors page where user can connect services
     const flowId = crypto.randomUUID();
 
     pendingOAuthFlows.set(flowId, {
       userId: user.id,
+      userEmail: email,
       redirectUri: redirect_uri,
       state: state || "",
-      expiresAt: Date.now() + 30 * 60 * 1000,
+      expiresAt: Date.now() + 30 * 60 * 1000, // 30 minutes to manage integrations
     });
 
-    console.log("New user needs Xero connection, starting Xero OAuth. Flow ID:", flowId);
+    console.log("New user redirecting to Connectors. Flow ID:", flowId);
 
-    // Redirect to Xero OAuth with flow_id
-    res.redirect(`/auth/xero?flow_id=${flowId}`);
+    // Redirect to Connectors page
+    res.redirect(`/integrations?flow=${flowId}`);
   } catch (error) {
     console.error("OAuth registration error:", error);
     redirectWithError("server_error");

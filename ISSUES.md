@@ -87,6 +87,45 @@
 - **See**: PROGRESS.md → Epic 2.1 for detailed tasks
 - **UX Reference**: `specs/spike-outputs/UX-PATTERNS-CLAUDE-AI-REFERENCE-20251201.md` Pattern 0.7
 
+#### issue_039: Google Sheets OAuth Routes + MCP Tools Implementation
+- **Status**: 🔴 Open
+- **Priority**: P1 (High - required before Google verification)
+- **Component**: `packages/pip-mcp`
+- **Created**: 2025-12-09
+- **Blocker For**: Google OAuth app verification submission
+- **Description**: Implement Google Sheets OAuth flow and MCP tools to enable spreadsheet read/write functionality
+- **Prerequisites Complete**:
+  - [x] Google Sheets API enabled in Cloud Console
+  - [x] Google Drive API enabled in Cloud Console
+  - [x] Redirect URI added: `https://mcp.pip.arcforge.au/integrations/sheets/callback`
+  - [x] OAuth scopes added to consent screen: `spreadsheets`, `drive.readonly`
+  - [x] Safety/permission infrastructure (tools mapped in `safety.ts`)
+  - [x] Database types support `google_sheets` provider
+  - [x] Integrations Hub displays Sheets status (currently "Coming Soon")
+- **Implementation Required**:
+  - [ ] OAuth routes in `packages/pip-mcp/src/index.ts`:
+    - `POST /integrations/sheets` - Start Google Sheets OAuth
+    - `GET /integrations/sheets/callback` - Handle OAuth callback
+    - `POST /integrations/sheets/disconnect` - Revoke tokens
+  - [ ] Replace "Coming Soon" button with working Connect/Disconnect in Integrations Hub
+  - [ ] Google Sheets service (`packages/pip-mcp/src/services/sheets.ts`):
+    - `getSheetsClient(userId)` - Get authenticated client with auto-refresh
+    - Token refresh handling (reuse Gmail pattern)
+  - [ ] MCP Tools implementation (14 tools defined in safety.ts):
+    - **Level 0 (Read-Only)**: `read_sheet_range`, `get_sheet_metadata`, `search_spreadsheets`, `list_sheets`, `get_spreadsheet_revisions`
+    - **Level 1 (Write)**: `write_sheet_range`, `append_sheet_rows`, `update_cell`, `create_spreadsheet`, `add_sheet`
+    - **Level 2 (Delete)**: `clear_range`, `delete_sheet`, `delete_rows`, `delete_columns`, `trash_spreadsheet`
+- **Acceptance Criteria**:
+  - [ ] User can connect Google Sheets from Integrations Hub
+  - [ ] User can disconnect Google Sheets
+  - [ ] `read_sheet_range` tool works with spreadsheet URL/ID
+  - [ ] Permission levels enforced (default read-only)
+  - [ ] Tokens stored in `oauth_tokens` table with `provider='google_sheets'`
+- **Complexity**: 3.0/5 (Medium - OAuth pattern exists, tools need implementation)
+- **Reference**:
+  - `specs/GOOGLE-SHEETS-INTEGRATION-PLAN.md` (detailed design)
+  - Gmail OAuth implementation in `index.ts` (pattern to follow)
+
 #### issue_038: MCP Server Custom Icon Not Displayed in Claude.ai
 - **Status**: 🔵 Blocked (Claude.ai client-side)
 - **Priority**: P3 (Low - cosmetic, waiting on client support)
