@@ -61,7 +61,19 @@
    - `get_pip_guide` tool for on-demand documentation
    - Commit: `561bd3b`
 
-4. **Previous (Vision & Planning)**
+4. **Spike: Nextcloud/Collabora Integration** ✅ CREATED
+   - OAuth 2.0 flow investigation for self-hosted Nextcloud
+   - WebDAV + xlsx library approach for spreadsheet editing
+   - Challenges: variable URLs per instance, admin access for OAuth client
+   - Blueprint: `specs/BLUEPRINT-spike-nextcloud-collabora-20251209.yaml`
+
+5. **Spike: Stripe Integration** ✅ CREATED
+   - Stripe Connect OAuth for multi-user (tokens don't expire!)
+   - Reuse patterns from personal-mcp-remote prototype
+   - Tools: list_customers, list_invoices, list_subscriptions
+   - Blueprint: `specs/BLUEPRINT-spike-stripe-integration-20251209.yaml`
+
+6. **Previous (Vision & Planning)**
    - Vision: "Multi-Hat Business Owner" persona, "What can I actually spend?" question
    - list_accounts MCP tool for Xero chart of accounts
    - pip-mcp package rename for consistency

@@ -1,0 +1,304 @@
+# Nextcloud/Collabora Integration Spike
+# Generated: 2025-12-09
+# Purpose: Investigate Nextcloud OAuth and Collabora (spreadsheets) integration for Pip
+
+type: spike
+name: nextcloud-collabora-integration
+status: draft
+complexity: 2.5  # Medium - OAuth flow exists but integration is custom
+
+# ============================================================================
+# Executive Summary
+# ============================================================================
+
+summary: |
+  Investigate integrating Nextcloud as a connector in Pip to provide spreadsheet
+  functionality via Collabora Online (LibreOffice-based .xlsx/.docx editor).
+
+  Primary focus: Spreadsheet read/write operations similar to Google Sheets
+  Secondary: Document access for business context (invoices, receipts as .xlsx)
+
+  Key questions:
+  1. Does Nextcloud support OAuth 2.0 for external apps? (vs app passwords)
+  2. What APIs exist for spreadsheet manipulation?
+  3. Can Collabora be accessed programmatically or only via WebDAV?
+  4. How does multi-user work with self-hosted Nextcloud?
+
+# ============================================================================
+# Research Questions
+# ============================================================================
+
+questions:
+  authentication:
+    - question: "Does Nextcloud support OAuth 2.0 for external applications?"
+      hypothesis: "Yes - Nextcloud has built-in OAuth 2.0 provider support"
+      research_needed:
+        - Check Nextcloud OAuth 2.0 app documentation
+        - Verify OAuth endpoints (/apps/oauth2/authorize, /api/v1/token)
+        - Understand scopes and permissions model
+        - Test with existing personal Nextcloud instance
+
+    - question: "Alternative: Can app passwords work for multi-user?"
+      hypothesis: "No - app passwords are per-user, not per-app registration"
+      research_needed:
+        - Understand app password vs OAuth trade-offs
+        - Check if user-created tokens can be stored per Pip user
+        - Evaluate security implications
+
+  api_capabilities:
+    - question: "What APIs exist for file/spreadsheet access?"
+      hypothesis: "WebDAV for files, OCS API for sharing/metadata"
+      research_needed:
+        - Document WebDAV endpoints for CRUD operations
+        - Check if OCS API can read/write spreadsheet cells
+        - Investigate if Collabora has a REST API
+
+    - question: "Can Collabora spreadsheets be edited programmatically?"
+      hypothesis: "Likely no direct API - must use WebDAV download/upload"
+      research_needed:
+        - Check Collabora WOPI protocol
+        - Research LibreOffice UNO API (probably overkill)
+        - Test xlsx manipulation via download → edit → upload pattern
+
+  multi_user:
+    - question: "How do we map Pip users to Nextcloud users?"
+      hypothesis: "OAuth grants access to requesting user's Nextcloud account"
+      research_needed:
+        - Verify OAuth returns user identity
+        - Check if tokens can access only user's files
+        - Understand Nextcloud user federation implications
+
+# ============================================================================
+# Technical Investigation Plan
+# ============================================================================
+
+investigation:
+  phase_1_authentication:
+    duration: "2-3 hours"
+    tasks:
+      - title: "Enable OAuth 2.0 in Nextcloud"
+        steps:
+          - Install OAuth 2.0 app if not present
+          - Register Pip as OAuth client
+          - Note client_id and client_secret
+          - Configure redirect URI (https://app.pip.arcforge.au/auth/nextcloud/callback)
+
+      - title: "Test OAuth flow manually"
+        steps:
+          - Construct authorization URL
+          - Complete login and consent
+          - Exchange code for tokens
+          - Verify token scopes and expiry
+
+      - title: "Document token lifecycle"
+        steps:
+          - Check access token expiry (typically 1 hour)
+          - Test refresh token flow
+          - Verify refresh token persistence
+
+  phase_2_api_exploration:
+    duration: "3-4 hours"
+    tasks:
+      - title: "Test WebDAV API"
+        steps:
+          - List files in user's root folder
+          - Download a .xlsx file
+          - Upload modified .xlsx file
+          - Create new spreadsheet
+
+      - title: "Test OCS API"
+        steps:
+          - Get user info (whoami)
+          - List shares and permissions
+          - Check file metadata
+
+      - title: "Evaluate spreadsheet editing"
+        steps:
+          - Download .xlsx via WebDAV
+          - Parse with xlsx library (already used in Pip)
+          - Modify cells programmatically
+          - Upload and verify changes in Collabora
+
+  phase_3_prototype:
+    duration: "4-6 hours"
+    tasks:
+      - title: "Create auth-nextcloud.ts routes"
+        steps:
+          - OAuth initiate endpoint
+          - OAuth callback handler
+          - Token storage (oauth_tokens table, provider='nextcloud')
+          - Refresh endpoint
+
+      - title: "Create basic MCP tools"
+        tools:
+          - "nextcloud.list_files(path?)"
+          - "nextcloud.read_spreadsheet(file_path)"
+          - "nextcloud.write_spreadsheet(file_path, data)"
+          - "nextcloud.search_files(query)"
+
+# ============================================================================
+# Architecture Considerations
+# ============================================================================
+
+architecture:
+  oauth_flow:
+    pattern: "Same as Google Sheets - centralized in main server"
+    endpoints:
+      authorize: "GET /auth/nextcloud"
+      callback: "GET /auth/nextcloud/callback"
+      status: "GET /auth/nextcloud/status"
+      disconnect: "DELETE /auth/nextcloud/disconnect"
+    token_storage:
+      table: "oauth_tokens"
+      provider: "nextcloud"
+      fields:
+        - "access_token"
+        - "refresh_token"
+        - "expires_at"
+        - "provider_user_id (nextcloud username)"
+        - "provider_email (if available)"
+        - "nextcloud_url (user's instance URL)"  # Important: self-hosted varies
+
+  tool_namespace:
+    pattern: "nextcloud.*"
+    tools:
+      - name: "nextcloud.list_files"
+        description: "List files in a directory"
+        params: ["path (optional, default /)", "limit"]
+
+      - name: "nextcloud.read_spreadsheet"
+        description: "Read spreadsheet data from .xlsx file"
+        params: ["file_path", "sheet_name (optional)", "range (optional)"]
+
+      - name: "nextcloud.write_spreadsheet"
+        description: "Write data to spreadsheet cells"
+        params: ["file_path", "sheet_name", "data (2D array)", "start_cell"]
+
+      - name: "nextcloud.create_spreadsheet"
+        description: "Create new .xlsx spreadsheet"
+        params: ["file_path", "sheet_name", "headers (optional)"]
+
+      - name: "nextcloud.search_files"
+        description: "Search for files by name"
+        params: ["query", "file_types (optional)"]
+
+  permission_levels:
+    comment: "Similar to Google Sheets - 3 effective levels"
+    levels:
+      0: "Read-Only - Can view files and spreadsheets"
+      1: "Write & Create - Can edit existing and create new"
+      2: "Delete - Can delete files"
+
+# ============================================================================
+# Self-Hosted Considerations
+# ============================================================================
+
+self_hosted:
+  challenges:
+    - title: "Variable Nextcloud URLs"
+      problem: "Unlike Google/Xero with fixed endpoints, Nextcloud URLs vary"
+      solution: "Store nextcloud_url per user in oauth_tokens table"
+
+    - title: "Version differences"
+      problem: "Nextcloud versions may have API differences"
+      solution: "Target Nextcloud 25+ (current stable), document requirements"
+
+    - title: "Collabora availability"
+      problem: "Not all Nextcloud instances have Collabora installed"
+      solution: "Detect via capabilities API, fallback to basic file ops"
+
+  oauth_configuration:
+    note: "Each Nextcloud instance must register Pip as OAuth client"
+    options:
+      option_a_manual:
+        description: "User manually registers OAuth client in their Nextcloud"
+        pros: ["Works with any Nextcloud instance"]
+        cons: ["Complex setup for users", "Each user needs admin access"]
+
+      option_b_arc_hosted:
+        description: "Arc Forge hosts Nextcloud instance for Pip users"
+        pros: ["Single OAuth registration", "Consistent experience"]
+        cons: ["Additional infrastructure cost", "Storage limits"]
+
+      option_c_app_passwords:
+        description: "Use Nextcloud app passwords instead of OAuth"
+        pros: ["No OAuth client registration needed"]
+        cons: ["Less secure", "User manages credentials", "No refresh tokens"]
+
+# ============================================================================
+# Dependencies
+# ============================================================================
+
+dependencies:
+  existing:
+    - "@pip/core oauth_tokens table (provider column)"
+    - "ConnectorCard component (reuse for UI)"
+    - "Connector permissions model"
+
+  new:
+    - "xlsx library (already in pwa-app, may need in server)"
+    - "webdav client library (node-webdav or custom fetch)"
+
+# ============================================================================
+# Success Criteria
+# ============================================================================
+
+success_criteria:
+  spike_complete:
+    - "OAuth 2.0 flow documented and tested"
+    - "WebDAV file operations demonstrated"
+    - "Spreadsheet read/write pattern validated"
+    - "Multi-user token storage design confirmed"
+    - "Go/no-go decision on implementation"
+
+  decision_factors:
+    go:
+      - "OAuth works reliably"
+      - "Spreadsheet editing is practical"
+      - "No major security concerns"
+    no_go:
+      - "OAuth not available or too complex"
+      - "Spreadsheet manipulation requires heavy dependencies"
+      - "Self-hosted variability too problematic"
+
+# ============================================================================
+# Risks and Mitigations
+# ============================================================================
+
+risks:
+  - risk: "Nextcloud OAuth may require admin access to register clients"
+    impact: "High - blocks non-admin users"
+    mitigation: "Document as requirement or offer Arc Forge hosted option"
+
+  - risk: "Spreadsheet editing may require full file download/upload"
+    impact: "Medium - performance for large files"
+    mitigation: "Implement streaming, cache frequently accessed files"
+
+  - risk: "Collabora WOPI protocol may be complex"
+    impact: "Low - fallback to xlsx library approach"
+    mitigation: "Start with download/edit/upload pattern"
+
+# ============================================================================
+# Timeline Estimate
+# ============================================================================
+
+timeline:
+  spike_investigation: "1-2 days"
+  prototype_if_go: "2-3 days"
+  production_ready: "1 week (including testing)"
+
+# ============================================================================
+# References
+# ============================================================================
+
+references:
+  - name: "Nextcloud OAuth 2.0"
+    url: "https://docs.nextcloud.com/server/latest/admin_manual/configuration_server/oauth2.html"
+  - name: "Nextcloud WebDAV API"
+    url: "https://docs.nextcloud.com/server/latest/developer_manual/client_apis/WebDAV/index.html"
+  - name: "Nextcloud OCS API"
+    url: "https://docs.nextcloud.com/server/latest/developer_manual/client_apis/OCS/index.html"
+  - name: "Collabora WOPI"
+    url: "https://www.collaboraoffice.com/wopi/"
+  - name: "xlsx npm library"
+    url: "https://www.npmjs.com/package/xlsx"

@@ -1,0 +1,406 @@
+# Stripe Integration Spike
+# Generated: 2025-12-09
+# Purpose: Investigate Stripe Connect OAuth for multi-user Pip integration
+
+type: spike
+name: stripe-integration
+status: draft
+complexity: 3.0  # Medium-High - OAuth exists but Connect has nuances
+
+# ============================================================================
+# Executive Summary
+# ============================================================================
+
+summary: |
+  Investigate integrating Stripe as a connector in Pip to provide financial data
+  for business intelligence alongside Xero accounting data.
+
+  Use case: Users want to see Stripe payment data (customers, invoices,
+  subscriptions) alongside their Xero bookkeeping data for complete financial view.
+
+  Key decision: Stripe Connect OAuth vs API key per user
+
+  Reference: Existing Stripe MCP prototype in personal-mcp-remote repo
+  - Location: /home/x-forge/repos/personal-mcp-remote/prototypes/stripe-mcp/
+  - Tools: list_customers, get_customer, list_invoices, get_invoice,
+           list_subscriptions, get_customer_overview, stripe_health_check
+  - Architecture: /home/x-forge/repos/personal-mcp-remote/docs/stripe-integration-architecture.md
+
+# ============================================================================
+# Research Questions
+# ============================================================================
+
+questions:
+  authentication:
+    - question: "Should Pip use Stripe Connect OAuth or per-user API keys?"
+      hypothesis: "Stripe Connect OAuth for read-only access to user accounts"
+      research_needed:
+        - Understand Stripe Connect account types (Standard, Express, Custom)
+        - Check if read-only scopes exist for Connect OAuth
+        - Evaluate Stripe's recommendation (Connect vs API keys vs Stripe Apps)
+        - Review recent Stripe changes (OAuth deprecated for some use cases)
+
+    - question: "What is Stripe Connect OAuth flow?"
+      hypothesis: "Standard OAuth 2.0 with Stripe-specific scopes"
+      research_needed:
+        - Document authorization URL and parameters
+        - Understand stripe_user_id returned in callback
+        - Check token refresh requirements (Stripe tokens don't expire?)
+
+    - question: "Can we reuse personal-mcp-remote Stripe tools?"
+      hypothesis: "Yes - tool patterns and error handling are reusable"
+      research_needed:
+        - Review tool implementations for multi-user adaptation
+        - Check if tools need user context injection
+        - Evaluate FastMCP (Python) vs TypeScript implementation
+
+  api_capabilities:
+    - question: "What data is most valuable for Pip users?"
+      hypothesis: "Invoices, customers, subscriptions, revenue metrics"
+      research_needed:
+        - Map Stripe data to Xero equivalents (invoice reconciliation)
+        - Identify unique Stripe data (subscriptions, MRR)
+        - Prioritize tools by bookkeeping value
+
+    - question: "What permission scopes are needed?"
+      hypothesis: "read_only scope covers most bookkeeping use cases"
+      research_needed:
+        - Document Stripe Connect scopes
+        - Verify read_only includes invoices, customers, subscriptions
+        - Check if balance/payout access requires additional permissions
+
+  multi_user:
+    - question: "How does Stripe Connect handle multi-tenant access?"
+      hypothesis: "Each user authorizes Pip → we store their stripe_user_id + tokens"
+      research_needed:
+        - Verify OAuth flow returns stripe_user_id
+        - Understand account linking vs account creation
+        - Check if existing Stripe accounts can be connected (yes per docs)
+
+# ============================================================================
+# Stripe Connect OAuth Overview
+# ============================================================================
+
+stripe_connect:
+  flow_type: "OAuth 2.0 with Standard accounts"
+  documentation: "https://docs.stripe.com/connect/oauth-reference"
+
+  endpoints:
+    authorize: "https://connect.stripe.com/oauth/authorize"
+    token: "https://connect.stripe.com/oauth/token"
+    deauthorize: "https://connect.stripe.com/oauth/deauthorize"
+
+  parameters:
+    authorize:
+      client_id: "ca_xxxxx (Stripe Connect platform client ID)"
+      response_type: "code"
+      redirect_uri: "https://app.pip.arcforge.au/auth/stripe/callback"
+      scope: "read_only"  # or "read_write" if needed
+      state: "csrf + userId encoded"
+      stripe_user: # Optional pre-fill
+        email: "user@example.com"
+        business_type: "company"
+
+  response:
+    callback:
+      code: "ac_xxxxx (authorization code)"
+      state: "original state parameter"
+    token_exchange:
+      access_token: "sk_xxxxx (doesn't expire)"
+      stripe_user_id: "acct_xxxxx (user's Stripe account ID)"
+      stripe_publishable_key: "pk_xxxxx"
+      scope: "read_only"
+      token_type: "bearer"
+
+  notes:
+    - "Access tokens DON'T expire (unlike Xero/Google)"
+    - "Can be revoked by user in Stripe Dashboard"
+    - "stripe_user_id is the connected account ID"
+    - "Make API calls with 'Stripe-Account: acct_xxxxx' header"
+
+# ============================================================================
+# Technical Investigation Plan
+# ============================================================================
+
+investigation:
+  phase_1_connect_setup:
+    duration: "2-3 hours"
+    tasks:
+      - title: "Create Stripe Connect Platform"
+        steps:
+          - Create Stripe account (or use existing)
+          - Enable Connect in Dashboard
+          - Get platform client_id (ca_xxxxx)
+          - Configure OAuth settings
+          - Set redirect URIs
+
+      - title: "Test OAuth flow manually"
+        steps:
+          - Construct authorization URL
+          - Use test mode for safety
+          - Complete OAuth consent
+          - Exchange code for tokens
+          - Note stripe_user_id returned
+
+      - title: "Verify API access"
+        steps:
+          - Make API call with Stripe-Account header
+          - List customers for connected account
+          - Verify read_only scope limitations
+
+  phase_2_adapt_prototype:
+    duration: "3-4 hours"
+    tasks:
+      - title: "Review personal-mcp-remote tools"
+        steps:
+          - Read stripe_mcp.py implementation
+          - Identify patterns to reuse
+          - Note multi-user adaptations needed
+
+      - title: "Design multi-user tool execution"
+        steps:
+          - Inject stripe_user_id from oauth_tokens
+          - Add Stripe-Account header to all API calls
+          - Handle per-user rate limits
+
+      - title: "Plan TypeScript implementation"
+        steps:
+          - Decide Python (FastMCP) vs TypeScript
+          - Map tool patterns to Pip architecture
+          - Design safety layer integration
+
+  phase_3_prototype:
+    duration: "4-6 hours"
+    tasks:
+      - title: "Create auth-stripe.ts routes"
+        steps:
+          - OAuth initiate endpoint
+          - OAuth callback handler
+          - Token storage (no refresh needed!)
+          - Deauthorize/disconnect endpoint
+
+      - title: "Create Stripe MCP tools"
+        tools:
+          - "stripe.list_customers"
+          - "stripe.get_customer"
+          - "stripe.list_invoices"
+          - "stripe.get_invoice"
+          - "stripe.list_subscriptions"
+          - "stripe.get_revenue_summary"
+
+# ============================================================================
+# Architecture Considerations
+# ============================================================================
+
+architecture:
+  oauth_flow:
+    pattern: "Stripe Connect OAuth - similar to Xero/Google"
+    endpoints:
+      authorize: "GET /auth/stripe"
+      callback: "GET /auth/stripe/callback"
+      status: "GET /auth/stripe/status"
+      disconnect: "DELETE /auth/stripe/disconnect"
+    token_storage:
+      table: "oauth_tokens"
+      provider: "stripe"
+      fields:
+        - "access_token (sk_xxxxx - doesn't expire)"
+        - "stripe_user_id (acct_xxxxx - stored in tenant_id)"
+        - "scope"
+        - "provider_email (from Stripe account)"
+      note: "No refresh_token needed - Stripe tokens don't expire"
+
+  tool_namespace:
+    pattern: "stripe.*"
+    reuse_from: "personal-mcp-remote/prototypes/stripe-mcp"
+    tools:
+      - name: "stripe.list_customers"
+        source: "list_customers"
+        adaptation: "Add stripe_user_id header"
+
+      - name: "stripe.get_customer"
+        source: "get_customer"
+        adaptation: "Add stripe_user_id header"
+
+      - name: "stripe.list_invoices"
+        source: "list_invoices"
+        adaptation: "Add stripe_user_id header"
+        note: "Different from Xero invoices - reconciliation opportunity"
+
+      - name: "stripe.get_invoice"
+        source: "get_invoice"
+        adaptation: "Add stripe_user_id header"
+
+      - name: "stripe.list_subscriptions"
+        source: "list_subscriptions"
+        note: "Unique to Stripe - valuable for SaaS businesses"
+
+      - name: "stripe.get_customer_overview"
+        source: "get_customer_overview"
+        note: "Workflow tool - combines customer + subs + invoices"
+
+  permission_levels:
+    comment: "Read-only only for now - Stripe write ops are dangerous"
+    levels:
+      0: "Read-Only - Can view customers, invoices, subscriptions"
+    note: "Write operations (create invoice, refund) would require careful safety design"
+
+  api_patterns:
+    header_injection: |
+      // All Stripe API calls need the connected account header
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+      const customers = await stripe.customers.list(
+        { limit: 25 },
+        { stripeAccount: user.stripe_user_id }
+      );
+
+# ============================================================================
+# Comparison: Stripe vs Existing Connectors
+# ============================================================================
+
+comparison:
+  vs_xero:
+    similarities:
+      - "OAuth 2.0 flow"
+      - "Business financial data"
+      - "Multi-tenant via account IDs"
+    differences:
+      - "Stripe tokens don't expire (simpler!)"
+      - "Different data model (subscriptions vs invoices)"
+      - "Stripe is payments, Xero is accounting"
+    integration_opportunity:
+      - "Reconcile Stripe payments with Xero bank transactions"
+      - "Match Stripe customers to Xero contacts"
+      - "Import Stripe invoices as Xero sales"
+
+  vs_google_sheets:
+    similarities:
+      - "OAuth 2.0 flow"
+      - "Read/write capabilities (if we add write)"
+    differences:
+      - "Stripe is structured financial data"
+      - "Sheets is user-defined data"
+
+# ============================================================================
+# Safety Considerations
+# ============================================================================
+
+safety:
+  read_only_scope:
+    description: "Start with read_only scope - no write operations"
+    rationale:
+      - "Financial data is sensitive"
+      - "Accidental charges could be costly"
+      - "Matches Xero read-only approach"
+
+  future_write_operations:
+    if_needed:
+      - "Create draft invoices"
+      - "Issue refunds"
+      - "Create customers"
+    safety_requirements:
+      - "Explicit user confirmation"
+      - "Audit logging"
+      - "Permission level 2+ required"
+      - "Idempotency keys for mutations"
+
+  api_key_security:
+    platform_key:
+      description: "Pip's Stripe Connect platform key (secret)"
+      storage: "Environment variable STRIPE_SECRET_KEY"
+    user_tokens:
+      description: "Per-user access tokens from OAuth"
+      storage: "oauth_tokens table (encrypted at rest)"
+    note: "Never expose platform secret key to users"
+
+# ============================================================================
+# Dependencies
+# ============================================================================
+
+dependencies:
+  existing:
+    - "@pip/core oauth_tokens table"
+    - "ConnectorCard component"
+    - "Connector permissions model"
+    - "Namespaced tool architecture"
+
+  new:
+    - "stripe npm package (official SDK)"
+    - "Stripe Connect platform account"
+
+  reuse:
+    - "personal-mcp-remote/prototypes/stripe-mcp/* tool patterns"
+    - "Error handling with troubleshooting arrays"
+    - "Pagination with opaque cursors"
+    - "Token reduction via field filtering"
+
+# ============================================================================
+# Success Criteria
+# ============================================================================
+
+success_criteria:
+  spike_complete:
+    - "Stripe Connect OAuth flow documented"
+    - "Test account connected successfully"
+    - "API calls work with Stripe-Account header"
+    - "Tool reuse strategy confirmed"
+    - "Go/no-go decision on implementation"
+
+  decision_factors:
+    go:
+      - "OAuth flow works reliably"
+      - "read_only scope provides needed data"
+      - "Tool reuse reduces implementation time"
+    no_go:
+      - "Stripe Connect has unexpected restrictions"
+      - "User acquisition cost too high (platform fees)"
+      - "Better alternatives (direct API key per user)"
+
+# ============================================================================
+# Open Questions
+# ============================================================================
+
+open_questions:
+  - question: "Does Stripe Connect have platform fees?"
+    context: "Some Connect features charge per transaction"
+    research: "Check Stripe pricing for OAuth-only (no payments)"
+
+  - question: "Should we support both Connect OAuth AND user API keys?"
+    context: "Some users may prefer entering their own API key"
+    options:
+      - "OAuth only - simpler, more secure"
+      - "Both - flexibility for power users"
+
+  - question: "Python (FastMCP) or TypeScript for tools?"
+    context: "Prototype is Python, Pip MCP is TypeScript"
+    options:
+      - "Port to TypeScript - consistency with Pip"
+      - "Keep Python - reuse prototype directly"
+      - "Hybrid - Python subprocess like personal-mcp-remote"
+
+# ============================================================================
+# Timeline Estimate
+# ============================================================================
+
+timeline:
+  spike_investigation: "1 day"
+  prototype_if_go: "2-3 days (reusing prototype patterns)"
+  production_ready: "1 week (including testing)"
+
+# ============================================================================
+# References
+# ============================================================================
+
+references:
+  - name: "Stripe Connect OAuth Reference"
+    url: "https://docs.stripe.com/connect/oauth-reference"
+  - name: "Stripe Connect Standard Accounts"
+    url: "https://docs.stripe.com/connect/oauth-standard-accounts"
+  - name: "Stripe API Reference"
+    url: "https://docs.stripe.com/api"
+  - name: "Existing Prototype"
+    path: "/home/x-forge/repos/personal-mcp-remote/prototypes/stripe-mcp/"
+  - name: "Prototype Architecture"
+    path: "/home/x-forge/repos/personal-mcp-remote/docs/stripe-integration-architecture.md"
+  - name: "Stripe Tool Design"
+    path: "/home/x-forge/repos/personal-mcp-remote/docs/stripe-mcp-tool-design.md"
