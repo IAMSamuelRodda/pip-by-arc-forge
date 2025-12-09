@@ -132,7 +132,15 @@ export const useChatStore = create<ChatState>()(
   },
 
   loadChatList: async (projectId?: string | null) => {
-    set({ isLoadingList: true });
+    // Only show loading state if we don't have cached data
+    // This prevents the flash when navigating between pages
+    const currentState = get();
+    const shouldShowLoading = currentState.chatList.length === 0;
+
+    if (shouldShowLoading) {
+      set({ isLoadingList: true });
+    }
+
     try {
       // If projectId provided, use it; otherwise load all chats (no filter)
       const result = await api.listChats(50, projectId);
