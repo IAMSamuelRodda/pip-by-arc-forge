@@ -23,6 +23,7 @@
 | **Xero Integration** | 🟢 | 10 READ-ONLY tools verified |
 | **Xero API Pricing** | 🟢 | Free until 5+ users, then $35 AUD/mo (Mar 2026) |
 | **Gmail Integration** | 🟢 | 4 read-only tools (Testing mode: 100 users) |
+| **Google Sheets** | 🟢 | 4 tools (read/write, Testing mode: 100 users) |
 | **Ollama Local** | 🟢 | 5 models via Tailscale (+ deepseek-r1:1.5b fast reasoning) |
 | **Git Workflow** | 🟢 | Simple tier (main only, direct commits) |
 | **Milestone 2** | 🔵 | Epic 2.1-2.3 complete, Epic 2.4-2.6 remaining |
@@ -38,28 +39,32 @@
 
 ### Just Completed (2025-12-09)
 
-1. **Vision & Future Direction Planning** ✅ COMPLETE
-   - Updated VISION.md with target persona: "Multi-Hat Business Owner" (Arc Forge avatar)
-   - Defined core value proposition: "What can I actually spend?" question
-   - Documented "Available Balance" concept (bank balance minus tax/business reserves)
-   - Added design principles for future expense separation feature
-   - Created `issue_037`: Intelligent Business vs Personal Expense Separation
-   - Created feature blueprint: `specs/BLUEPRINT-feature-expense-separation-20251209.yaml`
-   - Key insight: Users don't want to become accountants, they want simple answers
+1. **Settings Page Rework for Per-Connector Permissions** ✅ COMPLETE
+   - Centralized OAuth: Moved Google Sheets OAuth from MCP to main server
+   - New unified `/api/connectors/status` endpoint for all connector statuses
+   - Created `ConnectorCard` component for reusable connector UI
+   - Refactored SettingsPage with per-connector permission controls
+   - Each connector (Xero, Gmail, Google Sheets) has independent permission levels
+   - Connectors section now inline in Settings (no external redirect)
+   - Commits: `fe9f2ee`, `0c5ea78`
 
-2. **list_accounts MCP Tool** ✅ COMPLETE
-   - Added new tool to view Xero chart of accounts (53 default accounts)
-   - Groups accounts by type (Bank, Assets, Liabilities, Expenses, Revenue, etc.)
-   - Optional filtering by account type parameter
-   - Shows account codes, tax types, and archived status
-   - Deployed to production at mcp.pip.arcforge.au
-   - Commit: `a27ffde`
+2. **Proactive Token Refresh & Reconnect UI** ✅ COMPLETE
+   - Backend auto-refreshes expired tokens when loading connector status
+   - Returns `refreshFailed` flag when refresh fails (60+ day inactive)
+   - ConnectorCard shows "Reconnect" button with yellow warning for expired tokens
+   - Disconnect option still available in expired state
+   - Commit: `0c5ea78`
 
-3. **pip-mcp Package Rename** ✅ COMPLETE
-   - Renamed `mcp-remote-server` → `pip-mcp` for consistency
-   - Updated Dockerfiles, deploy scripts, and documentation
-   - Fixed all path references across deployment infrastructure
-   - Commits: `c71d40a`, `b892493`, `1cb9445`
+3. **Namespaced Multi-Provider Tool Architecture** ✅ COMPLETE
+   - Implemented namespaced tools: `xero.*`, `gmail.*`, `sheets.*`, `memory.*`
+   - Tools organized by provider with consistent naming pattern
+   - `get_pip_guide` tool for on-demand documentation
+   - Commit: `561bd3b`
+
+4. **Previous (Vision & Planning)**
+   - Vision: "Multi-Hat Business Owner" persona, "What can I actually spend?" question
+   - list_accounts MCP tool for Xero chart of accounts
+   - pip-mcp package rename for consistency
 
 ### Previously Completed (2025-12-04)
 

@@ -19,6 +19,8 @@ Pip is a mobile-first Progressive Web App (PWA) that brings natural language int
 - **Conversational Accounting** - Ask questions about invoices, contacts, and financials
 - **Business Context Layer** - Upload business plans/KPIs for context-aware advice
 - **Xero Integration** - Direct connection to your Xero organization
+- **Gmail Integration** - Search emails and attachments for receipts/invoices
+- **Google Sheets** - Read/write spreadsheet data for custom reports
 - **Multi-device Support** - Works on smartphones, tablets, and laptops
 - **Self-Hostable** - Run on your own infrastructure with Docker
 - **LLM Agnostic** - Supports Anthropic Claude or local models via Ollama
@@ -146,6 +148,14 @@ Once connected, Pip provides these tools:
 | `get_email_content` | Get full email body and attachments |
 | `download_attachment` | Download email attachment |
 | `list_email_attachments` | List attachments matching query |
+
+**Google Sheets Tools** (testing mode):
+| Tool | Description |
+|------|-------------|
+| `sheets.search_spreadsheets` | Find spreadsheets by name |
+| `sheets.read_spreadsheet` | Read data from a spreadsheet |
+| `sheets.write_spreadsheet` | Write data to a spreadsheet |
+| `sheets.create_spreadsheet` | Create a new spreadsheet |
 
 **Memory Tools** (knowledge graph):
 | Tool | Description |

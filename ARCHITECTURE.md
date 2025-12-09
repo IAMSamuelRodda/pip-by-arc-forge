@@ -141,19 +141,25 @@ CREATE TABLE core_memory (
 );
 ```
 
-**oauth_tokens**
+**oauth_tokens** (Multi-provider OAuth storage)
 ```sql
 CREATE TABLE oauth_tokens (
-  user_id TEXT PRIMARY KEY,
-  tenant_id TEXT NOT NULL,
-  tenant_name TEXT,
+  user_id TEXT NOT NULL,
+  provider TEXT NOT NULL,        -- 'xero', 'gmail', 'google_sheets'
   access_token TEXT NOT NULL,
   refresh_token TEXT NOT NULL,
+  token_type TEXT NOT NULL,
   expires_at INTEGER NOT NULL,
-  scope TEXT,
+  scopes TEXT NOT NULL,          -- JSON array
+  tenant_id TEXT,                -- Xero: organization ID
+  tenant_name TEXT,              -- Xero: organization name
+  provider_user_id TEXT,         -- Google: user ID
+  provider_email TEXT,           -- Google: user's email
   created_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL
+  updated_at INTEGER NOT NULL,
+  PRIMARY KEY (user_id, provider)
 );
+CREATE INDEX idx_oauth_tokens_expires_at ON oauth_tokens(expires_at);
 ```
 
 **memory_entities** (Knowledge Graph - Epic 2.1)
@@ -210,19 +216,33 @@ CREATE TABLE memory_summaries (
 );
 ```
 
-**user_settings** (Safety & Personality)
+**user_settings** (Global preferences)
 ```sql
 CREATE TABLE user_settings (
   user_id TEXT PRIMARY KEY,
-  permission_level INTEGER DEFAULT 0,  -- 0=read, 1=create, 2=update, 3=delete
-  require_confirmation INTEGER DEFAULT 1,
+  permission_level TEXT DEFAULT 'read_only',  -- Legacy global level
+  personality TEXT DEFAULT 'adelaide',
+  require_confirmation INTEGER DEFAULT 0,
   daily_email_summary INTEGER DEFAULT 0,
   require_2fa INTEGER DEFAULT 0,
   vacation_mode_until INTEGER,
-  personality TEXT DEFAULT 'adelaide',  -- 'adelaide' or 'pippin'
+  response_style TEXT DEFAULT 'normal',  -- normal, formal, concise, explanatory, learning
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );
+```
+
+**connector_permissions** (Per-connector permission levels)
+```sql
+CREATE TABLE connector_permissions (
+  user_id TEXT NOT NULL,
+  connector TEXT NOT NULL,           -- 'xero', 'gmail', 'google_sheets'
+  permission_level INTEGER DEFAULT 0, -- 0-3 (read, create, update, delete)
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  PRIMARY KEY (user_id, connector)
+);
+CREATE INDEX idx_connector_perms_user ON connector_permissions(user_id);
 ```
 
 **extended_memory** (future - semantic search)
