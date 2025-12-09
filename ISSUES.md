@@ -36,7 +36,7 @@
 #### issue_008: Memory Architecture Decision
 - **Status**: ✅ Resolved (Option B deployed - native memory)
 - **Priority**: - (Complete)
-- **Component**: `packages/mcp-remote-server`
+- **Component**: `packages/pip-mcp`
 - **Resolved**: 2025-11-30
 - **Description**: Choose between two memory architectures for Pip
 - **Resolution**:
@@ -55,7 +55,7 @@
 #### issue_010: Mem0 SQLite CANTOPEN in Docker (RESOLVED)
 - **Status**: 🟢 Resolved (Switched to Option B native memory)
 - **Priority**: - (Complete)
-- **Component**: `packages/mcp-remote-server` (memory-native.ts)
+- **Component**: `packages/pip-mcp` (memory-native.ts)
 - **Discovered**: 2025-11-30
 - **Resolved**: 2025-11-30
 - **Description**: Mem0's internal SQLite throws `SQLITE_CANTOPEN` regardless of configuration, crashing the MCP server.
@@ -81,11 +81,29 @@
 #### issue_018: Memory Management UI + User Edit Tracking
 - **Status**: 🟢 Merged into Epic 2.1
 - **Priority**: - (Absorbed)
-- **Component**: `packages/mcp-remote-server`, `packages/pwa-app`
+- **Component**: `packages/pip-mcp`, `packages/pwa-app`
 - **Description**: Add "Manage memory" UI and track user explicit edit requests separately from auto-extracted memory.
 - **Resolution**: Merged into Epic 2.1 (feature_2_1_2 through feature_2_1_5) on 2025-12-01
 - **See**: PROGRESS.md → Epic 2.1 for detailed tasks
 - **UX Reference**: `specs/spike-outputs/UX-PATTERNS-CLAUDE-AI-REFERENCE-20251201.md` Pattern 0.7
+
+#### issue_038: MCP Server Custom Icon Not Displayed in Claude.ai
+- **Status**: 🔵 Blocked (Claude.ai client-side)
+- **Priority**: P3 (Low - cosmetic, waiting on client support)
+- **Component**: `packages/pip-mcp/src/index.ts`
+- **Created**: 2025-12-09
+- **Description**: Pip logo icon added to MCP server initialization but not appearing in Claude.ai tool calls
+- **Server-Side Implementation** (Complete):
+  - MCP SDK upgraded to v1.24.3 (icons support)
+  - `icons` field added to Server initialization with base64 SVG data URI
+  - Follows SEP-973 icons specification
+- **Blocking Issue**:
+  - [GitHub Issue #1040](https://github.com/modelcontextprotocol/modelcontextprotocol/issues/1040) - Icon support is still an open feature request
+  - Claude.ai/Claude Desktop clients don't render custom server icons yet
+  - Generic sparkle icon shown for all custom connectors
+- **Resolution**: Waiting on Claude.ai to implement icon rendering
+- **Action**: Monitor GitHub issue #1040 for updates; no further work needed on our side
+- **Not a browser cache issue** - reconnecting establishes fresh SSE connection
 
 #### issue_036: Collapsible Thinking + Tool Call Visibility (Claude Code Pattern)
 - **Status**: 🔴 Open
@@ -212,7 +230,7 @@
 #### issue_016: Light/Dark Mode Theme Support
 - **Status**: 🔴 Open
 - **Priority**: P3 (Low - future enhancement)
-- **Component**: All frontend packages (`packages/pwa-app`, `packages/mcp-remote-server`, `landing-page.html`)
+- **Component**: All frontend packages (`packages/pwa-app`, `packages/pip-mcp`, `landing-page.html`)
 - **Description**: Add light/dark mode toggle with CSS variables for easy theme switching
 - **Current State**: All pages use hardcoded dark theme colors
 - **Target State**: CSS variables with theme toggle, respects system preference
@@ -341,7 +359,7 @@
 #### issue_028: Connectors Menu (Multi-Integration Pattern)
 - **Status**: 🟡 In Progress (spike complete)
 - **Priority**: P0 (Critical - demo blocker for dental client)
-- **Component**: `packages/pwa-app`, `packages/server`, `packages/mcp-remote-server`
+- **Component**: `packages/pwa-app`, `packages/server`, `packages/pip-mcp`
 - **Created**: 2025-12-02
 - **Spike Complete**: 2025-12-03
 - **Description**: Move from "Xero-only" to multi-connector architecture
@@ -452,7 +470,7 @@ If dental practice uses Google Workspace (not personal Gmail):
 #### issue_030: Per-Tool Permissions (Claude.ai Pattern)
 - **Status**: 🔴 Open
 - **Priority**: P1 (High - security + UX improvement)
-- **Component**: `packages/pwa-app`, `packages/server`, `packages/mcp-remote-server`
+- **Component**: `packages/pwa-app`, `packages/server`, `packages/pip-mcp`
 - **Created**: 2025-12-02
 - **Description**: Replace single "safety level" dropdown with per-tool three-tier permissions
 - **Current State**:
@@ -672,7 +690,7 @@ If dental practice uses Google Workspace (not personal Gmail):
 #### issue_031: Memory Query Schema Mismatch
 - **Status**: 🟢 Resolved
 - **Priority**: - (Complete)
-- **Component**: `packages/mcp-remote-server/src/services/memory.ts`
+- **Component**: `packages/pip-mcp/src/services/memory.ts`
 - **Created**: 2025-12-02
 - **Resolved**: 2025-12-02
 - **Description**: Memory operations failing with "no such column: content"
@@ -684,7 +702,7 @@ If dental practice uses Google Workspace (not personal Gmail):
 #### issue_029: MCP Auth Flow - Missing OAuth Env Vars
 - **Status**: 🟢 Resolved
 - **Priority**: - (Complete)
-- **Component**: `packages/mcp-remote-server`, `deploy/deploy.sh`
+- **Component**: `packages/pip-mcp`, `deploy/deploy.sh`
 - **Created**: 2025-12-02
 - **Resolved**: 2025-12-02
 - **Description**: MCP OAuth flow returning `invalid_client` error
@@ -767,7 +785,7 @@ If dental practice uses Google Workspace (not personal Gmail):
 #### issue_003: Email Verification for Sign-Up
 - **Status**: 🔴 Open
 - **Priority**: P3 (Low - deferred)
-- **Component**: `packages/mcp-remote-server` (OAuth sign-up)
+- **Component**: `packages/pip-mcp` (OAuth sign-up)
 - **Description**: Add email verification before account activation
 - **Options**:
   - Resend (3000/month free)
@@ -782,15 +800,15 @@ If dental practice uses Google Workspace (not personal Gmail):
 #### issue_004: Safety Guardrails for Write Operations
 - **Status**: ✅ Resolved
 - **Priority**: P2 (Complete)
-- **Component**: `packages/mcp-remote-server`, `packages/core`, `packages/server`, `packages/pwa-app`
+- **Component**: `packages/pip-mcp`, `packages/core`, `packages/server`, `packages/pwa-app`
 - **Spec**: `specs/SAFETY-ARCHITECTURE.md`
 - **Description**: Implement tiered permission model to prevent AI from accidentally destroying Xero data
 - **Why Critical**: Xero has NO user-accessible restore. Deleted/voided data is permanently lost.
 - **Implementation Complete** (2025-11-30):
   - `packages/core/src/database/types.ts`: UserSettings, OperationSnapshot types
   - `packages/core/src/database/providers/sqlite.ts`: Tables + CRUD methods
-  - `packages/mcp-remote-server/src/services/safety.ts`: Permission check service
-  - `packages/mcp-remote-server/src/index.ts`: Tool execution guards + visibility filtering
+  - `packages/pip-mcp/src/services/safety.ts`: Permission check service
+  - `packages/pip-mcp/src/index.ts`: Tool execution guards + visibility filtering
   - `packages/server/src/routes/settings.ts`: API endpoints for settings
   - `packages/pwa-app/src/pages/SettingsPage.tsx`: Settings UI with permission level selector
 - **Acceptance Criteria**:
@@ -804,7 +822,7 @@ If dental practice uses Google Workspace (not personal Gmail):
 #### issue_005: ChatGPT Memory Disabled in Developer Mode
 - **Status**: ✅ Resolved (Native memory works)
 - **Priority**: - (Complete)
-- **Component**: `packages/mcp-remote-server` (memory-native.ts)
+- **Component**: `packages/pip-mcp` (memory-native.ts)
 - **Resolved**: 2025-11-30
 - **Description**: ChatGPT disables memory when MCP connectors are used in Developer Mode
 - **Solution**: Implemented native memory with text-based search (bypasses ChatGPT memory limitation)
@@ -819,7 +837,7 @@ If dental practice uses Google Workspace (not personal Gmail):
 #### issue_006: Google Docs Integration
 - **Status**: 🔴 Open
 - **Priority**: P3 (Low - future enhancement)
-- **Component**: `packages/mcp-remote-server`
+- **Component**: `packages/pip-mcp`
 - **Description**: Allow users to connect Google Docs to Pip for business context
 - **Use Case**: Users store business plans, KPIs, meeting notes in Google Docs. Connecting these would enrich Pip's context without manual file uploads.
 - **Acceptance Criteria**:
@@ -832,7 +850,7 @@ If dental practice uses Google Workspace (not personal Gmail):
 #### issue_009: Interactive Demo Mode with Xero Demo Organisation
 - **Status**: 🔴 Open
 - **Priority**: P2 (Medium - improves landing page conversion)
-- **Component**: `packages/mcp-remote-server`, `landing-page.html`
+- **Component**: `packages/pip-mcp`, `landing-page.html`
 - **Description**: Add interactive demo using Xero's demo organisation data so visitors can try Pip without connecting their own Xero
 - **Use Case**: Landing page "See Demo" button could let users ask real questions against sample data, reducing friction to understand value
 - **Research Required**:
@@ -849,7 +867,7 @@ If dental practice uses Google Workspace (not personal Gmail):
 #### issue_007: Nextcloud Integration
 - **Status**: 🔴 Open
 - **Priority**: P3 (Low - future enhancement)
-- **Component**: `packages/mcp-remote-server`
+- **Component**: `packages/pip-mcp`
 - **Description**: Allow users to connect Nextcloud for business context (open source alternative)
 - **Use Case**: Support open source community who prefer self-hosted solutions. Nextcloud is popular for privacy-conscious businesses.
 - **Acceptance Criteria**:
@@ -904,7 +922,7 @@ If dental practice uses Google Workspace (not personal Gmail):
 - **Status**: 🟢 Resolved
 - **Priority**: - (Complete)
 - **Resolved**: 2025-12-01
-- **Component**: `packages/mcp-remote-server` (memory.ts, memory-tools.ts)
+- **Component**: `packages/pip-mcp` (memory.ts, memory-tools.ts)
 - **Blueprint**: feature_2_1_1 through feature_2_1_5
 - **UX Reference**: `specs/spike-outputs/UX-PATTERNS-CLAUDE-AI-REFERENCE-20251201.md` (Pattern 0.7)
 - **Description**: Align memory implementation with Anthropic + Claude.ai patterns.
@@ -985,7 +1003,7 @@ If dental practice uses Google Workspace (not personal Gmail):
 #### issue_014: Per-Chat Document Upload (Epic 2.4)
 - **Status**: 🔴 Open (spike complete - ready to implement)
 - **Priority**: P2 (Medium - UX improvement)
-- **Component**: `packages/pwa-app`, `packages/mcp-remote-server`
+- **Component**: `packages/pwa-app`, `packages/pip-mcp`
 - **Blueprint**: feature_2_4_1 through feature_2_4_3
 - **Description**: Plus (+) icon in chat for attachments (standard UX pattern). Document preview below chat input field.
 - **Spike**: spike_m2_002 ✅ COMPLETE - Decision: Keep React, use react-dropzone
@@ -1002,7 +1020,7 @@ If dental practice uses Google Workspace (not personal Gmail):
 #### issue_015: Pip's Voice/Personality (Epic 2.5)
 - **Status**: 🔵 Deferred (replaced by issue_020)
 - **Priority**: P3 (Future - not MVP critical)
-- **Component**: `packages/mcp-remote-server` (system prompts), `packages/core/src/personalities/`
+- **Component**: `packages/pip-mcp` (system prompts), `packages/core/src/personalities/`
 - **Blueprint**: feature_2_5_1 through feature_2_5_5
 - **Description**: Switchable character personalities that can change mid-chat without losing context.
 - **Spike Complete** (spike_m2_003): ✅

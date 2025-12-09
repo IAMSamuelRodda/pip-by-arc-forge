@@ -1,5 +1,5 @@
 {
-  "name": "@pip/mcp-remote-server",
+  "name": "@pip/pip-mcp",
   "version": "0.1.0",
   "description": "Remote MCP server for Claude.ai and ChatGPT integration - Pip bookkeeping assistant",
   "type": "module",
