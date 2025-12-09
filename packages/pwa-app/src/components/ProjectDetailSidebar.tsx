@@ -148,13 +148,17 @@ export function ProjectDetailSidebar({
       <div className="border-b border-arc-border">
         <button
           onClick={() => setMemoryExpanded(!memoryExpanded)}
-          className="w-full flex items-center justify-between px-4 py-3 hover:bg-arc-bg-tertiary transition-colors"
+          className="w-full flex items-center justify-between px-4 py-3 hover:bg-arc-bg-secondary transition-colors"
         >
           <div className="flex items-center gap-2">
-            <BrainIcon />
+            <span className="text-arc-accent/70">
+              <BrainIcon />
+            </span>
             <span className="text-sm font-medium text-arc-text-primary">Memory</span>
           </div>
-          {memoryExpanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
+          <span className="text-arc-text-secondary">
+            {memoryExpanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
+          </span>
         </button>
         {memoryExpanded && (
           <div className="px-4 pb-4">
@@ -170,13 +174,17 @@ export function ProjectDetailSidebar({
       <div className="border-b border-arc-border">
         <button
           onClick={() => setInstructionsExpanded(!instructionsExpanded)}
-          className="w-full flex items-center justify-between px-4 py-3 hover:bg-arc-bg-tertiary transition-colors"
+          className="w-full flex items-center justify-between px-4 py-3 hover:bg-arc-bg-secondary transition-colors"
         >
           <div className="flex items-center gap-2">
-            <FileTextIcon />
+            <span className="text-arc-accent/70">
+              <FileTextIcon />
+            </span>
             <span className="text-sm font-medium text-arc-text-primary">Instructions</span>
           </div>
-          {instructionsExpanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
+          <span className="text-arc-text-secondary">
+            {instructionsExpanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
+          </span>
         </button>
         {instructionsExpanded && (
           <div className="px-4 pb-4">
@@ -201,13 +209,17 @@ export function ProjectDetailSidebar({
       <div className="border-b border-arc-border">
         <button
           onClick={() => setFilesExpanded(!filesExpanded)}
-          className="w-full flex items-center justify-between px-4 py-3 hover:bg-arc-bg-tertiary transition-colors"
+          className="w-full flex items-center justify-between px-4 py-3 hover:bg-arc-bg-secondary transition-colors"
         >
           <div className="flex items-center gap-2">
-            <FolderIcon />
+            <span className="text-arc-accent/70">
+              <FolderIcon />
+            </span>
             <span className="text-sm font-medium text-arc-text-primary">Files</span>
           </div>
-          {filesExpanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
+          <span className="text-arc-text-secondary">
+            {filesExpanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
+          </span>
         </button>
         {filesExpanded && (
           <div className="px-4 pb-4">
