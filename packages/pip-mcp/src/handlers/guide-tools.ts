@@ -7,6 +7,7 @@
  */
 
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { ProviderToolDefinition } from "../types/tools.js";
 import {
   type GuideTopic,
   GUIDE_TOPICS,
@@ -15,10 +16,13 @@ import {
 } from "../content/pip-guide.js";
 
 // Tool definition for the registry
-export const guideToolDefinitions = [
+export const guideToolDefinitions: ProviderToolDefinition[] = [
   {
+    provider: "system",
+    providerType: "system",
     category: "help",
     name: "get_pip_guide",
+    shortName: "get_pip_guide",
     description: `Get instructions on how Pip works. Use when user asks "how do I...", "what is...", "how to configure...", or needs help with Pip features.
 
 Topics:

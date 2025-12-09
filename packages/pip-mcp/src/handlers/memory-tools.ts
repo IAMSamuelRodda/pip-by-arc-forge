@@ -6,16 +6,20 @@
  */
 
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { ProviderToolDefinition } from "../types/tools.js";
 import { getMemoryManager, type Entity, type Relation, type KnowledgeGraph } from "../services/memory.js";
 
 // ============================================================================
 // Tool Definitions
 // ============================================================================
 
-export const memoryToolDefinitions = [
+export const memoryToolDefinitions: ProviderToolDefinition[] = [
   {
+    provider: "system",
+    providerType: "system",
     category: "memory",
     name: "create_entities",
+    shortName: "create_entities",
     description: `Create new entities in Pip's memory (people, organizations, concepts, etc.).
 Use when the user mentions something worth remembering. Supports batch creation.`,
     inputSchema: {
@@ -39,8 +43,11 @@ Use when the user mentions something worth remembering. Supports batch creation.
     },
   },
   {
+    provider: "system",
+    providerType: "system",
     category: "memory",
     name: "create_relations",
+    shortName: "create_relations",
     description: `Create relationships between entities (e.g., "works_at", "owns", "manages").
 Both entities should exist first. Use active voice for relation types.`,
     inputSchema: {
@@ -64,8 +71,11 @@ Both entities should exist first. Use active voice for relation types.`,
     },
   },
   {
+    provider: "system",
+    providerType: "system",
     category: "memory",
     name: "add_observations",
+    shortName: "add_observations",
     description: `Add facts/observations to existing entities.
 Use when the user shares new information about something Pip already knows.
 Set isUserEdit=true when user explicitly asks to remember something ("remember that...", "note that...").`,
@@ -93,8 +103,11 @@ Set isUserEdit=true when user explicitly asks to remember something ("remember t
     },
   },
   {
+    provider: "system",
+    providerType: "system",
     category: "memory",
     name: "delete_entities",
+    shortName: "delete_entities",
     description: `Remove entities and all their observations. Use with caution.`,
     inputSchema: {
       type: "object" as const,
@@ -109,8 +122,11 @@ Set isUserEdit=true when user explicitly asks to remember something ("remember t
     },
   },
   {
+    provider: "system",
+    providerType: "system",
     category: "memory",
     name: "delete_observations",
+    shortName: "delete_observations",
     description: `Remove specific observations from entities.`,
     inputSchema: {
       type: "object" as const,
@@ -132,8 +148,11 @@ Set isUserEdit=true when user explicitly asks to remember something ("remember t
     },
   },
   {
+    provider: "system",
+    providerType: "system",
     category: "memory",
     name: "delete_relations",
+    shortName: "delete_relations",
     description: `Remove relationships between entities.`,
     inputSchema: {
       type: "object" as const,
@@ -156,8 +175,11 @@ Set isUserEdit=true when user explicitly asks to remember something ("remember t
     },
   },
   {
+    provider: "system",
+    providerType: "system",
     category: "memory",
     name: "read_graph",
+    shortName: "read_graph",
     description: `Read the entire knowledge graph for this user.
 Use to get an overview of everything Pip remembers.`,
     inputSchema: {
@@ -166,8 +188,11 @@ Use to get an overview of everything Pip remembers.`,
     },
   },
   {
+    provider: "system",
+    providerType: "system",
     category: "memory",
     name: "search_nodes",
+    shortName: "search_nodes",
     description: `Search for entities by name or observation content.
 ALWAYS call this before answering questions about the user's business, team, or goals.
 Optionally search across multiple projects for comparison (user must own all projects).`,
@@ -186,8 +211,11 @@ Optionally search across multiple projects for comparison (user must own all pro
     },
   },
   {
+    provider: "system",
+    providerType: "system",
     category: "memory",
     name: "open_nodes",
+    shortName: "open_nodes",
     description: `Get specific entities by name with their relations.
 Use when you need complete context about known entities.`,
     inputSchema: {
@@ -203,8 +231,11 @@ Use when you need complete context about known entities.`,
     },
   },
   {
+    provider: "system",
+    providerType: "system",
     category: "memory",
     name: "get_memory_summary",
+    shortName: "get_memory_summary",
     description: `Get a prose summary of what Pip remembers about the user.
 Returns cached summary if available, or indicates if regeneration is needed.
 Use when user asks "what do you remember about me?" or opens memory settings.`,
@@ -214,8 +245,11 @@ Use when user asks "what do you remember about me?" or opens memory settings.`,
     },
   },
   {
+    provider: "system",
+    providerType: "system",
     category: "memory",
     name: "save_memory_summary",
+    shortName: "save_memory_summary",
     description: `Save a prose summary of the user's memory graph.
 Call this after generating a summary from read_graph to cache it for the UI.
 The summary should be a readable narrative about the user/business.`,

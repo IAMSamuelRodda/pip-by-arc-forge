@@ -29,208 +29,209 @@ import { getDb } from "./xero.js";
 /**
  * Tool to connector mapping
  * Determines which connector a tool belongs to for permission checking
+ * Uses namespaced tool names (provider:tool_name) for provider-aware architecture
  */
 export const TOOL_CONNECTOR_MAP: Record<string, ConnectorType> = {
-  // Xero tools
-  get_invoices: "xero",
-  get_aged_receivables: "xero",
-  get_aged_payables: "xero",
-  get_profit_and_loss: "xero",
-  get_balance_sheet: "xero",
-  get_bank_accounts: "xero",
-  get_bank_transactions: "xero",
-  get_contacts: "xero",
-  search_contacts: "xero",
-  get_organisation: "xero",
-  list_accounts: "xero",
-  create_invoice_draft: "xero",
-  create_contact: "xero",
-  create_credit_note_draft: "xero",
-  approve_invoice: "xero",
-  update_invoice: "xero",
-  update_contact: "xero",
-  record_payment: "xero",
-  void_invoice: "xero",
-  delete_draft_invoice: "xero",
-  delete_contact: "xero",
+  // Xero tools (namespaced)
+  "xero:get_invoices": "xero",
+  "xero:get_aged_receivables": "xero",
+  "xero:get_aged_payables": "xero",
+  "xero:get_profit_and_loss": "xero",
+  "xero:get_balance_sheet": "xero",
+  "xero:get_bank_accounts": "xero",
+  "xero:get_bank_transactions": "xero",
+  "xero:get_contacts": "xero",
+  "xero:search_contacts": "xero",
+  "xero:get_organisation": "xero",
+  "xero:list_accounts": "xero",
+  "xero:create_invoice_draft": "xero",
+  "xero:create_contact": "xero",
+  "xero:create_credit_note_draft": "xero",
+  "xero:approve_invoice": "xero",
+  "xero:update_invoice": "xero",
+  "xero:update_contact": "xero",
+  "xero:record_payment": "xero",
+  "xero:void_invoice": "xero",
+  "xero:delete_draft_invoice": "xero",
+  "xero:delete_contact": "xero",
 
-  // Gmail tools
-  search_gmail: "gmail",
-  get_email_content: "gmail",
-  download_attachment: "gmail",
-  list_email_attachments: "gmail",
+  // Gmail tools (namespaced)
+  "gmail:search_gmail": "gmail",
+  "gmail:get_email_content": "gmail",
+  "gmail:download_attachment": "gmail",
+  "gmail:list_email_attachments": "gmail",
 
-  // Google Sheets tools
-  read_sheet_range: "google_sheets",
-  get_sheet_metadata: "google_sheets",
-  search_spreadsheets: "google_sheets",
-  list_sheets: "google_sheets",
-  get_spreadsheet_revisions: "google_sheets",
-  write_sheet_range: "google_sheets",
-  append_sheet_rows: "google_sheets",
-  update_cell: "google_sheets",
-  create_spreadsheet: "google_sheets",
-  add_sheet: "google_sheets",
-  clear_range: "google_sheets",
-  delete_sheet: "google_sheets",
-  delete_rows: "google_sheets",
-  delete_columns: "google_sheets",
-  trash_spreadsheet: "google_sheets",
+  // Google Sheets tools (namespaced)
+  "google_sheets:read_sheet_range": "google_sheets",
+  "google_sheets:get_sheet_metadata": "google_sheets",
+  "google_sheets:search_spreadsheets": "google_sheets",
+  "google_sheets:list_sheets": "google_sheets",
+  "google_sheets:get_spreadsheet_revisions": "google_sheets",
+  "google_sheets:write_sheet_range": "google_sheets",
+  "google_sheets:append_sheet_rows": "google_sheets",
+  "google_sheets:update_cell": "google_sheets",
+  "google_sheets:create_spreadsheet": "google_sheets",
+  "google_sheets:add_sheet": "google_sheets",
+  "google_sheets:clear_range": "google_sheets",
+  "google_sheets:delete_sheet": "google_sheets",
+  "google_sheets:delete_rows": "google_sheets",
+  "google_sheets:delete_columns": "google_sheets",
+  "google_sheets:trash_spreadsheet": "google_sheets",
 };
 
 /**
  * Tool permission requirements
- * Maps tool names to minimum required permission level
+ * Maps namespaced tool names to minimum required permission level
  */
 export const TOOL_PERMISSION_LEVELS: Record<string, PermissionLevel> = {
   // ==========================================================================
-  // Xero Tools
+  // Xero Tools (namespaced)
   // ==========================================================================
 
   // Level 0: Read-only
-  get_invoices: 0,
-  get_aged_receivables: 0,
-  get_aged_payables: 0,
-  get_profit_and_loss: 0,
-  get_balance_sheet: 0,
-  get_bank_accounts: 0,
-  get_bank_transactions: 0,
-  get_contacts: 0,
-  search_contacts: 0,
-  get_organisation: 0,
-  list_accounts: 0,
+  "xero:get_invoices": 0,
+  "xero:get_aged_receivables": 0,
+  "xero:get_aged_payables": 0,
+  "xero:get_profit_and_loss": 0,
+  "xero:get_balance_sheet": 0,
+  "xero:get_bank_accounts": 0,
+  "xero:get_bank_transactions": 0,
+  "xero:get_contacts": 0,
+  "xero:search_contacts": 0,
+  "xero:get_organisation": 0,
+  "xero:list_accounts": 0,
 
   // Level 1: Create drafts
-  create_invoice_draft: 1,
-  create_contact: 1,
-  create_credit_note_draft: 1,
+  "xero:create_invoice_draft": 1,
+  "xero:create_contact": 1,
+  "xero:create_credit_note_draft": 1,
 
   // Level 2: Approve/Update
-  approve_invoice: 2,
-  update_invoice: 2,
-  update_contact: 2,
-  record_payment: 2,
+  "xero:approve_invoice": 2,
+  "xero:update_invoice": 2,
+  "xero:update_contact": 2,
+  "xero:record_payment": 2,
 
   // Level 3: Delete/Void (IRREVERSIBLE in Xero)
-  void_invoice: 3,
-  delete_draft_invoice: 3,
-  delete_contact: 3,
+  "xero:void_invoice": 3,
+  "xero:delete_draft_invoice": 3,
+  "xero:delete_contact": 3,
 
   // ==========================================================================
-  // Gmail Tools (read-only for now)
+  // Gmail Tools (read-only for now, namespaced)
   // ==========================================================================
 
-  search_gmail: 0,
-  get_email_content: 0,
-  download_attachment: 0,
-  list_email_attachments: 0,
+  "gmail:search_gmail": 0,
+  "gmail:get_email_content": 0,
+  "gmail:download_attachment": 0,
+  "gmail:list_email_attachments": 0,
 
   // ==========================================================================
-  // Google Sheets Tools
+  // Google Sheets Tools (namespaced)
   // ==========================================================================
 
   // Level 0: Read-only
-  read_sheet_range: 0,
-  get_sheet_metadata: 0,
-  search_spreadsheets: 0,
-  list_sheets: 0,
-  get_spreadsheet_revisions: 0,
+  "google_sheets:read_sheet_range": 0,
+  "google_sheets:get_sheet_metadata": 0,
+  "google_sheets:search_spreadsheets": 0,
+  "google_sheets:list_sheets": 0,
+  "google_sheets:get_spreadsheet_revisions": 0,
 
   // Level 1: Write/Create (reversible via version history)
-  write_sheet_range: 1,
-  append_sheet_rows: 1,
-  update_cell: 1,
-  create_spreadsheet: 1,
-  add_sheet: 1,
-  clear_range: 1,
+  "google_sheets:write_sheet_range": 1,
+  "google_sheets:append_sheet_rows": 1,
+  "google_sheets:update_cell": 1,
+  "google_sheets:create_spreadsheet": 1,
+  "google_sheets:add_sheet": 1,
+  "google_sheets:clear_range": 1,
 
   // Level 2: Delete (recoverable via trash/version history)
-  delete_sheet: 2,
-  delete_rows: 2,
-  delete_columns: 2,
-  trash_spreadsheet: 2,
+  "google_sheets:delete_sheet": 2,
+  "google_sheets:delete_rows": 2,
+  "google_sheets:delete_columns": 2,
+  "google_sheets:trash_spreadsheet": 2,
 
   // NOTE: Level 3 not exposed for Google Sheets (no permanent_delete tools)
 };
 
 /**
- * Tool categories for display purposes
+ * Tool categories for display purposes (namespaced)
  */
 export const TOOL_CATEGORIES: Record<string, string> = {
-  // Xero
-  get_invoices: "invoices",
-  get_aged_receivables: "invoices",
-  get_aged_payables: "invoices",
-  get_profit_and_loss: "reports",
-  get_balance_sheet: "reports",
-  get_bank_accounts: "banking",
-  get_bank_transactions: "banking",
-  get_contacts: "contacts",
-  search_contacts: "contacts",
-  get_organisation: "organisation",
-  list_accounts: "accounts",
-  create_invoice_draft: "invoices",
-  create_contact: "contacts",
-  create_credit_note_draft: "invoices",
-  approve_invoice: "invoices",
-  update_invoice: "invoices",
-  update_contact: "contacts",
-  record_payment: "payments",
-  void_invoice: "invoices",
-  delete_draft_invoice: "invoices",
-  delete_contact: "contacts",
+  // Xero (namespaced)
+  "xero:get_invoices": "xero:invoices",
+  "xero:get_aged_receivables": "xero:invoices",
+  "xero:get_aged_payables": "xero:invoices",
+  "xero:get_profit_and_loss": "xero:reports",
+  "xero:get_balance_sheet": "xero:reports",
+  "xero:get_bank_accounts": "xero:banking",
+  "xero:get_bank_transactions": "xero:banking",
+  "xero:get_contacts": "xero:contacts",
+  "xero:search_contacts": "xero:contacts",
+  "xero:get_organisation": "xero:organisation",
+  "xero:list_accounts": "xero:accounts",
+  "xero:create_invoice_draft": "xero:invoices",
+  "xero:create_contact": "xero:contacts",
+  "xero:create_credit_note_draft": "xero:invoices",
+  "xero:approve_invoice": "xero:invoices",
+  "xero:update_invoice": "xero:invoices",
+  "xero:update_contact": "xero:contacts",
+  "xero:record_payment": "xero:payments",
+  "xero:void_invoice": "xero:invoices",
+  "xero:delete_draft_invoice": "xero:invoices",
+  "xero:delete_contact": "xero:contacts",
 
-  // Gmail
-  search_gmail: "gmail",
-  get_email_content: "gmail",
-  download_attachment: "gmail",
-  list_email_attachments: "gmail",
+  // Gmail (namespaced)
+  "gmail:search_gmail": "gmail:search",
+  "gmail:get_email_content": "gmail:search",
+  "gmail:download_attachment": "gmail:attachments",
+  "gmail:list_email_attachments": "gmail:attachments",
 
-  // Google Sheets
-  read_sheet_range: "sheets",
-  get_sheet_metadata: "sheets",
-  search_spreadsheets: "sheets",
-  list_sheets: "sheets",
-  get_spreadsheet_revisions: "sheets",
-  write_sheet_range: "sheets",
-  append_sheet_rows: "sheets",
-  update_cell: "sheets",
-  create_spreadsheet: "sheets",
-  add_sheet: "sheets",
-  clear_range: "sheets",
-  delete_sheet: "sheets",
-  delete_rows: "sheets",
-  delete_columns: "sheets",
-  trash_spreadsheet: "sheets",
+  // Google Sheets (namespaced)
+  "google_sheets:read_sheet_range": "google_sheets:data",
+  "google_sheets:get_sheet_metadata": "google_sheets:data",
+  "google_sheets:search_spreadsheets": "google_sheets:files",
+  "google_sheets:list_sheets": "google_sheets:data",
+  "google_sheets:get_spreadsheet_revisions": "google_sheets:files",
+  "google_sheets:write_sheet_range": "google_sheets:data",
+  "google_sheets:append_sheet_rows": "google_sheets:data",
+  "google_sheets:update_cell": "google_sheets:data",
+  "google_sheets:create_spreadsheet": "google_sheets:files",
+  "google_sheets:add_sheet": "google_sheets:data",
+  "google_sheets:clear_range": "google_sheets:data",
+  "google_sheets:delete_sheet": "google_sheets:data",
+  "google_sheets:delete_rows": "google_sheets:data",
+  "google_sheets:delete_columns": "google_sheets:data",
+  "google_sheets:trash_spreadsheet": "google_sheets:files",
 };
 
 /**
- * Entity types for snapshots
+ * Entity types for snapshots (namespaced)
  */
 export const TOOL_ENTITY_TYPES: Record<string, string> = {
-  // Xero
-  create_invoice_draft: "invoice",
-  create_contact: "contact",
-  create_credit_note_draft: "credit_note",
-  approve_invoice: "invoice",
-  update_invoice: "invoice",
-  update_contact: "contact",
-  record_payment: "payment",
-  void_invoice: "invoice",
-  delete_draft_invoice: "invoice",
-  delete_contact: "contact",
+  // Xero (namespaced)
+  "xero:create_invoice_draft": "invoice",
+  "xero:create_contact": "contact",
+  "xero:create_credit_note_draft": "credit_note",
+  "xero:approve_invoice": "invoice",
+  "xero:update_invoice": "invoice",
+  "xero:update_contact": "contact",
+  "xero:record_payment": "payment",
+  "xero:void_invoice": "invoice",
+  "xero:delete_draft_invoice": "invoice",
+  "xero:delete_contact": "contact",
 
-  // Google Sheets
-  write_sheet_range: "spreadsheet",
-  append_sheet_rows: "spreadsheet",
-  update_cell: "spreadsheet",
-  create_spreadsheet: "spreadsheet",
-  add_sheet: "sheet",
-  clear_range: "spreadsheet",
-  delete_sheet: "sheet",
-  delete_rows: "spreadsheet",
-  delete_columns: "spreadsheet",
-  trash_spreadsheet: "spreadsheet",
+  // Google Sheets (namespaced)
+  "google_sheets:write_sheet_range": "spreadsheet",
+  "google_sheets:append_sheet_rows": "spreadsheet",
+  "google_sheets:update_cell": "spreadsheet",
+  "google_sheets:create_spreadsheet": "spreadsheet",
+  "google_sheets:add_sheet": "sheet",
+  "google_sheets:clear_range": "spreadsheet",
+  "google_sheets:delete_sheet": "sheet",
+  "google_sheets:delete_rows": "spreadsheet",
+  "google_sheets:delete_columns": "spreadsheet",
+  "google_sheets:trash_spreadsheet": "spreadsheet",
 };
 
 export interface PermissionCheckResult {

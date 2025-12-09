@@ -6,6 +6,7 @@
  */
 
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { ProviderToolDefinition } from "../types/tools.js";
 import {
   getGmailClient,
   searchGmail,
@@ -16,10 +17,13 @@ import {
 } from "../services/gmail.js";
 
 // Tool definitions for the registry
-export const gmailToolDefinitions = [
+export const gmailToolDefinitions: ProviderToolDefinition[] = [
   {
-    category: "gmail",
-    name: "search_gmail",
+    provider: "gmail",
+    providerType: "email",
+    category: "search",
+    name: "gmail:search_gmail",
+    shortName: "search_gmail",
     description: `Search Gmail for emails. Uses Gmail query syntax:
 - from:sender@example.com - From specific sender
 - subject:invoice - Subject contains word
@@ -45,8 +49,11 @@ Examples: "from:supplier@dental.com has:attachment filename:pdf after:2025/01/01
     },
   },
   {
-    category: "gmail",
-    name: "get_email_content",
+    provider: "gmail",
+    providerType: "email",
+    category: "search",
+    name: "gmail:get_email_content",
+    shortName: "get_email_content",
     description: "Get full content of a specific email including body text and attachment list",
     inputSchema: {
       type: "object" as const,
@@ -60,8 +67,11 @@ Examples: "from:supplier@dental.com has:attachment filename:pdf after:2025/01/01
     },
   },
   {
-    category: "gmail",
-    name: "download_attachment",
+    provider: "gmail",
+    providerType: "email",
+    category: "attachments",
+    name: "gmail:download_attachment",
+    shortName: "download_attachment",
     description: "Download an email attachment. Returns base64-encoded data.",
     inputSchema: {
       type: "object" as const,
@@ -79,8 +89,11 @@ Examples: "from:supplier@dental.com has:attachment filename:pdf after:2025/01/01
     },
   },
   {
-    category: "gmail",
-    name: "list_email_attachments",
+    provider: "gmail",
+    providerType: "email",
+    category: "attachments",
+    name: "gmail:list_email_attachments",
+    shortName: "list_email_attachments",
     description: "List all attachments from emails matching a search query",
     inputSchema: {
       type: "object" as const,

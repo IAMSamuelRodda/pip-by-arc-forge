@@ -27,15 +27,27 @@ import {
   CallToolResult,
 } from "@modelcontextprotocol/sdk/types.js";
 
-// Import tool handlers
+// Import tool handlers and services
 import * as xeroTools from "./handlers/xero-tools.js";
 import { getXeroStatus } from "./services/xero.js";
 import { memoryToolDefinitions, executeMemoryTool } from "./handlers/memory-tools.js";
 import { gmailToolDefinitions, executeGmailTool } from "./handlers/gmail-tools.js";
 import { sheetsToolDefinitions, executeSheetsTools } from "./handlers/sheets-tools.js";
 import { guideToolDefinitions, executeGuideTool } from "./handlers/guide-tools.js";
+import { xeroToolDefinitions } from "./handlers/xero-tool-defs.js";
 import { getMemoryManager } from "./services/memory.js";
 import * as safetyService from "./services/safety.js";
+
+// Import provider-aware types and services
+import type { ProviderToolDefinition } from "./types/tools.js";
+import { toMcpTool } from "./types/tools.js";
+import {
+  getConnectedProviders,
+  filterToolsByConnection,
+  resolveToolName,
+  getCategories,
+  formatCandidateTools,
+} from "./services/providers.js";
 
 // ===========================================
 // Authentication Error Messages
@@ -180,209 +192,71 @@ Use get_tools_in_category to discover tools, then execute_tool to run them.
 - delete_entities, delete_observations, delete_relations: Remove memories`;
 
 // ===========================================
-// Lazy-Loading Tool Registry
-// Tools organized by category for context efficiency
+// Provider-Aware Tool Registry
+// Tools organized by provider and category, filtered by connection status
 // ===========================================
 
-interface ToolDefinition extends Tool {
-  category: string;
+// All available tools from all providers
+const allProviderTools: ProviderToolDefinition[] = [
+  // Xero (accounting provider)
+  ...xeroToolDefinitions,
+  // Gmail (email provider)
+  ...gmailToolDefinitions,
+  // Google Sheets (spreadsheet provider)
+  ...sheetsToolDefinitions,
+  // System tools (always available)
+  ...memoryToolDefinitions,
+  ...guideToolDefinitions,
+];
+
+/**
+ * Build dynamic meta-tools based on connected providers
+ * Categories are namespaced: "xero:invoices", "google_sheets:data", "memory", "help"
+ */
+function buildMetaTools(visibleTools: ProviderToolDefinition[]): Tool[] {
+  const categoryInfo = getCategories(visibleTools);
+  const categoryNames = categoryInfo.map((c) => c.category);
+  const categoryOverview = categoryInfo
+    .map((c) => `${c.displayName} (${c.toolCount})`)
+    .join(", ");
+
+  return [
+    {
+      name: "get_tools_in_category",
+      description: `Get available tools by category. Categories: ${categoryOverview}. Call this first to discover what tools are available, then use execute_tool to run them.`,
+      inputSchema: {
+        type: "object",
+        properties: {
+          category: {
+            type: "string",
+            enum: categoryNames,
+            description: "The category of tools to list (e.g., 'xero:invoices', 'google_sheets:data', 'memory')",
+          },
+        },
+        required: ["category"],
+      },
+    },
+    {
+      name: "execute_tool",
+      description:
+        "Execute a tool by name. Use full name (e.g., 'xero:get_invoices') or short name if unambiguous. First use get_tools_in_category to discover available tools.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          tool_name: {
+            type: "string",
+            description: "The tool name - full (xero:get_invoices) or short (get_invoices) if only one provider has it",
+          },
+          arguments: {
+            type: "object",
+            description: "Arguments to pass to the tool",
+          },
+        },
+        required: ["tool_name"],
+      },
+    },
+  ];
 }
-
-// Tool registry with categories
-const toolRegistry: ToolDefinition[] = [
-  // INVOICES category
-  {
-    category: "invoices",
-    name: "get_invoices",
-    description: "Get invoices from Xero. Use status 'AUTHORISED' for unpaid, 'PAID' for paid.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        status: {
-          type: "string",
-          enum: ["DRAFT", "AUTHORISED", "PAID", "VOIDED"],
-          description: "Filter by status. AUTHORISED = unpaid, PAID = paid",
-        },
-        limit: { type: "number", description: "Max invoices to return (default: 10)" },
-      },
-    },
-  },
-  {
-    category: "invoices",
-    name: "get_aged_receivables",
-    description: "Get aged receivables - who owes you money and how overdue",
-    inputSchema: {
-      type: "object",
-      properties: {
-        date: { type: "string", description: "Date for aging (YYYY-MM-DD), defaults to today" },
-      },
-    },
-  },
-  {
-    category: "invoices",
-    name: "get_aged_payables",
-    description: "Get aged payables - who you owe money to and how overdue",
-    inputSchema: {
-      type: "object",
-      properties: {
-        date: { type: "string", description: "Date for aging (YYYY-MM-DD), defaults to today" },
-      },
-    },
-  },
-
-  // REPORTS category
-  {
-    category: "reports",
-    name: "get_profit_and_loss",
-    description: "Get profit & loss report for a date range",
-    inputSchema: {
-      type: "object",
-      properties: {
-        fromDate: { type: "string", description: "Start date (YYYY-MM-DD)" },
-        toDate: { type: "string", description: "End date (YYYY-MM-DD)" },
-      },
-    },
-  },
-  {
-    category: "reports",
-    name: "get_balance_sheet",
-    description: "Get balance sheet as of a specific date",
-    inputSchema: {
-      type: "object",
-      properties: {
-        date: { type: "string", description: "Date (YYYY-MM-DD), defaults to today" },
-      },
-    },
-  },
-
-  // BANKING category
-  {
-    category: "banking",
-    name: "get_bank_accounts",
-    description: "Get bank accounts and their current balances",
-    inputSchema: { type: "object", properties: {} },
-  },
-  {
-    category: "banking",
-    name: "get_bank_transactions",
-    description: "Get recent bank transactions",
-    inputSchema: {
-      type: "object",
-      properties: {
-        limit: { type: "number", description: "Max transactions to return (default: 10)" },
-      },
-    },
-  },
-
-  // CONTACTS category
-  {
-    category: "contacts",
-    name: "get_contacts",
-    description: "Get customers and suppliers",
-    inputSchema: {
-      type: "object",
-      properties: {
-        limit: { type: "number", description: "Max contacts to return (default: 10)" },
-      },
-    },
-  },
-  {
-    category: "contacts",
-    name: "search_contacts",
-    description: "Search for a customer or supplier by name",
-    inputSchema: {
-      type: "object",
-      properties: {
-        searchTerm: { type: "string", description: "Name to search for" },
-      },
-      required: ["searchTerm"],
-    },
-  },
-
-  // ORGANISATION category
-  {
-    category: "organisation",
-    name: "get_organisation",
-    description: "Get company details from Xero",
-    inputSchema: { type: "object", properties: {} },
-  },
-
-  // ACCOUNTS category
-  {
-    category: "accounts",
-    name: "list_accounts",
-    description: "Get chart of accounts. Optionally filter by account type (BANK, CURRENT, EXPENSE, REVENUE, etc.)",
-    inputSchema: {
-      type: "object",
-      properties: {
-        accountType: {
-          type: "string",
-          description: "Optional: Filter by account type (BANK, CURRENT, CURRLIAB, FIXED, LIABILITY, EQUITY, DEPRECIATN, DIRECTCOSTS, EXPENSE, REVENUE, SALES, OTHERINCOME, OVERHEADS)",
-        },
-      },
-    },
-  },
-
-  // MEMORY category - Knowledge Graph (imported from memory-tools.ts)
-  // Cast via unknown to handle stricter SDK type requirements for nested schemas
-  ...(memoryToolDefinitions as unknown as ToolDefinition[]),
-
-  // GMAIL category - Email integration (imported from gmail-tools.ts)
-  ...(gmailToolDefinitions as unknown as ToolDefinition[]),
-
-  // SHEETS category - Google Sheets integration (imported from sheets-tools.ts)
-  ...(sheetsToolDefinitions as unknown as ToolDefinition[]),
-
-  // HELP category - Pip guide/documentation (imported from guide-tools.ts)
-  ...(guideToolDefinitions as unknown as ToolDefinition[]),
-];
-
-// Get unique categories with tool counts
-const categories = [...new Set(toolRegistry.map((t) => t.category))];
-const categoryOverview = categories
-  .map((cat) => {
-    const tools = toolRegistry.filter((t) => t.category === cat);
-    return `${cat} (${tools.length} tools)`;
-  })
-  .join(", ");
-
-// Meta-tools for lazy loading (only these are exposed initially)
-const metaTools: Tool[] = [
-  {
-    name: "get_tools_in_category",
-    description: `Get available Xero tools by category. Categories: ${categoryOverview}. Call this first to discover what tools are available, then use execute_tool to run them.`,
-    inputSchema: {
-      type: "object",
-      properties: {
-        category: {
-          type: "string",
-          enum: categories,
-          description: "The category of tools to list",
-        },
-      },
-      required: ["category"],
-    },
-  },
-  {
-    name: "execute_tool",
-    description:
-      "Execute a Xero tool by name. First use get_tools_in_category to discover available tools and their parameters.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        tool_name: {
-          type: "string",
-          description: "The name of the tool to execute (e.g., 'get_invoices')",
-        },
-        arguments: {
-          type: "object",
-          description: "Arguments to pass to the tool",
-        },
-      },
-      required: ["tool_name"],
-    },
-  },
-];
 
 // Prompts for Pip personality
 const prompts: Prompt[] = [
@@ -436,7 +310,17 @@ function createMcpServer(userId?: string): Server {
   );
 
   // List available tools (only meta-tools for lazy loading)
+  // Dynamic based on connected providers
   server.setRequestHandler(ListToolsRequestSchema, async () => {
+    // Get connected providers for this user
+    const connectedProviders = userId ? await getConnectedProviders(userId) : [];
+
+    // Filter tools to only those from connected providers (system tools always included)
+    const visibleTools = filterToolsByConnection(allProviderTools, connectedProviders);
+
+    // Build meta-tools with dynamic categories
+    const metaTools = buildMetaTools(visibleTools);
+
     return { tools: metaTools };
   });
 
@@ -466,22 +350,35 @@ function createMcpServer(userId?: string): Server {
     throw new Error(`Unknown prompt: ${name}`);
   });
 
-  // Handle tool calls with lazy-loading support
+  // Handle tool calls with lazy-loading and provider-aware resolution
   server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToolResult> => {
     const { name, arguments: args } = request.params;
     console.log(`[Tool Call] ${name} with args:`, JSON.stringify(args));
 
-    // Meta-tool: get_tools_in_category (filter based on permission level)
+    // Get connected providers for this user
+    const connectedProviders = userId ? await getConnectedProviders(userId) : [];
+    const visibleTools = filterToolsByConnection(allProviderTools, connectedProviders);
+    const categoryInfo = getCategories(visibleTools);
+
+    // Meta-tool: get_tools_in_category (filter based on connection and permission level)
     if (name === "get_tools_in_category") {
       const category = (args as { category: string }).category;
-      let categoryTools = toolRegistry.filter((t) => t.category === category);
+
+      // Find tools in this category (handles namespaced categories like "xero:invoices")
+      let categoryTools = visibleTools.filter((t) => {
+        const toolCategory = t.provider === "system"
+          ? t.category
+          : `${t.provider}:${t.category}`;
+        return toolCategory === category;
+      });
 
       if (categoryTools.length === 0) {
+        const availableCategories = categoryInfo.map((c) => c.category).join(", ");
         return {
           content: [
             {
               type: "text",
-              text: `Unknown category: ${category}. Available categories: ${categories.join(", ")}`,
+              text: `Unknown category: ${category}. Available categories: ${availableCategories}`,
             },
           ],
           isError: true,
@@ -513,6 +410,7 @@ function createMcpServer(userId?: string): Server {
       // Return tool definitions for this category
       const toolList = categoryTools.map((t) => ({
         name: t.name,
+        shortName: t.shortName,
         description: t.description,
         parameters: t.inputSchema,
       }));
@@ -525,7 +423,7 @@ function createMcpServer(userId?: string): Server {
               {
                 category,
                 tools: toolList,
-                usage: "Use execute_tool with tool_name and arguments to run these tools",
+                usage: "Use execute_tool with tool_name (full or short name) and arguments to run these tools",
               },
               null,
               2
@@ -535,40 +433,50 @@ function createMcpServer(userId?: string): Server {
       };
     }
 
-    // Meta-tool: execute_tool
+    // Meta-tool: execute_tool (with smart name resolution)
     if (name === "execute_tool") {
       const { tool_name, arguments: toolArgs } = args as {
         tool_name: string;
         arguments?: Record<string, unknown>;
       };
 
-      // Verify tool exists in registry
-      const tool = toolRegistry.find((t) => t.name === tool_name);
-      if (!tool) {
+      // Resolve tool name (supports both full and short names)
+      const resolution = resolveToolName(tool_name, allProviderTools, connectedProviders);
+
+      if (!resolution.resolved) {
+        // Handle ambiguous names with helpful error
+        if (resolution.candidates) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `${resolution.error}\n${formatCandidateTools(resolution.candidates)}`,
+              },
+            ],
+            isError: true,
+          };
+        }
         return {
           content: [
             {
               type: "text",
-              text: `Unknown tool: ${tool_name}. Use get_tools_in_category first to discover available tools.`,
+              text: resolution.error || `Unknown tool: ${tool_name}`,
             },
           ],
           isError: true,
         };
       }
 
-      // Check if this is a memory, Gmail, Sheets, or help tool (doesn't require Xero auth)
-      const isMemoryTool = tool.category === "memory";
-      const isGmailTool = tool.category === "gmail";
-      const isSheetsTool = tool.category === "sheets";
-      const isHelpTool = tool.category === "help";
+      const tool = resolution.tool!;
+      const { provider, shortName } = tool;
 
       // Help tools don't require authentication - they're just documentation
-      if (isHelpTool) {
-        console.log(`[Execute] Help tool: ${tool_name}`);
-        return await executeGuideTool(tool_name, toolArgs || {});
+      if (tool.category === "help") {
+        console.log(`[Execute] Help tool: ${shortName}`);
+        return await executeGuideTool(shortName, toolArgs || {});
       }
 
-      // Check if user is authenticated
+      // Check if user is authenticated (required for non-help tools)
       if (!userId) {
         return {
           content: [
@@ -581,20 +489,20 @@ function createMcpServer(userId?: string): Server {
         };
       }
 
-      // Execute the actual tool
+      // Execute the tool based on provider
       try {
-        if (isMemoryTool) {
-          console.log(`[Execute] Memory tool: ${tool_name}`);
-          return await executeMemoryTool(userId!, tool_name, toolArgs || {});
-        } else if (isGmailTool) {
-          console.log(`[Execute] Gmail tool: ${tool_name}`);
-          return await executeGmailTool(userId!, tool_name, toolArgs || {});
-        } else if (isSheetsTool) {
+        if (provider === "system" && tool.category === "memory") {
+          console.log(`[Execute] Memory tool: ${shortName}`);
+          return await executeMemoryTool(userId, shortName, toolArgs || {});
+        } else if (provider === "gmail") {
+          console.log(`[Execute] Gmail tool: ${shortName}`);
+          return await executeGmailTool(userId, shortName, toolArgs || {});
+        } else if (provider === "google_sheets") {
           // Check permission level for Sheets tools
-          console.log(`[Execute] Checking permissions for Sheets tool: ${tool_name}`);
-          const permissionCheck = await safetyService.checkToolPermission(userId!, tool_name);
+          console.log(`[Execute] Checking permissions for Sheets tool: ${tool.name}`);
+          const permissionCheck = await safetyService.checkToolPermission(userId, tool.name);
           if (!permissionCheck.allowed) {
-            console.log(`[Execute] Permission denied for ${tool_name}`);
+            console.log(`[Execute] Permission denied for ${tool.name}`);
             return {
               content: [
                 {
@@ -605,14 +513,14 @@ function createMcpServer(userId?: string): Server {
               isError: true,
             };
           }
-          console.log(`[Execute] Sheets tool: ${tool_name}`);
-          return await executeSheetsTools(userId!, tool_name, toolArgs || {});
-        } else {
+          console.log(`[Execute] Sheets tool: ${shortName}`);
+          return await executeSheetsTools(userId, shortName, toolArgs || {});
+        } else if (provider === "xero") {
           // Check permission level for Xero tools
-          console.log(`[Execute] Checking permissions for Xero tool: ${tool_name}`);
-          const permissionCheck = await safetyService.checkToolPermission(userId!, tool_name);
+          console.log(`[Execute] Checking permissions for Xero tool: ${tool.name}`);
+          const permissionCheck = await safetyService.checkToolPermission(userId, tool.name);
           if (!permissionCheck.allowed) {
-            console.log(`[Execute] Permission denied for ${tool_name}`);
+            console.log(`[Execute] Permission denied for ${tool.name}`);
             return {
               content: [
                 {
@@ -624,18 +532,28 @@ function createMcpServer(userId?: string): Server {
             };
           }
 
-          console.log(`[Execute] Executing Xero tool: ${tool_name}`);
-          const result = await executeXeroTool(userId!, tool_name, toolArgs || {});
-          console.log(`[Execute] Xero tool ${tool_name} completed successfully`);
+          console.log(`[Execute] Executing Xero tool: ${shortName}`);
+          const result = await executeXeroTool(userId, shortName, toolArgs || {});
+          console.log(`[Execute] Xero tool ${shortName} completed successfully`);
           return result;
+        } else {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Provider "${provider}" is not yet implemented`,
+              },
+            ],
+            isError: true,
+          };
         }
       } catch (error) {
-        console.error(`[Execute] Error executing ${tool_name}:`, error);
+        console.error(`[Execute] Error executing ${tool.name}:`, error);
         return {
           content: [
             {
               type: "text",
-              text: `Error executing ${tool_name}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              text: `Error executing ${tool.name}: ${error instanceof Error ? error.message : 'Unknown error'}`,
             },
           ],
           isError: true,

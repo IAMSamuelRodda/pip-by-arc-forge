@@ -6,6 +6,7 @@
  */
 
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { ProviderToolDefinition } from "../types/tools.js";
 import {
   getSheetsClient,
   isSheetsConnected,
@@ -27,13 +28,16 @@ import {
 } from "../services/sheets.js";
 
 // Tool definitions for the registry
-export const sheetsToolDefinitions = [
+export const sheetsToolDefinitions: ProviderToolDefinition[] = [
   // ==========================================================================
   // Level 0: Read-only tools
   // ==========================================================================
   {
-    category: "sheets",
-    name: "read_sheet_range",
+    provider: "google_sheets",
+    providerType: "spreadsheet",
+    category: "data",
+    name: "google_sheets:read_sheet_range",
+    shortName: "read_sheet_range",
     description: `Read data from a Google Sheets range. Returns cell values as a 2D array.
 Examples:
 - "Sheet1!A1:D10" - Read cells A1 to D10 from Sheet1
@@ -56,8 +60,11 @@ Examples:
     },
   },
   {
-    category: "sheets",
-    name: "get_sheet_metadata",
+    provider: "google_sheets",
+    providerType: "spreadsheet",
+    category: "data",
+    name: "google_sheets:get_sheet_metadata",
+    shortName: "get_sheet_metadata",
     description: "Get metadata about a spreadsheet including its title, URL, and list of sheets (tabs)",
     inputSchema: {
       type: "object" as const,
@@ -71,8 +78,11 @@ Examples:
     },
   },
   {
-    category: "sheets",
-    name: "search_spreadsheets",
+    provider: "google_sheets",
+    providerType: "spreadsheet",
+    category: "files",
+    name: "google_sheets:search_spreadsheets",
+    shortName: "search_spreadsheets",
     description: "Search for spreadsheets by name in Google Drive",
     inputSchema: {
       type: "object" as const,
@@ -90,8 +100,11 @@ Examples:
     },
   },
   {
-    category: "sheets",
-    name: "list_sheets",
+    provider: "google_sheets",
+    providerType: "spreadsheet",
+    category: "data",
+    name: "google_sheets:list_sheets",
+    shortName: "list_sheets",
     description: "List all sheets (tabs) in a spreadsheet with their properties",
     inputSchema: {
       type: "object" as const,
@@ -105,8 +118,11 @@ Examples:
     },
   },
   {
-    category: "sheets",
-    name: "get_spreadsheet_revisions",
+    provider: "google_sheets",
+    providerType: "spreadsheet",
+    category: "files",
+    name: "google_sheets:get_spreadsheet_revisions",
+    shortName: "get_spreadsheet_revisions",
     description: "Get revision history for a spreadsheet (who modified it and when)",
     inputSchema: {
       type: "object" as const,
@@ -128,8 +144,11 @@ Examples:
   // Level 1: Write/Create tools (reversible via version history)
   // ==========================================================================
   {
-    category: "sheets",
-    name: "write_sheet_range",
+    provider: "google_sheets",
+    providerType: "spreadsheet",
+    category: "data",
+    name: "google_sheets:write_sheet_range",
+    shortName: "write_sheet_range",
     description: `Write data to a Google Sheets range. Overwrites existing data.
 Values should be a 2D array matching the target range dimensions.
 Example: [["Name", "Age"], ["Alice", 30], ["Bob", 25]]`,
@@ -164,8 +183,11 @@ Example: [["Name", "Age"], ["Alice", 30], ["Bob", 25]]`,
     },
   },
   {
-    category: "sheets",
-    name: "append_sheet_rows",
+    provider: "google_sheets",
+    providerType: "spreadsheet",
+    category: "data",
+    name: "google_sheets:append_sheet_rows",
+    shortName: "append_sheet_rows",
     description: `Append rows to the end of a sheet's data. Automatically finds the last row.
 Values should be a 2D array of rows to append.`,
     inputSchema: {
@@ -199,8 +221,11 @@ Values should be a 2D array of rows to append.`,
     },
   },
   {
-    category: "sheets",
-    name: "update_cell",
+    provider: "google_sheets",
+    providerType: "spreadsheet",
+    category: "data",
+    name: "google_sheets:update_cell",
+    shortName: "update_cell",
     description: "Update a single cell value",
     inputSchema: {
       type: "object" as const,
@@ -227,8 +252,11 @@ Values should be a 2D array of rows to append.`,
     },
   },
   {
-    category: "sheets",
-    name: "create_spreadsheet",
+    provider: "google_sheets",
+    providerType: "spreadsheet",
+    category: "files",
+    name: "google_sheets:create_spreadsheet",
+    shortName: "create_spreadsheet",
     description: "Create a new Google Spreadsheet",
     inputSchema: {
       type: "object" as const,
@@ -247,8 +275,11 @@ Values should be a 2D array of rows to append.`,
     },
   },
   {
-    category: "sheets",
-    name: "add_sheet",
+    provider: "google_sheets",
+    providerType: "spreadsheet",
+    category: "data",
+    name: "google_sheets:add_sheet",
+    shortName: "add_sheet",
     description: "Add a new sheet (tab) to an existing spreadsheet",
     inputSchema: {
       type: "object" as const,
@@ -266,8 +297,11 @@ Values should be a 2D array of rows to append.`,
     },
   },
   {
-    category: "sheets",
-    name: "clear_range",
+    provider: "google_sheets",
+    providerType: "spreadsheet",
+    category: "data",
+    name: "google_sheets:clear_range",
+    shortName: "clear_range",
     description: "Clear all values from a range (keeps formatting)",
     inputSchema: {
       type: "object" as const,
@@ -289,8 +323,11 @@ Values should be a 2D array of rows to append.`,
   // Level 2: Delete tools (recoverable via trash/version history)
   // ==========================================================================
   {
-    category: "sheets",
-    name: "delete_sheet",
+    provider: "google_sheets",
+    providerType: "spreadsheet",
+    category: "data",
+    name: "google_sheets:delete_sheet",
+    shortName: "delete_sheet",
     description: "Delete a sheet (tab) from a spreadsheet. Cannot be undone directly.",
     inputSchema: {
       type: "object" as const,
@@ -308,8 +345,11 @@ Values should be a 2D array of rows to append.`,
     },
   },
   {
-    category: "sheets",
-    name: "delete_rows",
+    provider: "google_sheets",
+    providerType: "spreadsheet",
+    category: "data",
+    name: "google_sheets:delete_rows",
+    shortName: "delete_rows",
     description: "Delete rows from a sheet. Uses 0-based indexing.",
     inputSchema: {
       type: "object" as const,
@@ -335,8 +375,11 @@ Values should be a 2D array of rows to append.`,
     },
   },
   {
-    category: "sheets",
-    name: "delete_columns",
+    provider: "google_sheets",
+    providerType: "spreadsheet",
+    category: "data",
+    name: "google_sheets:delete_columns",
+    shortName: "delete_columns",
     description: "Delete columns from a sheet. Uses 0-based indexing.",
     inputSchema: {
       type: "object" as const,
@@ -362,8 +405,11 @@ Values should be a 2D array of rows to append.`,
     },
   },
   {
-    category: "sheets",
-    name: "trash_spreadsheet",
+    provider: "google_sheets",
+    providerType: "spreadsheet",
+    category: "files",
+    name: "google_sheets:trash_spreadsheet",
+    shortName: "trash_spreadsheet",
     description: "Move a spreadsheet to trash. Can be recovered from Drive trash within 30 days.",
     inputSchema: {
       type: "object" as const,
