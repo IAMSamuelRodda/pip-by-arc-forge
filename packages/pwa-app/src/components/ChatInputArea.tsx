@@ -184,7 +184,7 @@ function ToolsMenu({ isOpen, onClose, currentStyle, styles, onStyleChange, butto
     <>
       <div className="fixed inset-0 z-10" onClick={onClose} />
       <div
-        className={`absolute left-0 w-64 bg-arc-bg-secondary border border-arc-border rounded-lg shadow-xl z-20 max-h-[400px] overflow-y-auto ${
+        className={`absolute left-0 w-64 bg-arc-bg-secondary border border-arc-border rounded-lg shadow-xl z-50 max-h-[400px] overflow-y-auto ${
           openUpward ? 'bottom-full mb-2' : 'top-full mt-2'
         }`}
       >
