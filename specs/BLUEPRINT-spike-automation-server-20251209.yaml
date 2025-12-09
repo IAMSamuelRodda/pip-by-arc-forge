@@ -1,0 +1,493 @@
+# Automation Server Integration Spike
+# Generated: 2025-12-09
+# Purpose: Investigate n8n/Make/Zapier integration for email-to-Xero workflows
+
+type: spike
+name: automation-server-integration
+status: draft
+complexity: 3.5  # Medium-High - multiple integration patterns, security considerations
+
+# ============================================================================
+# Executive Summary
+# ============================================================================
+
+summary: |
+  Investigate integrating automation servers (n8n, Make, Zapier) with Pip to enable
+  workflows like "automatically upload email attachments to Xero as receipts".
+
+  Primary use case: User forwards receipt emails → automation extracts attachment →
+  uploads to Xero as bill/expense attachment.
+
+  Key decision: Self-hosted n8n vs cloud Make.com vs expose Pip API for external automations
+
+  Context: Current Pip MCP tools can:
+  - Search and read emails (gmail.*)
+  - Download attachments (base64)
+  - Create Xero drafts (with permission level 1+)
+
+  Gap: No automated triggers or scheduled workflows
+
+# ============================================================================
+# Research Questions
+# ============================================================================
+
+questions:
+  architecture_choice:
+    - question: "Should Pip integrate WITH automation servers or BECOME an automation server?"
+      hypothesis: "Integrate with n8n - don't reinvent workflows"
+      options:
+        option_a_integrate:
+          description: "Pip exposes API, n8n orchestrates workflows"
+          pros: ["Leverage n8n's workflow builder", "Users can customize", "Less code to maintain"]
+          cons: ["Requires n8n deployment", "Two systems to manage"]
+
+        option_b_built_in:
+          description: "Pip has built-in automation rules"
+          pros: ["Single system", "Simpler for users"]
+          cons: ["Reinventing n8n", "Limited flexibility", "Scope creep"]
+
+        option_c_hybrid:
+          description: "Simple rules in Pip, complex workflows in n8n"
+          pros: ["Best of both", "Progressive complexity"]
+          cons: ["Two implementations", "Unclear boundary"]
+
+    - question: "Which automation platform to target?"
+      hypothesis: "n8n - self-hosted, open source, MCP support emerging"
+      options:
+        n8n:
+          description: "Self-hosted automation platform"
+          pros: ["Open source", "Self-hostable", "No per-workflow costs", "Active development"]
+          cons: ["Requires deployment", "Learning curve"]
+          note: "n8n has emerging MCP support via community nodes"
+
+        make_com:
+          description: "Cloud automation (formerly Integromat)"
+          pros: ["No hosting", "Visual builder", "Many integrations"]
+          cons: ["Paid plans", "Data leaves your infra", "No MCP support"]
+
+        zapier:
+          description: "Market leader cloud automation"
+          pros: ["Most integrations", "Simple UX"]
+          cons: ["Expensive", "Limited customization", "No MCP support"]
+
+  integration_patterns:
+    - question: "How would n8n trigger actions in Pip?"
+      hypothesis: "HTTP webhook → Pip API endpoints"
+      patterns:
+        webhook_trigger:
+          description: "n8n sends HTTP request to Pip API"
+          flow: "n8n workflow → HTTP Request node → Pip /api/automation/*"
+          authentication: "API key or OAuth token"
+
+        mcp_integration:
+          description: "n8n calls Pip MCP tools directly"
+          flow: "n8n workflow → MCP node → Pip MCP server"
+          note: "Requires n8n MCP support (emerging)"
+          status: "experimental"
+
+    - question: "What Pip API endpoints are needed for automation?"
+      hypothesis: "Minimal set for email→Xero workflows"
+      endpoints_needed:
+        - name: "/api/automation/upload-attachment"
+          description: "Upload email attachment to Xero document"
+          params: ["messageId", "attachmentId", "xeroDocumentType", "xeroEntityId?"]
+
+        - name: "/api/automation/create-expense"
+          description: "Create Xero expense from email"
+          params: ["emailContent", "attachmentId?", "amount?", "account?"]
+
+        - name: "/api/automation/match-receipt"
+          description: "Match receipt to existing Xero transaction"
+          params: ["attachmentId", "searchCriteria"]
+
+  security:
+    - question: "How to secure automation API endpoints?"
+      hypothesis: "API keys with scope restrictions"
+      options:
+        api_keys:
+          description: "Generate API keys for automation access"
+          pros: ["Simple", "Revocable", "Standard pattern"]
+          cons: ["Key management", "No user context"]
+
+        service_account:
+          description: "Dedicated user account for automation"
+          pros: ["Full audit trail", "Reuses existing auth"]
+          cons: ["License concerns", "Overkill?"]
+
+        oauth_m2m:
+          description: "OAuth machine-to-machine flow"
+          pros: ["Standard", "Token rotation"]
+          cons: ["Complex setup"]
+
+# ============================================================================
+# Use Case Deep Dive: Email Receipt → Xero
+# ============================================================================
+
+primary_use_case:
+  name: "Email Receipt to Xero Attachment"
+  description: "Automatically process receipt emails and attach to Xero transactions"
+
+  trigger_options:
+    email_forward:
+      description: "User forwards receipt to special email address"
+      setup: "receipts@pip.arcforge.au → n8n webhook"
+      pros: ["Simple user action", "Works from any device"]
+      cons: ["Requires email routing setup"]
+
+    gmail_filter:
+      description: "Gmail filter triggers on receipt keywords"
+      setup: "n8n polls Gmail or uses push notification"
+      pros: ["Automatic", "No user action"]
+      cons: ["May catch false positives"]
+
+    manual_trigger:
+      description: "User clicks 'Process' button in Pip"
+      setup: "Pip UI → n8n webhook"
+      pros: ["User control", "Explicit consent"]
+      cons: ["Not automated"]
+
+  workflow_steps:
+    step_1_receive:
+      action: "n8n receives email (forward/poll/webhook)"
+      data: ["email subject", "sender", "body", "attachments"]
+
+    step_2_extract:
+      action: "n8n extracts receipt data"
+      options:
+        - "OCR via n8n node (Tesseract, Google Vision)"
+        - "LLM extraction via Pip (Claude analyzes image)"
+        - "Manual review in n8n"
+      data: ["vendor", "amount", "date", "items"]
+
+    step_3_match:
+      action: "Find matching Xero transaction"
+      options:
+        - "Search by amount + date"
+        - "Search by vendor name"
+        - "Create new expense if no match"
+      note: "Pip API: /api/automation/match-receipt"
+
+    step_4_attach:
+      action: "Upload attachment to Xero"
+      api: "Pip /api/automation/upload-attachment"
+      xero_api: "POST /api.xro/2.0/Invoices/{id}/Attachments/{filename}"
+
+    step_5_notify:
+      action: "Notify user of result"
+      options:
+        - "Pip notification"
+        - "Email confirmation"
+        - "Slack message"
+
+# ============================================================================
+# n8n Integration Architecture
+# ============================================================================
+
+n8n_architecture:
+  deployment:
+    option_a_colocated:
+      description: "n8n runs alongside Pip on same VPS"
+      docker_compose: |
+        services:
+          n8n:
+            image: n8nio/n8n
+            ports:
+              - "5678:5678"
+            environment:
+              - WEBHOOK_URL=https://n8n.pip.arcforge.au
+            volumes:
+              - n8n-data:/home/node/.n8n
+      pros: ["Single server", "Local network calls"]
+      cons: ["Resource sharing", "Coupling"]
+
+    option_b_separate:
+      description: "n8n on separate server/cloud"
+      pros: ["Isolation", "Independent scaling"]
+      cons: ["Network latency", "Two deployments"]
+
+    option_c_n8n_cloud:
+      description: "Use n8n.cloud hosted service"
+      pros: ["No hosting", "Managed"]
+      cons: ["Monthly cost", "Data leaves infra"]
+
+  pip_api_for_n8n:
+    base_url: "https://app.pip.arcforge.au/api/automation"
+    authentication:
+      type: "API Key"
+      header: "X-Automation-Key"
+      generation: "Settings page → Automation → Generate API Key"
+
+    endpoints:
+      - path: "/upload-to-xero"
+        method: "POST"
+        description: "Upload file to Xero entity"
+        body:
+          file: "base64 encoded file content"
+          filename: "receipt.pdf"
+          mimeType: "application/pdf"
+          entityType: "invoice|bill|expense|bankTransaction"
+          entityId: "Xero entity ID (optional - creates new if omitted)"
+        response:
+          attachmentId: "Xero attachment ID"
+          entityId: "Xero entity ID"
+
+      - path: "/create-expense"
+        method: "POST"
+        description: "Create Xero expense with optional attachment"
+        body:
+          description: "Expense description"
+          amount: 123.45
+          accountCode: "400"  # Expense account
+          attachment: "base64 file (optional)"
+          filename: "receipt.pdf"
+        response:
+          expenseId: "Xero expense ID"
+
+      - path: "/search-transactions"
+        method: "GET"
+        description: "Search Xero transactions for receipt matching"
+        params:
+          amount: "123.45"
+          date: "2025-12-09"
+          vendor: "partial match"
+        response:
+          matches: [{ id, date, amount, contact, description }]
+
+  n8n_workflow_template:
+    name: "Email Receipt to Xero"
+    nodes:
+      - type: "n8n-nodes-base.emailReadImap"
+        name: "Watch Receipts Inbox"
+        parameters:
+          mailbox: "INBOX/Receipts"
+
+      - type: "n8n-nodes-base.httpRequest"
+        name: "Upload to Pip"
+        parameters:
+          method: "POST"
+          url: "https://app.pip.arcforge.au/api/automation/upload-to-xero"
+          headers:
+            X-Automation-Key: "={{ $env.PIP_API_KEY }}"
+          body:
+            file: "={{ $binary.attachment_0.data }}"
+            filename: "={{ $binary.attachment_0.fileName }}"
+            mimeType: "={{ $binary.attachment_0.mimeType }}"
+            entityType: "expense"
+
+# ============================================================================
+# Alternative: Built-in Simple Rules
+# ============================================================================
+
+built_in_alternative:
+  description: "If n8n is too complex, consider simple built-in rules"
+
+  rule_types:
+    email_rule:
+      trigger: "Email matches filter"
+      filter:
+        from: "*@uber.com"
+        subject: "contains 'receipt'"
+      action: "Create draft expense with attachment"
+
+    scheduled_rule:
+      trigger: "Daily at 9am"
+      action: "Process unread receipts folder"
+
+  implementation:
+    database:
+      table: "automation_rules"
+      columns:
+        - id
+        - user_id
+        - rule_type (email|scheduled)
+        - trigger_config (JSON)
+        - action_type (create_expense|attach_receipt)
+        - action_config (JSON)
+        - enabled
+        - created_at
+
+    execution:
+      - "Background job processes rules"
+      - "Uses existing Gmail tools to check emails"
+      - "Uses existing Xero tools to create entities"
+
+  pros: ["Single system", "Simple UX", "No n8n learning curve"]
+  cons: ["Limited flexibility", "Maintenance burden", "Feature creep"]
+
+# ============================================================================
+# MCP Automation Tools (Expose via MCP)
+# ============================================================================
+
+mcp_automation_tools:
+  description: "Expose automation actions as MCP tools for LLM orchestration"
+
+  tools:
+    - name: "automation.process_receipt_email"
+      description: "Process an email as a receipt and create/attach to Xero"
+      parameters:
+        messageId: "Gmail message ID"
+        action: "create_expense | attach_to_existing"
+        xeroEntityId: "If attaching to existing (optional)"
+      flow:
+        - "Download email attachments"
+        - "Extract receipt data (Claude)"
+        - "Create expense or attach to entity"
+        - "Return result"
+
+    - name: "automation.bulk_process_receipts"
+      description: "Process multiple receipt emails"
+      parameters:
+        query: "Gmail search query"
+        limit: "Max emails to process"
+        dryRun: "Preview without creating"
+
+  benefit: |
+    Users can say "Process my receipt emails from this week" and Claude
+    orchestrates the workflow using MCP tools - no n8n needed for simple cases.
+
+# ============================================================================
+# Security Considerations
+# ============================================================================
+
+security:
+  api_key_management:
+    generation: "Cryptographically secure random token"
+    storage: "Hashed in database (like passwords)"
+    scopes:
+      - "automation:read" - Read-only access
+      - "automation:write" - Create/update access
+      - "automation:delete" - Delete access (dangerous)
+    rotation: "Users can regenerate keys"
+    revocation: "Immediate invalidation"
+
+  rate_limiting:
+    per_key: "100 requests/minute"
+    per_user: "1000 requests/hour"
+    note: "Prevent runaway automation loops"
+
+  audit_logging:
+    log_fields:
+      - "timestamp"
+      - "api_key_id"
+      - "endpoint"
+      - "entity_created"
+      - "ip_address"
+    retention: "90 days"
+
+  xero_permissions:
+    note: "Automation respects user's connector permission level"
+    example: "If user set Xero to Read-Only, automation can't create expenses"
+
+# ============================================================================
+# Investigation Plan
+# ============================================================================
+
+investigation:
+  phase_1_research:
+    duration: "2-3 hours"
+    tasks:
+      - title: "Evaluate n8n MCP support"
+        steps:
+          - "Check n8n community for MCP nodes"
+          - "Test n8n-nodes-mcp if available"
+          - "Assess maturity and reliability"
+
+      - title: "Design Pip automation API"
+        steps:
+          - "Define endpoint contracts"
+          - "Plan authentication mechanism"
+          - "Consider rate limiting"
+
+      - title: "Prototype n8n workflow"
+        steps:
+          - "Deploy n8n locally"
+          - "Create email → HTTP workflow"
+          - "Test with mock Pip endpoint"
+
+  phase_2_implementation:
+    duration: "4-6 hours"
+    tasks:
+      - title: "Create automation routes in Pip server"
+        files:
+          - "packages/server/src/routes/automation.ts"
+          - "packages/server/src/middleware/automation-auth.ts"
+
+      - title: "Create API key management"
+        ui: "Settings page → Automation section"
+        database: "automation_api_keys table"
+
+      - title: "Implement upload-to-xero endpoint"
+        xero_api: "Attachments endpoint"
+        validation: "File size, type, entity exists"
+
+  phase_3_integration:
+    duration: "2-3 hours"
+    tasks:
+      - title: "Create n8n workflow template"
+        export: "JSON workflow for users to import"
+
+      - title: "Document setup process"
+        guide: "docs/AUTOMATION-SETUP.md"
+
+      - title: "Test end-to-end"
+        scenario: "Forward receipt → n8n → Pip → Xero"
+
+# ============================================================================
+# Success Criteria
+# ============================================================================
+
+success_criteria:
+  spike_complete:
+    - "n8n MCP support evaluated"
+    - "Pip automation API designed"
+    - "Prototype workflow demonstrated"
+    - "Go/no-go decision on implementation"
+
+  decision_factors:
+    go:
+      - "n8n integration is practical"
+      - "Security model is sound"
+      - "User value is clear"
+    no_go:
+      - "Too complex for target users"
+      - "Security risks outweigh benefits"
+      - "Better alternatives exist (built-in rules)"
+
+# ============================================================================
+# Dependencies
+# ============================================================================
+
+dependencies:
+  existing:
+    - "Gmail tools (email access)"
+    - "Xero tools (entity creation)"
+    - "OAuth token storage"
+    - "Connector permissions"
+
+  new:
+    - "API key table + management"
+    - "Automation routes"
+    - "n8n deployment (optional)"
+
+# ============================================================================
+# Timeline Estimate
+# ============================================================================
+
+timeline:
+  spike_investigation: "1 day"
+  prototype_if_go: "2-3 days"
+  production_ready: "1 week (including n8n setup guide)"
+
+# ============================================================================
+# References
+# ============================================================================
+
+references:
+  - name: "n8n Documentation"
+    url: "https://docs.n8n.io/"
+  - name: "n8n MCP Community Node"
+    url: "https://github.com/n8n-io/n8n/discussions" # Search for MCP
+  - name: "Xero Attachments API"
+    url: "https://developer.xero.com/documentation/api/accounting/attachments"
+  - name: "Make.com (Integromat)"
+    url: "https://www.make.com/"

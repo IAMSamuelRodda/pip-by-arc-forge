@@ -34,6 +34,7 @@ import { memoryToolDefinitions, executeMemoryTool } from "./handlers/memory-tool
 import { gmailToolDefinitions, executeGmailTool } from "./handlers/gmail-tools.js";
 import { sheetsToolDefinitions, executeSheetsTools } from "./handlers/sheets-tools.js";
 import { guideToolDefinitions, executeGuideTool } from "./handlers/guide-tools.js";
+import { calculatorToolDefinitions, executeCalculatorTool } from "./handlers/calculator-tools.js";
 import { xeroToolDefinitions } from "./handlers/xero-tool-defs.js";
 import { getMemoryManager } from "./services/memory.js";
 import * as safetyService from "./services/safety.js";
@@ -207,6 +208,8 @@ const allProviderTools: ProviderToolDefinition[] = [
   // System tools (always available)
   ...memoryToolDefinitions,
   ...guideToolDefinitions,
+  // Calculator tools (always available - math, GST, BAS, super)
+  ...calculatorToolDefinitions,
 ];
 
 /**
@@ -494,6 +497,9 @@ function createMcpServer(userId?: string): Server {
         if (provider === "system" && tool.category === "memory") {
           console.log(`[Execute] Memory tool: ${shortName}`);
           return await executeMemoryTool(userId, shortName, toolArgs || {});
+        } else if (provider === "calc") {
+          console.log(`[Execute] Calculator tool: ${shortName}`);
+          return await executeCalculatorTool(shortName, toolArgs || {});
         } else if (provider === "gmail") {
           console.log(`[Execute] Gmail tool: ${shortName}`);
           return await executeGmailTool(userId, shortName, toolArgs || {});

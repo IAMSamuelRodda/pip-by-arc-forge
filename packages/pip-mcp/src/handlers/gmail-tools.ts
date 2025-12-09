@@ -72,7 +72,8 @@ Examples: "from:supplier@dental.com has:attachment filename:pdf after:2025/01/01
     category: "attachments",
     name: "gmail:download_attachment",
     shortName: "download_attachment",
-    description: "Download an email attachment. Returns base64-encoded data.",
+    description:
+      "Download an email attachment. For images (PNG, JPG, GIF, WebP), returns viewable image content. For other files, returns base64-encoded data. Max size: 1MB.",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -245,9 +246,9 @@ export async function executeGmailTool(
         };
       }
 
-      // For large attachments, just return metadata
-      if (attachment.size > 1024 * 1024) {
-        // > 1MB
+      // Size limit: 1MB (Claude Desktop limitation)
+      const MAX_SIZE = 1024 * 1024;
+      if (attachment.size > MAX_SIZE) {
         return {
           content: [
             {
@@ -258,8 +259,8 @@ export async function executeGmailTool(
                   mimeType: attachment.mimeType,
                   size: attachment.size,
                   sizeFormatted: `${(attachment.size / 1024 / 1024).toFixed(2)} MB`,
-                  note: "Attachment too large to include. Use the base64 data for processing if needed.",
-                  dataPreview: attachment.data.substring(0, 1000) + "...",
+                  note: "Attachment exceeds 1MB limit. Cannot be displayed or processed inline.",
+                  suggestion: "For large files, consider downloading via email client or automation workflow.",
                 },
                 null,
                 2
@@ -269,6 +270,28 @@ export async function executeGmailTool(
         };
       }
 
+      // Check if this is an image type that Claude can display
+      const imageTypes = ["image/png", "image/jpeg", "image/jpg", "image/gif", "image/webp"];
+      const isImage = imageTypes.includes(attachment.mimeType.toLowerCase());
+
+      if (isImage) {
+        // Return ImageContent so Claude can actually see the image
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Image attachment: ${attachment.filename} (${(attachment.size / 1024).toFixed(1)} KB)`,
+            },
+            {
+              type: "image",
+              data: attachment.data, // base64 encoded
+              mimeType: attachment.mimeType,
+            },
+          ],
+        };
+      }
+
+      // For non-image files, return as JSON with base64 data
       return {
         content: [
           {
@@ -278,7 +301,9 @@ export async function executeGmailTool(
                 filename: attachment.filename,
                 mimeType: attachment.mimeType,
                 size: attachment.size,
+                sizeFormatted: `${(attachment.size / 1024).toFixed(1)} KB`,
                 data: attachment.data, // base64 encoded
+                note: "Non-image attachment. Base64 data included for processing.",
               },
               null,
               2

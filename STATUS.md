@@ -3,7 +3,7 @@
 > **Purpose**: Current state snapshot (2-week rolling window)
 > **Lifecycle**: Living (update daily/weekly during active development)
 
-**Last Updated**: 2025-12-09
+**Last Updated**: 2025-12-10
 **Current Phase**: Milestone 2 Implementation (Epic 2.1-2.3 complete)
 **Version**: 0.4.0-dev
 
@@ -37,7 +37,22 @@
 
 **Objective**: Implement Milestone 2 - User Experience & Personality (v0.4.0)
 
-### Just Completed (2025-12-09)
+### Just Completed (2025-12-10)
+
+1. **Spike: Automation Server Integration** ✅ CREATED
+   - n8n vs Make.com vs Zapier comparison
+   - API design: `/api/automation/upload-to-xero`, `/create-expense`, `/search-transactions`
+   - Primary use case: Email receipt → Xero attachment workflow
+   - Security: API keys with scopes, rate limiting, audit logging
+   - Blueprint: `specs/BLUEPRINT-spike-automation-server-20251209.yaml`
+
+2. **Gmail Attachment Image Viewing** ✅ COMPLETE
+   - `download_attachment` now returns `ImageContent` for images (PNG, JPG, GIF, WebP)
+   - Claude can see and analyze image attachments directly
+   - 1MB size limit with helpful messaging
+   - Non-images still return base64 JSON for processing
+
+### Previously Completed (2025-12-09)
 
 1. **Settings Page Rework for Per-Connector Permissions** ✅ COMPLETE
    - Centralized OAuth: Moved Google Sheets OAuth from MCP to main server
