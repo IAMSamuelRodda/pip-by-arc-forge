@@ -251,10 +251,11 @@ const toolRegistry: ToolDefinition[] = [
   },
 
   // MEMORY category - Knowledge Graph (imported from memory-tools.ts)
-  ...memoryToolDefinitions,
+  // Cast via unknown to handle stricter SDK type requirements for nested schemas
+  ...(memoryToolDefinitions as unknown as ToolDefinition[]),
 
   // GMAIL category - Email integration (imported from gmail-tools.ts)
-  ...gmailToolDefinitions,
+  ...(gmailToolDefinitions as unknown as ToolDefinition[]),
 ];
 
 // Get unique categories with tool counts
