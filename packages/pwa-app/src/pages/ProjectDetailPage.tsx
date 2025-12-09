@@ -11,6 +11,7 @@ import { useChatStore } from '../store/chatStore';
 import { projectApi } from '../api/client';
 import { MainLayout } from '../components/MainLayout';
 import { ChatInputArea } from '../components/ChatInputArea';
+import { ProjectDetailSidebar } from '../components/ProjectDetailSidebar';
 
 // ============================================================================
 // Icons
@@ -25,13 +26,6 @@ const ChevronLeftIcon = () => (
 const ChatsIcon = () => (
   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-  </svg>
-);
-
-const SettingsIcon = () => (
-  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="12" r="3" />
-    <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
   </svg>
 );
 
@@ -77,9 +71,7 @@ export function ProjectDetailPage() {
 
   const [projectChats, setProjectChats] = useState<ProjectChat[]>([]);
   const [isLoadingChats, setIsLoadingChats] = useState(true);
-  const [showSettings, setShowSettings] = useState(false);
   const [instructions, setInstructions] = useState('');
-  const [isSavingInstructions, setIsSavingInstructions] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState('');
   const [editedDescription, setEditedDescription] = useState('');
@@ -157,19 +149,17 @@ export function ProjectDetailPage() {
     navigate('/');
   };
 
-  // Handle saving instructions
-  const handleSaveInstructions = async () => {
+  // Handle saving instructions (called from sidebar)
+  const handleSaveInstructions = async (newInstructions: string) => {
     if (!projectId) return;
 
-    setIsSavingInstructions(true);
     try {
-      await projectApi.updateProject(projectId, { instructions: instructions.trim() });
+      await projectApi.updateProject(projectId, { instructions: newInstructions.trim() });
       // Refresh projects to get updated data
       await loadProjects();
+      setInstructions(newInstructions);
     } catch (err) {
       console.error('Failed to save instructions:', err);
-    } finally {
-      setIsSavingInstructions(false);
     }
   };
 
@@ -281,17 +271,6 @@ export function ProjectDetailPage() {
                   <EditIcon />
                 </button>
                 <button
-                  onClick={() => setShowSettings(!showSettings)}
-                  className={`p-2 rounded transition-colors ${
-                    showSettings
-                      ? 'bg-arc-accent/20 text-arc-accent'
-                      : 'text-arc-text-dim hover:text-arc-text-secondary hover:bg-arc-bg-tertiary'
-                  }`}
-                  title="Project settings"
-                >
-                  <SettingsIcon />
-                </button>
-                <button
                   onClick={handleDeleteProject}
                   className="p-2 text-arc-text-dim hover:text-red-400 hover:bg-arc-bg-tertiary rounded transition-colors"
                   title="Delete project"
@@ -303,93 +282,76 @@ export function ProjectDetailPage() {
           )}
         </div>
 
-        {/* Settings Panel (collapsible) */}
-        {showSettings && (
-          <div className="px-6 py-4 border-b border-arc-border bg-arc-bg-secondary">
-            <div className="max-w-2xl">
-              <h3 className="text-sm font-medium text-arc-text-primary mb-2">Project Instructions</h3>
-              <p className="text-xs text-arc-text-dim mb-3">
-                Custom instructions for Pip when chatting in this project context.
-              </p>
-              <textarea
-                value={instructions}
-                onChange={(e) => setInstructions(e.target.value)}
-                placeholder="E.g., 'Focus on accounts for Business X. Always use AUD currency.'"
-                className="w-full h-24 px-3 py-2 bg-arc-bg-tertiary border border-arc-border rounded-lg text-sm text-arc-text-primary placeholder-arc-text-dim focus:border-arc-accent focus:outline-none resize-none"
-              />
-              <div className="flex justify-end mt-2">
-                <button
-                  onClick={handleSaveInstructions}
-                  disabled={isSavingInstructions}
-                  className="px-3 py-1.5 bg-arc-accent text-arc-bg-primary text-sm rounded-lg hover:bg-arc-accent-dim disabled:opacity-50 transition-colors"
-                >
-                  {isSavingInstructions ? 'Saving...' : 'Save Instructions'}
-                </button>
+        {/* Main Content with Sidebar */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Main Content Area */}
+          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+            {/* Chat Input - creates project-scoped chat */}
+            <div className="px-6 py-4 border-b border-arc-border">
+              <div className="max-w-2xl mx-auto">
+                <ChatInputArea
+                  value={chatInputValue}
+                  onChange={setChatInputValue}
+                  onSubmit={(message) => {
+                    handleNewProjectChat(message);
+                    setChatInputValue('');
+                  }}
+                  placeholder={`Ask Pip about ${project.name}...`}
+                  isLoading={false}
+                />
+              </div>
+            </div>
+
+            {/* Project Chats */}
+            <div className="flex-1 overflow-y-auto">
+              <div className="px-6 py-3">
+                <div className="flex items-center gap-2 text-xs font-medium text-arc-text-dim uppercase tracking-wide mb-3">
+                  <ChatsIcon />
+                  <span>Chats in this project</span>
+                  <span className="text-arc-text-dim">({projectChats.length})</span>
+                </div>
+
+                {isLoadingChats ? (
+                  <div className="text-sm text-arc-text-dim py-4">Loading chats...</div>
+                ) : projectChats.length === 0 ? (
+                  <div className="text-sm text-arc-text-dim py-4 italic">
+                    No chats yet. Start one above!
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    {projectChats.map((chat) => (
+                      <button
+                        key={chat.sessionId}
+                        onClick={() => handleChatClick(chat.sessionId)}
+                        className="w-full text-left px-3 py-2 rounded-lg hover:bg-arc-bg-secondary transition-colors"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-arc-text-primary truncate flex-1">
+                            {chat.title}
+                          </span>
+                          <span className="text-xs text-arc-text-dim ml-2 flex-shrink-0">
+                            {formatDate(chat.updatedAt)}
+                          </span>
+                        </div>
+                        {chat.previewText && (
+                          <p className="text-xs text-arc-text-dim truncate mt-0.5">
+                            {chat.previewText}
+                          </p>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
-        )}
 
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Chat Input - creates project-scoped chat */}
-          <div className="px-6 py-4 border-b border-arc-border">
-            <div className="max-w-2xl mx-auto">
-              <ChatInputArea
-                value={chatInputValue}
-                onChange={setChatInputValue}
-                onSubmit={(message) => {
-                  handleNewProjectChat(message);
-                  setChatInputValue('');
-                }}
-                placeholder={`Ask Pip about ${project.name}...`}
-                isLoading={false}
-              />
-            </div>
-          </div>
-
-          {/* Project Chats */}
-          <div className="flex-1 overflow-y-auto">
-            <div className="px-6 py-3">
-              <div className="flex items-center gap-2 text-xs font-medium text-arc-text-dim uppercase tracking-wide mb-3">
-                <ChatsIcon />
-                <span>Chats in this project</span>
-                <span className="text-arc-text-dim">({projectChats.length})</span>
-              </div>
-
-              {isLoadingChats ? (
-                <div className="text-sm text-arc-text-dim py-4">Loading chats...</div>
-              ) : projectChats.length === 0 ? (
-                <div className="text-sm text-arc-text-dim py-4 italic">
-                  No chats yet. Start one above!
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  {projectChats.map((chat) => (
-                    <button
-                      key={chat.sessionId}
-                      onClick={() => handleChatClick(chat.sessionId)}
-                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-arc-bg-secondary transition-colors"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-arc-text-primary truncate flex-1">
-                          {chat.title}
-                        </span>
-                        <span className="text-xs text-arc-text-dim ml-2 flex-shrink-0">
-                          {formatDate(chat.updatedAt)}
-                        </span>
-                      </div>
-                      {chat.previewText && (
-                        <p className="text-xs text-arc-text-dim truncate mt-0.5">
-                          {chat.previewText}
-                        </p>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+          {/* Right Sidebar - Project Configuration */}
+          <ProjectDetailSidebar
+            projectId={projectId!}
+            instructions={instructions}
+            onInstructionsChange={handleSaveInstructions}
+          />
         </div>
       </div>
     </MainLayout>
