@@ -3,7 +3,7 @@
  * Used for "Move to Project" and "Remove from Project" actions
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useProjectStore } from '../store/projectStore';
 
 // ============================================================================
@@ -36,6 +36,13 @@ const HomeIcon = () => (
   </svg>
 );
 
+const SearchIcon = () => (
+  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="11" cy="11" r="8" />
+    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+  </svg>
+);
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -59,14 +66,25 @@ export function ProjectPicker({
 }: ProjectPickerProps) {
   const { projects, loadProjects } = useProjectStore();
   const [selectedId, setSelectedId] = useState<string | null>(currentProjectId || null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Load projects when modal opens
   useEffect(() => {
     if (isOpen) {
       loadProjects();
       setSelectedId(currentProjectId || null);
+      setSearchQuery(''); // Reset search when modal opens
     }
   }, [isOpen, currentProjectId, loadProjects]);
+
+  // Filter projects by search query
+  const filteredProjects = useMemo(() => {
+    if (!searchQuery.trim()) return projects;
+    const query = searchQuery.toLowerCase();
+    return projects.filter(project =>
+      project.name.toLowerCase().includes(query)
+    );
+  }, [projects, searchQuery]);
 
   // Handle backdrop click
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -105,6 +123,25 @@ export function ProjectPicker({
           </button>
         </div>
 
+        {/* Search */}
+        {projects.length > 3 && (
+          <div className="px-4 pt-3 pb-2">
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-arc-text-dim">
+                <SearchIcon />
+              </span>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search projects..."
+                className="w-full pl-10 pr-4 py-2 bg-arc-bg-tertiary border border-arc-border rounded-lg text-sm text-arc-text-primary placeholder-arc-text-dim focus:border-arc-accent focus:outline-none"
+                autoFocus
+              />
+            </div>
+          </div>
+        )}
+
         {/* Project List */}
         <div className="flex-1 overflow-y-auto p-2">
           {/* General (no project) option */}
@@ -122,37 +159,30 @@ export function ProjectPicker({
           </button>
 
           {/* Divider */}
-          {projects.length > 0 && (
+          {filteredProjects.length > 0 && (
             <div className="my-2 px-3">
               <div className="border-t border-arc-border" />
             </div>
           )}
 
           {/* Projects */}
-          {projects.length === 0 ? (
+          {filteredProjects.length === 0 ? (
             <div className="px-3 py-4 text-center text-sm text-arc-text-dim">
-              No projects yet
+              {searchQuery ? 'No projects match your search' : 'No projects yet'}
             </div>
           ) : (
-            projects.map((project) => (
+            filteredProjects.map((project) => (
               <button
                 key={project.id}
                 onClick={() => handleSelect(project.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
                   selectedId === project.id
                     ? 'bg-arc-accent/20 text-arc-accent'
                     : 'hover:bg-arc-bg-tertiary text-arc-text-primary'
                 }`}
               >
                 <FolderIcon />
-                <div className="flex-1 text-left">
-                  <div className="text-sm font-medium">{project.name}</div>
-                  {project.description && (
-                    <div className="text-xs text-arc-text-dim truncate">
-                      {project.description}
-                    </div>
-                  )}
-                </div>
+                <span className="flex-1 text-left text-sm font-medium">{project.name}</span>
                 {selectedId === project.id && <CheckIcon />}
               </button>
             ))
