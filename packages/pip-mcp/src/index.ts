@@ -1007,10 +1007,10 @@ const pendingOAuthFlows = new Map<string, {
  * Shows all available connectors with Connect/Disconnect buttons
  *
  * Can be accessed two ways:
- * 1. MCP OAuth flow: /integrations?flow={flowId} - has pending flow, redirects to caller on Done
- * 2. Standalone (PWA): /integrations?user={userId}&email={email} - creates temp flow, redirects to app on Done
+ * 1. MCP OAuth flow: /connectors?flow={flowId} - has pending flow, redirects to caller on Done
+ * 2. Standalone (PWA): /connectors?user={userId}&email={email} - creates temp flow, redirects to app on Done
  */
-app.get("/integrations", async (req: Request, res: Response) => {
+app.get("/connectors", async (req: Request, res: Response) => {
   const flowId = req.query.flow as string;
   const standaloneUserId = req.query.user as string;
   const standaloneEmail = req.query.email as string;
@@ -1067,7 +1067,7 @@ app.get("/integrations", async (req: Request, res: Response) => {
     pendingOAuthFlows.set(effectiveFlowId, flow);
 
     // Redirect to clean URL with flow parameter
-    res.redirect(`/integrations?flow=${effectiveFlowId}`);
+    res.redirect(`/connectors?flow=${effectiveFlowId}`);
     return;
   } else {
     res.status(400).send("Missing flow or user parameter");
@@ -1264,11 +1264,11 @@ app.get("/integrations", async (req: Request, res: Response) => {
         </div>
       </div>
       ${xeroTokens
-        ? `<form method="POST" action="/integrations/xero/disconnect" style="margin:0">
+        ? `<form method="POST" action="/connectors/xero/disconnect" style="margin:0">
              <input type="hidden" name="flowId" value="${flowId}">
              <button type="submit" class="connector-btn disconnect">Disconnect</button>
            </form>`
-        : `<form method="POST" action="/integrations/xero" style="margin:0">
+        : `<form method="POST" action="/connectors/xero" style="margin:0">
              <input type="hidden" name="flowId" value="${flowId}">
              <button type="submit" class="connector-btn connect">Connect</button>
            </form>`
@@ -1287,11 +1287,11 @@ app.get("/integrations", async (req: Request, res: Response) => {
         </div>
       </div>
       ${gmailTokens
-        ? `<form method="POST" action="/integrations/gmail/disconnect" style="margin:0">
+        ? `<form method="POST" action="/connectors/gmail/disconnect" style="margin:0">
              <input type="hidden" name="flowId" value="${flowId}">
              <button type="submit" class="connector-btn disconnect">Disconnect</button>
            </form>`
-        : `<form method="POST" action="/integrations/gmail" style="margin:0">
+        : `<form method="POST" action="/connectors/gmail" style="margin:0">
              <input type="hidden" name="flowId" value="${flowId}">
              <button type="submit" class="connector-btn connect">Connect</button>
            </form>`
@@ -1314,7 +1314,7 @@ app.get("/integrations", async (req: Request, res: Response) => {
 
     <div class="divider"></div>
 
-    <form method="POST" action="/integrations/complete">
+    <form method="POST" action="/connectors/complete">
       <input type="hidden" name="flowId" value="${effectiveFlowId}">
       <button type="submit" class="done-btn">Done</button>
     </form>
@@ -1336,7 +1336,7 @@ app.get("/integrations", async (req: Request, res: Response) => {
 /**
  * Start Xero OAuth from Connectors page
  */
-app.post("/integrations/xero", express.urlencoded({ extended: true }), (req: Request, res: Response) => {
+app.post("/connectors/xero", express.urlencoded({ extended: true }), (req: Request, res: Response) => {
   const { flowId } = req.body;
   const flow = pendingOAuthFlows.get(flowId);
 
@@ -1350,7 +1350,7 @@ app.post("/integrations/xero", express.urlencoded({ extended: true }), (req: Req
   // Build Xero OAuth URL
   const xeroAuthUrl = new URL("https://login.xero.com/identity/connect/authorize");
   xeroAuthUrl.searchParams.set("client_id", process.env.XERO_CLIENT_ID || "");
-  xeroAuthUrl.searchParams.set("redirect_uri", `${baseUrl}/integrations/xero/callback`);
+  xeroAuthUrl.searchParams.set("redirect_uri", `${baseUrl}/connectors/xero/callback`);
   xeroAuthUrl.searchParams.set("response_type", "code");
   xeroAuthUrl.searchParams.set("scope", "offline_access openid profile email accounting.transactions accounting.reports.read accounting.contacts.read accounting.settings.read");
   xeroAuthUrl.searchParams.set("state", flowId);
@@ -1362,14 +1362,14 @@ app.post("/integrations/xero", express.urlencoded({ extended: true }), (req: Req
 /**
  * Xero OAuth callback (from Connectors flow)
  */
-app.get("/integrations/xero/callback", async (req: Request, res: Response) => {
+app.get("/connectors/xero/callback", async (req: Request, res: Response) => {
   const { code, state: flowId, error } = req.query;
   const baseUrl = process.env.BASE_URL || "https://mcp.pip.arcforge.au";
 
   console.log("Xero OAuth callback (integrations):", { code: code ? "present" : "missing", flowId, error });
 
   if (error || !code) {
-    res.redirect(`/integrations?flow=${flowId}&error=xero`);
+    res.redirect(`/connectors?flow=${flowId}&error=xero`);
     return;
   }
 
@@ -1390,7 +1390,7 @@ app.get("/integrations/xero/callback", async (req: Request, res: Response) => {
       body: new URLSearchParams({
         grant_type: "authorization_code",
         code: code as string,
-        redirect_uri: `${baseUrl}/integrations/xero/callback`,
+        redirect_uri: `${baseUrl}/connectors/xero/callback`,
         client_id: process.env.XERO_CLIENT_ID || "",
         client_secret: process.env.XERO_CLIENT_SECRET || "",
       }),
@@ -1398,7 +1398,7 @@ app.get("/integrations/xero/callback", async (req: Request, res: Response) => {
 
     if (!tokenResponse.ok) {
       console.error("Xero token exchange failed:", await tokenResponse.text());
-      res.redirect(`/integrations?flow=${flowId}&error=xero`);
+      res.redirect(`/connectors?flow=${flowId}&error=xero`);
       return;
     }
 
@@ -1422,7 +1422,7 @@ app.get("/integrations/xero/callback", async (req: Request, res: Response) => {
     const tenant = tenants[0];
 
     if (!tenant) {
-      res.redirect(`/integrations?flow=${flowId}&error=xero`);
+      res.redirect(`/connectors?flow=${flowId}&error=xero`);
       return;
     }
 
@@ -1442,17 +1442,17 @@ app.get("/integrations/xero/callback", async (req: Request, res: Response) => {
     });
 
     console.log("Xero connected successfully:", tenant.tenantName);
-    res.redirect(`/integrations?flow=${flowId}&connected=xero`);
+    res.redirect(`/connectors?flow=${flowId}&connected=xero`);
   } catch (error) {
     console.error("Xero callback error:", error);
-    res.redirect(`/integrations?flow=${flowId}&error=xero`);
+    res.redirect(`/connectors?flow=${flowId}&error=xero`);
   }
 });
 
 /**
  * Disconnect Xero
  */
-app.post("/integrations/xero/disconnect", express.urlencoded({ extended: true }), async (req: Request, res: Response) => {
+app.post("/connectors/xero/disconnect", express.urlencoded({ extended: true }), async (req: Request, res: Response) => {
   const { flowId } = req.body;
   const flow = pendingOAuthFlows.get(flowId);
 
@@ -1466,17 +1466,17 @@ app.post("/integrations/xero/disconnect", express.urlencoded({ extended: true })
     const db = await getDb();
     await db.deleteOAuthTokens(flow.userId, "xero");
     console.log("Xero disconnected for user:", flow.userId);
-    res.redirect(`/integrations?flow=${flowId}&disconnected=xero`);
+    res.redirect(`/connectors?flow=${flowId}&disconnected=xero`);
   } catch (error) {
     console.error("Xero disconnect error:", error);
-    res.redirect(`/integrations?flow=${flowId}&error=disconnect`);
+    res.redirect(`/connectors?flow=${flowId}&error=disconnect`);
   }
 });
 
 /**
  * Start Gmail OAuth from Connectors page
  */
-app.post("/integrations/gmail", express.urlencoded({ extended: true }), (req: Request, res: Response) => {
+app.post("/connectors/gmail", express.urlencoded({ extended: true }), (req: Request, res: Response) => {
   const { flowId } = req.body;
   const flow = pendingOAuthFlows.get(flowId);
 
@@ -1490,7 +1490,7 @@ app.post("/integrations/gmail", express.urlencoded({ extended: true }), (req: Re
   // Build Google OAuth URL for Gmail
   const googleAuthUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
   googleAuthUrl.searchParams.set("client_id", process.env.GOOGLE_CLIENT_ID || "");
-  googleAuthUrl.searchParams.set("redirect_uri", `${baseUrl}/integrations/gmail/callback`);
+  googleAuthUrl.searchParams.set("redirect_uri", `${baseUrl}/connectors/gmail/callback`);
   googleAuthUrl.searchParams.set("response_type", "code");
   googleAuthUrl.searchParams.set("scope", "https://www.googleapis.com/auth/gmail.readonly openid email profile");
   googleAuthUrl.searchParams.set("access_type", "offline");
@@ -1504,14 +1504,14 @@ app.post("/integrations/gmail", express.urlencoded({ extended: true }), (req: Re
 /**
  * Gmail OAuth callback (from Connectors flow)
  */
-app.get("/integrations/gmail/callback", async (req: Request, res: Response) => {
+app.get("/connectors/gmail/callback", async (req: Request, res: Response) => {
   const { code, state: flowId, error } = req.query;
   const baseUrl = process.env.BASE_URL || "https://mcp.pip.arcforge.au";
 
   console.log("Gmail OAuth callback (integrations):", { code: code ? "present" : "missing", flowId, error });
 
   if (error || !code) {
-    res.redirect(`/integrations?flow=${flowId}&error=gmail`);
+    res.redirect(`/connectors?flow=${flowId}&error=gmail`);
     return;
   }
 
@@ -1532,7 +1532,7 @@ app.get("/integrations/gmail/callback", async (req: Request, res: Response) => {
       body: new URLSearchParams({
         grant_type: "authorization_code",
         code: code as string,
-        redirect_uri: `${baseUrl}/integrations/gmail/callback`,
+        redirect_uri: `${baseUrl}/connectors/gmail/callback`,
         client_id: process.env.GOOGLE_CLIENT_ID || "",
         client_secret: process.env.GOOGLE_CLIENT_SECRET || "",
       }),
@@ -1540,7 +1540,7 @@ app.get("/integrations/gmail/callback", async (req: Request, res: Response) => {
 
     if (!tokenResponse.ok) {
       console.error("Gmail token exchange failed:", await tokenResponse.text());
-      res.redirect(`/integrations?flow=${flowId}&error=gmail`);
+      res.redirect(`/connectors?flow=${flowId}&error=gmail`);
       return;
     }
 
@@ -1578,17 +1578,17 @@ app.get("/integrations/gmail/callback", async (req: Request, res: Response) => {
     });
 
     console.log("Gmail connected successfully:", userInfo.email);
-    res.redirect(`/integrations?flow=${flowId}&connected=gmail`);
+    res.redirect(`/connectors?flow=${flowId}&connected=gmail`);
   } catch (error) {
     console.error("Gmail callback error:", error);
-    res.redirect(`/integrations?flow=${flowId}&error=gmail`);
+    res.redirect(`/connectors?flow=${flowId}&error=gmail`);
   }
 });
 
 /**
  * Disconnect Gmail
  */
-app.post("/integrations/gmail/disconnect", express.urlencoded({ extended: true }), async (req: Request, res: Response) => {
+app.post("/connectors/gmail/disconnect", express.urlencoded({ extended: true }), async (req: Request, res: Response) => {
   const { flowId } = req.body;
   const flow = pendingOAuthFlows.get(flowId);
 
@@ -1602,10 +1602,10 @@ app.post("/integrations/gmail/disconnect", express.urlencoded({ extended: true }
     const db = await getDb();
     await db.deleteOAuthTokens(flow.userId, "gmail");
     console.log("Gmail disconnected for user:", flow.userId);
-    res.redirect(`/integrations?flow=${flowId}&disconnected=gmail`);
+    res.redirect(`/connectors?flow=${flowId}&disconnected=gmail`);
   } catch (error) {
     console.error("Gmail disconnect error:", error);
-    res.redirect(`/integrations?flow=${flowId}&error=disconnect`);
+    res.redirect(`/connectors?flow=${flowId}&error=disconnect`);
   }
 });
 
@@ -1614,7 +1614,7 @@ app.post("/integrations/gmail/disconnect", express.urlencoded({ extended: true }
  * - MCP flow: generates auth code and redirects to Claude.ai/ChatGPT
  * - Standalone flow: just redirects back to PWA app
  */
-app.post("/integrations/complete", express.urlencoded({ extended: true }), async (req: Request, res: Response) => {
+app.post("/connectors/complete", express.urlencoded({ extended: true }), async (req: Request, res: Response) => {
   const { flowId } = req.body;
   const flow = pendingOAuthFlows.get(flowId);
 
@@ -1988,7 +1988,7 @@ app.post("/oauth/authorize/submit", express.urlencoded({ extended: true }), asyn
     });
 
     // Store this submission for debounce protection
-    const integrationsUrl = `/integrations?flow=${flowId}`;
+    const integrationsUrl = `/connectors?flow=${flowId}`;
     recentOAuthSubmissions.set(submissionKey, {
       code: flowId, // Use flowId as the "code" for debounce tracking
       redirectUrl: integrationsUrl,
@@ -2101,7 +2101,7 @@ app.post("/oauth/register/submit", express.urlencoded({ extended: true }), async
     console.log("New user redirecting to Connectors. Flow ID:", flowId);
 
     // Redirect to Connectors page
-    res.redirect(`/integrations?flow=${flowId}`);
+    res.redirect(`/connectors?flow=${flowId}`);
   } catch (error) {
     console.error("OAuth registration error:", error);
     redirectWithError("server_error");

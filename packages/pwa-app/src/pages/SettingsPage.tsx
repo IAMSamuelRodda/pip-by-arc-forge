@@ -364,7 +364,7 @@ export function SettingsPage() {
               <button
                 onClick={() => {
                   const mcpUrl = import.meta.env.VITE_MCP_URL || 'https://mcp.pip.arcforge.au';
-                  window.location.href = `${mcpUrl}/integrations?user=${encodeURIComponent(user?.id || '')}&email=${encodeURIComponent(user?.email || '')}`;
+                  window.location.href = `${mcpUrl}/connectors?user=${encodeURIComponent(user?.id || '')}&email=${encodeURIComponent(user?.email || '')}`;
                 }}
                 className="w-full text-left p-4 rounded-xl bg-arc-bg-tertiary border border-arc-border hover:border-arc-accent/50 transition-all"
               >
