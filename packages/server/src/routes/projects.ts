@@ -36,7 +36,6 @@ export function createProjectRoutes(db: DatabaseProvider): Router {
           description: p.description,
           instructions: p.instructions,
           xeroTenantId: p.xeroTenantId,
-          isDefault: p.isDefault,
           chatCount: chatCounts.get(p.id) || 0,
           createdAt: p.createdAt,
           updatedAt: p.updatedAt,
@@ -54,7 +53,7 @@ export function createProjectRoutes(db: DatabaseProvider): Router {
   router.post('/', async (req, res, next) => {
     try {
       const userId = req.userId!;
-      const { name, description, xeroTenantId, isDefault } = req.body;
+      const { name, description, xeroTenantId } = req.body;
 
       if (typeof name !== 'string' || !name.trim()) {
         res.status(400).json({ error: 'Project name is required' });
@@ -66,7 +65,6 @@ export function createProjectRoutes(db: DatabaseProvider): Router {
         name: name.trim().substring(0, 100),
         description: description?.trim()?.substring(0, 500),
         xeroTenantId: xeroTenantId?.trim(),
-        isDefault: isDefault === true,
       });
 
       res.status(201).json({
@@ -74,7 +72,6 @@ export function createProjectRoutes(db: DatabaseProvider): Router {
         name: project.name,
         description: project.description,
         xeroTenantId: project.xeroTenantId,
-        isDefault: project.isDefault,
         createdAt: project.createdAt,
         updatedAt: project.updatedAt,
       });
@@ -108,7 +105,6 @@ export function createProjectRoutes(db: DatabaseProvider): Router {
         description: project.description,
         instructions: project.instructions,
         xeroTenantId: project.xeroTenantId,
-        isDefault: project.isDefault,
         chatCount,
         createdAt: project.createdAt,
         updatedAt: project.updatedAt,
@@ -126,7 +122,7 @@ export function createProjectRoutes(db: DatabaseProvider): Router {
     try {
       const userId = req.userId!;
       const { id: projectId } = req.params;
-      const { name, description, instructions, xeroTenantId, isDefault } = req.body;
+      const { name, description, instructions, xeroTenantId } = req.body;
 
       // Validate name if provided
       if (name !== undefined && (typeof name !== 'string' || !name.trim())) {
@@ -139,7 +135,6 @@ export function createProjectRoutes(db: DatabaseProvider): Router {
       if (description !== undefined) updates.description = description?.trim()?.substring(0, 500);
       if (instructions !== undefined) updates.instructions = instructions?.trim()?.substring(0, 5000);
       if (xeroTenantId !== undefined) updates.xeroTenantId = xeroTenantId?.trim();
-      if (isDefault !== undefined) updates.isDefault = isDefault === true;
 
       const updated = await db.updateProject(userId, projectId, updates);
 
@@ -149,7 +144,6 @@ export function createProjectRoutes(db: DatabaseProvider): Router {
         description: updated.description,
         instructions: updated.instructions,
         xeroTenantId: updated.xeroTenantId,
-        isDefault: updated.isDefault,
         createdAt: updated.createdAt,
         updatedAt: updated.updatedAt,
       });
@@ -171,41 +165,10 @@ export function createProjectRoutes(db: DatabaseProvider): Router {
       const userId = req.userId!;
       const { id: projectId } = req.params;
 
-      // Prevent deleting the last project
-      const projects = await db.listProjects(userId);
-      if (projects.length <= 1) {
-        res.status(400).json({ error: 'Cannot delete your only project' });
-        return;
-      }
-
       await db.deleteProject(userId, projectId);
 
       res.json({ success: true });
     } catch (error) {
-      next(error);
-    }
-  });
-
-  /**
-   * POST /api/projects/:id/set-default
-   * Set a project as the default
-   */
-  router.post('/:id/set-default', async (req, res, next) => {
-    try {
-      const userId = req.userId!;
-      const { id: projectId } = req.params;
-
-      const updated = await db.updateProject(userId, projectId, { isDefault: true });
-
-      res.json({
-        id: updated.id,
-        isDefault: updated.isDefault,
-      });
-    } catch (error: any) {
-      if (error.name === 'RecordNotFoundError') {
-        res.status(404).json({ error: 'Project not found' });
-        return;
-      }
       next(error);
     }
   });

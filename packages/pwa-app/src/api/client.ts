@@ -503,7 +503,6 @@ interface Project {
   name: string;
   description?: string;
   xeroTenantId?: string;
-  isDefault: boolean;
   instructions?: string;
   chatCount?: number;
   createdAt: number;
@@ -514,14 +513,12 @@ interface CreateProjectInput {
   name: string;
   description?: string;
   xeroTenantId?: string;
-  isDefault?: boolean;
 }
 
 interface UpdateProjectInput {
   name?: string;
   description?: string;
   xeroTenantId?: string;
-  isDefault?: boolean;
   instructions?: string;
 }
 
@@ -854,20 +851,6 @@ export const projectApi = {
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Delete failed' }));
       throw new Error(error.error || 'Failed to delete project');
-    }
-    return response.json();
-  },
-
-  /**
-   * Set a project as default
-   */
-  async setDefaultProject(projectId: string): Promise<{ id: string; isDefault: boolean }> {
-    const response = await fetch(`${API_BASE}/api/projects/${projectId}/set-default`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-    });
-    if (!response.ok) {
-      throw new Error('Failed to set default project');
     }
     return response.json();
   },

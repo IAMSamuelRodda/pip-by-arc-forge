@@ -182,7 +182,6 @@ export interface Project {
   description?: string;
   color?: string; // For UI badge (hex color)
   xeroTenantId?: string; // Optional: dedicated Xero org for this project
-  isDefault?: boolean; // Legacy - no longer used
   instructions?: string; // System prompt for chats in this project
   createdAt: number;
   updatedAt: number;
@@ -496,7 +495,6 @@ export interface DatabaseProvider {
   listProjects(userId: string): Promise<Project[]>;
   updateProject(userId: string, projectId: string, updates: Partial<Project>): Promise<Project>;
   deleteProject(userId: string, projectId: string): Promise<void>;
-  getDefaultProject(userId: string): Promise<Project | null>;
 
   // Operation snapshot operations (audit trail)
   createOperationSnapshot(snapshot: Omit<OperationSnapshot, "id" | "createdAt">): Promise<OperationSnapshot>;

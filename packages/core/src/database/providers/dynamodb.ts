@@ -930,8 +930,4 @@ export class DynamoDBProvider implements DatabaseProvider {
   async deleteProject(_userId: string, _projectId: string): Promise<void> {
     throw new Error("Project operations not implemented in DynamoDB provider. Use SQLite.");
   }
-
-  async getDefaultProject(_userId: string): Promise<any> {
-    throw new Error("Project operations not implemented in DynamoDB provider. Use SQLite.");
-  }
 }

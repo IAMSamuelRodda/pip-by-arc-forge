@@ -98,11 +98,10 @@ export const useProjectStore = create<ProjectState>()(
           await projectApi.deleteProject(projectId);
           const newProjects = get().projects.filter((p) => p.id !== projectId);
 
-          // If deleting current project, switch to another
+          // If deleting current project, switch to another (or null if none)
           let newCurrentId = get().currentProjectId;
           if (newCurrentId === projectId) {
-            const defaultProject = newProjects.find((p) => p.isDefault);
-            newCurrentId = defaultProject?.id || newProjects[0]?.id || null;
+            newCurrentId = newProjects[0]?.id || null;
           }
 
           set({

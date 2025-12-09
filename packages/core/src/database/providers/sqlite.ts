@@ -1728,11 +1728,6 @@ export class SQLiteProvider implements DatabaseProvider {
         updatedAt: now,
       };
 
-      // If this is the default project, unset any existing default for this user
-      if (fullProject.isDefault) {
-        this.db.prepare(`UPDATE projects SET is_default = 0 WHERE user_id = ?`).run(fullProject.userId);
-      }
-
       const stmt = this.db.prepare(`
         INSERT INTO projects (id, user_id, name, description, color, xero_tenant_id, is_default, instructions, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -1745,7 +1740,7 @@ export class SQLiteProvider implements DatabaseProvider {
         fullProject.description || null,
         fullProject.color || null,
         fullProject.xeroTenantId || null,
-        fullProject.isDefault ? 1 : 0,
+        0, // is_default no longer used (kept for backward compat)
         fullProject.instructions || null,
         fullProject.createdAt,
         fullProject.updatedAt
@@ -1780,7 +1775,6 @@ export class SQLiteProvider implements DatabaseProvider {
         description: row.description || undefined,
         color: row.color || undefined,
         xeroTenantId: row.xero_tenant_id || undefined,
-        isDefault: row.is_default === 1,
         instructions: row.instructions || undefined,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
@@ -1799,7 +1793,7 @@ export class SQLiteProvider implements DatabaseProvider {
 
     try {
       const stmt = this.db.prepare(`
-        SELECT * FROM projects WHERE user_id = ? ORDER BY is_default DESC, created_at ASC
+        SELECT * FROM projects WHERE user_id = ? ORDER BY created_at ASC
       `);
 
       const rows = stmt.all(userId) as any[];
@@ -1811,7 +1805,6 @@ export class SQLiteProvider implements DatabaseProvider {
         description: row.description || undefined,
         color: row.color || undefined,
         xeroTenantId: row.xero_tenant_id || undefined,
-        isDefault: row.is_default === 1,
         instructions: row.instructions || undefined,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
@@ -1844,11 +1837,6 @@ export class SQLiteProvider implements DatabaseProvider {
         updatedAt: Date.now(),
       };
 
-      // If setting as default, unset any existing default for this user
-      if (updated.isDefault && !existing.isDefault) {
-        this.db.prepare(`UPDATE projects SET is_default = 0 WHERE user_id = ?`).run(userId);
-      }
-
       const stmt = this.db.prepare(`
         UPDATE projects
         SET name = ?, description = ?, color = ?, xero_tenant_id = ?, is_default = ?, instructions = ?, updated_at = ?
@@ -1860,7 +1848,7 @@ export class SQLiteProvider implements DatabaseProvider {
         updated.description || null,
         updated.color || null,
         updated.xeroTenantId || null,
-        updated.isDefault ? 1 : 0,
+        0, // is_default no longer used (kept for backward compat)
         updated.instructions || null,
         updated.updatedAt,
         userId,
@@ -1882,18 +1870,6 @@ export class SQLiteProvider implements DatabaseProvider {
     if (!this.db) throw new DatabaseError("Database not connected", this.name);
 
     try {
-      // Don't allow deleting the default project if it's the only one
-      const projects = await this.listProjects(userId);
-      const project = projects.find((p) => p.id === projectId);
-
-      if (project?.isDefault && projects.length > 1) {
-        // Set another project as default before deleting
-        const nextDefault = projects.find((p) => p.id !== projectId);
-        if (nextDefault) {
-          await this.updateProject(userId, nextDefault.id, { isDefault: true });
-        }
-      }
-
       const stmt = this.db.prepare(`
         DELETE FROM projects WHERE user_id = ? AND id = ?
       `);
@@ -1902,38 +1878,6 @@ export class SQLiteProvider implements DatabaseProvider {
     } catch (error) {
       throw new DatabaseError(
         `Failed to delete project: ${projectId}`,
-        this.name,
-        error as Error
-      );
-    }
-  }
-
-  async getDefaultProject(userId: string): Promise<Project | null> {
-    if (!this.db) throw new DatabaseError("Database not connected", this.name);
-
-    try {
-      const stmt = this.db.prepare(`
-        SELECT * FROM projects WHERE user_id = ? AND is_default = 1
-      `);
-
-      const row = stmt.get(userId) as any;
-
-      if (!row) return null;
-
-      return {
-        id: row.id,
-        userId: row.user_id,
-        name: row.name,
-        description: row.description || undefined,
-        color: row.color || undefined,
-        xeroTenantId: row.xero_tenant_id || undefined,
-        isDefault: row.is_default === 1,
-        createdAt: row.created_at,
-        updatedAt: row.updated_at,
-      };
-    } catch (error) {
-      throw new DatabaseError(
-        `Failed to get default project for user: ${userId}`,
         this.name,
         error as Error
       );
