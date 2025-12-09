@@ -6,7 +6,6 @@
 
 import type { DatabaseProvider, DatabaseConfig } from "./types.js";
 import { SQLiteProvider } from "./providers/sqlite.js";
-import { DynamoDBProvider } from "./providers/dynamodb.js";
 
 /**
  * Create a database provider from configuration
@@ -18,17 +17,6 @@ import { DynamoDBProvider } from "./providers/dynamodb.js";
  *   connection: {
  *     type: "sqlite",
  *     filename: "./data/pip.db"
- *   }
- * });
- *
- * @example
- * // DynamoDB (managed service)
- * const db = await createDatabaseProvider({
- *   provider: "dynamodb",
- *   connection: {
- *     type: "dynamodb",
- *     tableName: "pip-prod",
- *     region: "ap-southeast-2"
  *   }
  * });
  */
@@ -43,13 +31,6 @@ export async function createDatabaseProvider(
         throw new Error("Invalid connection config for SQLite provider");
       }
       provider = new SQLiteProvider(config.connection);
-      break;
-
-    case "dynamodb":
-      if (config.connection.type !== "dynamodb") {
-        throw new Error("Invalid connection config for DynamoDB provider");
-      }
-      provider = new DynamoDBProvider(config.connection);
       break;
 
     case "postgresql":
@@ -69,11 +50,8 @@ export async function createDatabaseProvider(
  * Create a database provider from environment variables
  *
  * Environment variables:
- * - DATABASE_PROVIDER: sqlite | dynamodb | postgresql
+ * - DATABASE_PROVIDER: sqlite | postgresql
  * - DATABASE_FILENAME: path to SQLite database (if SQLite)
- * - DATABASE_TABLE_NAME: DynamoDB table name (if DynamoDB)
- * - DATABASE_REGION: AWS region (if DynamoDB)
- * - DATABASE_ENDPOINT: DynamoDB endpoint for local testing (optional)
  */
 export async function createDatabaseProviderFromEnv(): Promise<DatabaseProvider> {
   const providerName = (process.env.DATABASE_PROVIDER || "sqlite") as DatabaseConfig["provider"];
@@ -88,21 +66,6 @@ export async function createDatabaseProviderFromEnv(): Promise<DatabaseProvider>
           type: "sqlite",
           filename: process.env.DATABASE_PATH || process.env.DATABASE_FILENAME || "./data/pip.db",
           readonly: process.env.DATABASE_READONLY === "true",
-        },
-      };
-      break;
-
-    case "dynamodb":
-      if (!process.env.DATABASE_TABLE_NAME) {
-        throw new Error("DATABASE_TABLE_NAME is required for DynamoDB provider");
-      }
-      config = {
-        provider: "dynamodb",
-        connection: {
-          type: "dynamodb",
-          tableName: process.env.DATABASE_TABLE_NAME,
-          region: process.env.DATABASE_REGION || "ap-southeast-2",
-          endpoint: process.env.DATABASE_ENDPOINT, // For local DynamoDB
         },
       };
       break;

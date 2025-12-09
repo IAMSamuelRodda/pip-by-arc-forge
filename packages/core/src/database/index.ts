@@ -3,7 +3,6 @@
  *
  * Supports multiple backends:
  * - SQLite (self-hosted default)
- * - DynamoDB (managed service)
  * - PostgreSQL (coming soon)
  *
  * @example
@@ -43,4 +42,3 @@
 export * from "./types.js";
 export * from "./factory.js";
 export { SQLiteProvider } from "./providers/sqlite.js";
-export { DynamoDBProvider } from "./providers/dynamodb.js";

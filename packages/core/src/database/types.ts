@@ -1,7 +1,7 @@
 /**
  * Database Abstraction Types
  *
- * Supports multiple backends: SQLite, PostgreSQL, DynamoDB
+ * Supports multiple backends: SQLite, PostgreSQL
  */
 
 import type { Message } from "../llm/types.js";
@@ -394,7 +394,7 @@ export interface MemoryFilter {
 // Database Provider Interface
 // ============================================================================
 
-export type DatabaseProviderName = "sqlite" | "dynamodb" | "postgresql";
+export type DatabaseProviderName = "sqlite" | "postgresql";
 
 export interface DatabaseConfig {
   provider: DatabaseProviderName;
@@ -403,20 +403,12 @@ export interface DatabaseConfig {
 
 export type ConnectionConfig =
   | SQLiteConnectionConfig
-  | DynamoDBConnectionConfig
   | PostgreSQLConnectionConfig;
 
 export interface SQLiteConnectionConfig {
   type: "sqlite";
   filename: string; // Path to SQLite database file
   readonly?: boolean;
-}
-
-export interface DynamoDBConnectionConfig {
-  type: "dynamodb";
-  tableName: string;
-  region: string;
-  endpoint?: string; // For local DynamoDB
 }
 
 export interface PostgreSQLConnectionConfig {
