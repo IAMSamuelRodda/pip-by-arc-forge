@@ -569,6 +569,194 @@ export const gmailApi = {
   },
 };
 
+// Google Sheets integration types
+interface SheetsStatus {
+  connected: boolean;
+  expired?: boolean;
+  email?: string;
+  expiresAt?: number;
+}
+
+export const sheetsApi = {
+  /**
+   * Get Google Sheets connection status
+   */
+  async getStatus(): Promise<SheetsStatus> {
+    const response = await fetch(`${API_BASE}/auth/google/sheets/status`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to get Google Sheets status');
+    }
+    return response.json();
+  },
+
+  /**
+   * Get Google Sheets OAuth URL for connecting
+   */
+  getConnectUrl(): string {
+    const token = useAuthStore.getState().token;
+    if (token) {
+      return `${API_BASE}/auth/google/sheets?token=${encodeURIComponent(token)}`;
+    }
+    return `${API_BASE}/auth/google/sheets`;
+  },
+
+  /**
+   * Disconnect Google Sheets
+   */
+  async disconnect(): Promise<{ success: boolean }> {
+    const response = await fetch(`${API_BASE}/auth/google/sheets/disconnect`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to disconnect Google Sheets');
+    }
+    return response.json();
+  },
+
+  /**
+   * Refresh Google Sheets tokens
+   */
+  async refresh(): Promise<{ success: boolean; expiresAt: number }> {
+    const response = await fetch(`${API_BASE}/auth/google/sheets/refresh`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Refresh failed' }));
+      throw new Error(error.message || error.error || 'Failed to refresh Google Sheets tokens');
+    }
+    return response.json();
+  },
+};
+
+// Connector types and unified API
+type ConnectorType = 'xero' | 'gmail' | 'google_sheets';
+type PermissionLevel = 0 | 1 | 2 | 3;
+
+interface ConnectorStatus {
+  connected: boolean;
+  expired?: boolean;
+  details?: string;
+  expiresAt?: number;
+}
+
+interface AllConnectorStatuses {
+  xero: ConnectorStatus;
+  gmail: ConnectorStatus;
+  google_sheets: ConnectorStatus;
+}
+
+interface ConnectorPermission {
+  connector: ConnectorType;
+  permissionLevel: PermissionLevel;
+  levelName: string;
+  availableLevels: Record<number, string>;
+  updatedAt?: number;
+}
+
+interface AllConnectorPermissions {
+  connectorPermissions: Record<ConnectorType, {
+    permissionLevel: PermissionLevel;
+    levelName: string;
+    updatedAt?: number;
+  }>;
+  availableLevels: Record<ConnectorType, Record<number, string>>;
+}
+
+export const connectorApi = {
+  /**
+   * Get status of all connectors
+   */
+  async getStatuses(): Promise<AllConnectorStatuses> {
+    const response = await fetch(`${API_BASE}/api/connectors/status`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to get connector statuses');
+    }
+    return response.json();
+  },
+
+  /**
+   * Get permissions for all connectors
+   */
+  async getPermissions(): Promise<AllConnectorPermissions> {
+    const response = await fetch(`${API_BASE}/api/settings/connectors`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to get connector permissions');
+    }
+    return response.json();
+  },
+
+  /**
+   * Update permission for a specific connector
+   */
+  async updatePermission(connector: ConnectorType, permissionLevel: PermissionLevel): Promise<ConnectorPermission> {
+    const response = await fetch(`${API_BASE}/api/settings/connectors/${connector}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify({ permissionLevel }),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Update failed' }));
+      throw new Error(error.error || 'Failed to update connector permission');
+    }
+    return response.json();
+  },
+
+  /**
+   * Get OAuth URLs for connecting
+   */
+  getConnectUrl(connector: ConnectorType): string {
+    const token = useAuthStore.getState().token;
+    const tokenParam = token ? `?token=${encodeURIComponent(token)}` : '';
+
+    switch (connector) {
+      case 'xero':
+        return `${API_BASE}/auth/xero${tokenParam}`;
+      case 'gmail':
+        return `${API_BASE}/auth/google/gmail${tokenParam}`;
+      case 'google_sheets':
+        return `${API_BASE}/auth/google/sheets${tokenParam}`;
+    }
+  },
+
+  /**
+   * Disconnect a connector
+   */
+  async disconnect(connector: ConnectorType): Promise<{ success: boolean }> {
+    let url: string;
+    switch (connector) {
+      case 'xero':
+        url = `${API_BASE}/auth/disconnect`;
+        break;
+      case 'gmail':
+        url = `${API_BASE}/auth/google/gmail/disconnect`;
+        break;
+      case 'google_sheets':
+        url = `${API_BASE}/auth/google/sheets/disconnect`;
+        break;
+    }
+
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to disconnect ${connector}`);
+    }
+    return response.json();
+  },
+};
+
 export const projectApi = {
   /**
    * List all projects

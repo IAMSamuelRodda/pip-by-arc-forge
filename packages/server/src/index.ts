@@ -25,7 +25,9 @@ import type { DatabaseProvider } from '@pip/core';
 import { createChatRoutes } from './routes/chat.js';
 import { createAuthRoutes } from './routes/auth.js';
 import { createGmailAuthRoutes } from './routes/auth-gmail.js';
+import { createSheetsAuthRoutes } from './routes/auth-sheets.js';
 import { createUserAuthRoutes } from './routes/user-auth.js';
+import { createConnectorRoutes } from './routes/connectors.js';
 import { createSessionRoutes } from './routes/sessions.js';
 import { createHealthRoutes } from './routes/health.js';
 import { createDocumentRoutes } from './routes/documents.js';
@@ -112,10 +114,14 @@ async function createApp(db: DatabaseProvider): Promise<express.Application> {
   app.use('/api/projects', requireAuth, createProjectRoutes(db));
   app.use('/api/models', createModelsRoutes()); // Public - for Ollama warmup
 
+  // Connectors status (protected)
+  app.use('/api/connectors', createConnectorRoutes(db));
+
   // Auth routes (public)
   app.use('/auth', createUserAuthRoutes(db)); // signup, login, me
   app.use('/auth', createAuthRoutes(db)); // Xero OAuth
   app.use('/auth/google/gmail', createGmailAuthRoutes(db)); // Gmail OAuth
+  app.use('/auth/google/sheets', createSheetsAuthRoutes(db)); // Google Sheets OAuth
 
   // Health check (public)
   app.use('/health', createHealthRoutes(db));

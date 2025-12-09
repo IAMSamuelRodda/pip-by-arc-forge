@@ -1,20 +1,21 @@
 /**
- * Settings Page - Safety settings and user preferences
+ * Settings Page - Connector management and user preferences
  * Arc Forge dark theme
  */
 
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { api, memoryApi } from '../api/client';
+import { api, memoryApi, connectorApi } from '../api/client';
 import type { ResponseStyleId, ResponseStyleOption, MemoryStatus } from '../api/client';
 import { useAuthStore } from '../store/authStore';
 import { ManageMemoryModal } from '../components/ManageMemoryModal';
 import { ProjectsSettingsPanel } from '../components/ProjectsSettingsPanel';
+import { ConnectorCard, CONNECTOR_ICONS, CONNECTOR_NAMES } from '../components/ConnectorCard';
 
 type PermissionLevel = 0 | 1 | 2 | 3;
+type ConnectorType = 'xero' | 'gmail' | 'google_sheets';
 
 interface Settings {
-  permissionLevel: PermissionLevel;
   responseStyle: ResponseStyleId;
   requireConfirmation: boolean;
   dailyEmailSummary: boolean;
@@ -22,32 +23,29 @@ interface Settings {
   vacationModeUntil?: number;
 }
 
-const PERMISSION_LEVELS: { level: PermissionLevel; name: string; description: string; color: string }[] = [
-  {
-    level: 0,
-    name: 'Read-Only',
-    description: 'View invoices, reports, and contacts. No changes to Xero data.',
-    color: 'text-green-400',
-  },
-  {
-    level: 1,
-    name: 'Create Drafts',
-    description: 'Create draft invoices and contacts. Drafts require manual approval in Xero.',
-    color: 'text-blue-400',
-  },
-  {
-    level: 2,
-    name: 'Approve & Update',
-    description: 'Approve drafts, update invoices and contacts, record payments.',
-    color: 'text-yellow-400',
-  },
-  {
-    level: 3,
-    name: 'Full Access',
-    description: 'All operations including void and delete. Use with caution.',
-    color: 'text-red-400',
-  },
-];
+interface ConnectorStatus {
+  connected: boolean;
+  expired?: boolean;
+  details?: string;
+  expiresAt?: number;
+}
+
+interface ConnectorPermission {
+  permissionLevel: PermissionLevel;
+  levelName: string;
+  updatedAt?: number;
+}
+
+interface AllConnectorStatuses {
+  xero: ConnectorStatus;
+  gmail: ConnectorStatus;
+  google_sheets: ConnectorStatus;
+}
+
+interface AllConnectorPermissions {
+  connectorPermissions: Record<ConnectorType, ConnectorPermission>;
+  availableLevels: Record<ConnectorType, Record<number, string>>;
+}
 
 export function SettingsPage() {
   const navigate = useNavigate();
@@ -65,15 +63,41 @@ export function SettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  // Connector state
+  const [connectorStatuses, setConnectorStatuses] = useState<AllConnectorStatuses | null>(null);
+  const [connectorPermissions, setConnectorPermissions] = useState<AllConnectorPermissions | null>(null);
+
   // Memory state
   const [memory, setMemory] = useState<MemoryStatus | null>(null);
   const [isMemoryModalOpen, setIsMemoryModalOpen] = useState(false);
 
-  // Load settings, styles, and memory on mount
+  // Load settings, styles, connectors, and memory on mount
   useEffect(() => {
     loadSettings();
     loadStyles();
+    loadConnectors();
     loadMemory();
+
+    // Check for OAuth callback success
+    const params = new URLSearchParams(location.search);
+    if (params.get('xero') === 'connected') {
+      setSuccess(`Xero connected${params.get('tenant') ? ` to ${params.get('tenant')}` : ''}`);
+      setTimeout(() => setSuccess(null), 5000);
+      // Reload connectors to show new status
+      loadConnectors();
+      // Clean URL
+      navigate('/settings', { replace: true });
+    } else if (params.get('gmail') === 'connected') {
+      setSuccess(`Gmail connected${params.get('email') ? ` as ${params.get('email')}` : ''}`);
+      setTimeout(() => setSuccess(null), 5000);
+      loadConnectors();
+      navigate('/settings', { replace: true });
+    } else if (params.get('sheets') === 'connected') {
+      setSuccess(`Google Sheets connected${params.get('email') ? ` as ${params.get('email')}` : ''}`);
+      setTimeout(() => setSuccess(null), 5000);
+      loadConnectors();
+      navigate('/settings', { replace: true });
+    }
   }, []);
 
   const loadMemory = async () => {
@@ -107,29 +131,42 @@ export function SettingsPage() {
     }
   };
 
-  const updatePermissionLevel = async (level: PermissionLevel) => {
-    if (!settings) return;
-
-    // Confirm if upgrading to higher level
-    if (level > settings.permissionLevel) {
-      const levelInfo = PERMISSION_LEVELS.find((l) => l.level === level);
-      if (!confirm(`Upgrade to "${levelInfo?.name}"?\n\n${levelInfo?.description}\n\nThis grants Pip more access to modify your Xero data.`)) {
-        return;
-      }
-    }
-
+  const loadConnectors = async () => {
     try {
-      setIsSaving(true);
-      setError(null);
-      setSuccess(null);
-      const result = await api.updateSettings({ permissionLevel: level });
-      setSettings(result.settings);
-      setSuccess('Permission level updated');
-      setTimeout(() => setSuccess(null), 3000);
+      const [statuses, permissions] = await Promise.all([
+        connectorApi.getStatuses(),
+        connectorApi.getPermissions(),
+      ]);
+      setConnectorStatuses(statuses);
+      setConnectorPermissions(permissions);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update settings');
-    } finally {
-      setIsSaving(false);
+      console.error('Failed to load connectors:', err);
+    }
+  };
+
+  const handleConnect = (connector: ConnectorType) => {
+    window.location.href = connectorApi.getConnectUrl(connector);
+  };
+
+  const handleDisconnect = async (connector: ConnectorType) => {
+    try {
+      await connectorApi.disconnect(connector);
+      setSuccess(`${CONNECTOR_NAMES[connector]} disconnected`);
+      setTimeout(() => setSuccess(null), 3000);
+      await loadConnectors();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : `Failed to disconnect ${CONNECTOR_NAMES[connector]}`);
+    }
+  };
+
+  const handlePermissionChange = async (connector: ConnectorType, level: PermissionLevel) => {
+    try {
+      await connectorApi.updatePermission(connector, level);
+      setSuccess(`${CONNECTOR_NAMES[connector]} permission updated`);
+      setTimeout(() => setSuccess(null), 3000);
+      await loadConnectors();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : `Failed to update ${CONNECTOR_NAMES[connector]} permission`);
     }
   };
 
@@ -214,78 +251,87 @@ export function SettingsPage() {
           </div>
         ) : settings ? (
           <div className="space-y-8">
-            {/* Safety Settings Section */}
+            {/* Connectors Section (Top, expanded by default) */}
             <section>
-              <h2 className="text-lg font-medium text-arc-text-primary mb-2">Safety Settings</h2>
+              <h2 className="text-lg font-medium text-arc-text-primary mb-2">Connectors</h2>
               <p className="text-sm text-arc-text-secondary mb-6">
-                Control what Pip can do with your Xero data. Start with read-only and upgrade as needed.
+                Connect services and set permission levels for each.
               </p>
 
-              {/* Permission Level Cards */}
-              <div className="space-y-3">
-                {PERMISSION_LEVELS.map(({ level, name, description, color }) => {
-                  const isSelected = settings.permissionLevel === level;
-                  const isHigher = level > settings.permissionLevel;
+              {connectorStatuses && connectorPermissions ? (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {/* Xero */}
+                  <ConnectorCard
+                    connector="xero"
+                    displayName={CONNECTOR_NAMES.xero}
+                    icon={CONNECTOR_ICONS.xero}
+                    status={connectorStatuses.xero}
+                    permission={{
+                      level: connectorPermissions.connectorPermissions.xero?.permissionLevel ?? 0,
+                      levelName: connectorPermissions.connectorPermissions.xero?.levelName ?? 'Read-Only',
+                      availableLevels: connectorPermissions.availableLevels.xero ?? {},
+                    }}
+                    onConnect={() => handleConnect('xero')}
+                    onDisconnect={() => handleDisconnect('xero')}
+                    onPermissionChange={(level) => handlePermissionChange('xero', level)}
+                  />
 
-                  return (
-                    <button
-                      key={level}
-                      onClick={() => updatePermissionLevel(level)}
-                      disabled={isSaving}
-                      className={`w-full text-left p-4 rounded-xl border transition-all ${
-                        isSelected
-                          ? 'bg-arc-accent/10 border-arc-accent'
-                          : 'bg-arc-bg-tertiary border-arc-border hover:border-arc-accent/50'
-                      } ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center gap-3">
-                          <span className={`font-medium ${isSelected ? 'text-arc-accent' : color}`}>
-                            Level {level}: {name}
-                          </span>
-                          {isSelected && (
-                            <span className="text-xs bg-arc-accent text-arc-bg-primary px-2 py-0.5 rounded">
-                              Current
-                            </span>
-                          )}
-                          {isHigher && (
-                            <span className="text-xs text-arc-text-dim">
-                              &uarr; Upgrade
-                            </span>
-                          )}
-                        </div>
-                        <div className={`w-4 h-4 rounded-full border-2 ${
-                          isSelected ? 'border-arc-accent bg-arc-accent' : 'border-arc-border'
-                        }`}>
-                          {isSelected && (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <span className="text-arc-bg-primary text-xs">&#10003;</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <p className="text-sm text-arc-text-secondary">{description}</p>
-                    </button>
-                  );
-                })}
-              </div>
+                  {/* Gmail */}
+                  <ConnectorCard
+                    connector="gmail"
+                    displayName={CONNECTOR_NAMES.gmail}
+                    icon={CONNECTOR_ICONS.gmail}
+                    status={connectorStatuses.gmail}
+                    permission={{
+                      level: connectorPermissions.connectorPermissions.gmail?.permissionLevel ?? 0,
+                      levelName: connectorPermissions.connectorPermissions.gmail?.levelName ?? 'Read-Only',
+                      availableLevels: connectorPermissions.availableLevels.gmail ?? {},
+                    }}
+                    onConnect={() => handleConnect('gmail')}
+                    onDisconnect={() => handleDisconnect('gmail')}
+                    onPermissionChange={(level) => handlePermissionChange('gmail', level)}
+                  />
 
-              {/* Warning for high permission levels */}
-              {settings.permissionLevel >= 2 && (
-                <div className="mt-4 bg-yellow-900/20 border border-yellow-800/50 rounded-lg px-4 py-3">
-                  <p className="text-sm text-yellow-400">
-                    <strong>Warning:</strong> At this permission level, Pip can modify your Xero data.
-                    {settings.permissionLevel === 3 && ' This includes voiding invoices and deleting contacts.'}
-                    {' '}Always verify Pip&apos;s suggestions before approving changes.
-                  </p>
+                  {/* Google Sheets */}
+                  <ConnectorCard
+                    connector="google_sheets"
+                    displayName={CONNECTOR_NAMES.google_sheets}
+                    icon={CONNECTOR_ICONS.google_sheets}
+                    status={connectorStatuses.google_sheets}
+                    permission={{
+                      level: connectorPermissions.connectorPermissions.google_sheets?.permissionLevel ?? 0,
+                      levelName: connectorPermissions.connectorPermissions.google_sheets?.levelName ?? 'Read-Only',
+                      availableLevels: connectorPermissions.availableLevels.google_sheets ?? {},
+                    }}
+                    onConnect={() => handleConnect('google_sheets')}
+                    onDisconnect={() => handleDisconnect('google_sheets')}
+                    onPermissionChange={(level) => handlePermissionChange('google_sheets', level)}
+                  />
                 </div>
+              ) : (
+                <div className="text-sm text-arc-text-dim">Loading connectors...</div>
               )}
 
-              {/* Why Safety Settings - inline helper text */}
-              <p className="mt-6 text-xs text-arc-text-dim leading-relaxed">
-                Xero has no user-accessible restore — deleted or voided data is permanently lost.
-                Start with read-only and upgrade only when needed.
-              </p>
+              {/* Permission warning for connected services with elevated permissions */}
+              {connectorStatuses && connectorPermissions && (
+                (() => {
+                  const hasElevatedPerms =
+                    (connectorStatuses.xero.connected && (connectorPermissions.connectorPermissions.xero?.permissionLevel ?? 0) >= 2) ||
+                    (connectorStatuses.google_sheets.connected && (connectorPermissions.connectorPermissions.google_sheets?.permissionLevel ?? 0) >= 2);
+
+                  if (hasElevatedPerms) {
+                    return (
+                      <div className="mt-4 bg-yellow-900/20 border border-yellow-800/50 rounded-lg px-4 py-3">
+                        <p className="text-sm text-yellow-400">
+                          <strong>Note:</strong> Some connectors have elevated permissions.
+                          Always verify Pip&apos;s suggestions before approving changes.
+                        </p>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()
+              )}
             </section>
 
             {/* Response Style Section */}
@@ -354,32 +400,6 @@ export function SettingsPage() {
               </button>
             </section>
 
-            {/* Connectors Section */}
-            <section>
-              <h2 className="text-lg font-medium text-arc-text-primary mb-2">Connectors</h2>
-              <p className="text-sm text-arc-text-secondary mb-6">
-                Connect external services like Xero, Gmail, and Google Sheets.
-              </p>
-
-              <button
-                onClick={() => {
-                  const mcpUrl = import.meta.env.VITE_MCP_URL || 'https://mcp.pip.arcforge.au';
-                  window.location.href = `${mcpUrl}/connectors?user=${encodeURIComponent(user?.id || '')}&email=${encodeURIComponent(user?.email || '')}`;
-                }}
-                className="w-full text-left p-4 rounded-xl bg-arc-bg-tertiary border border-arc-border hover:border-arc-accent/50 transition-all"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="font-medium text-arc-text-primary">Manage Connectors</span>
-                    <p className="text-sm text-arc-text-secondary mt-1">
-                      Connect or disconnect Xero, Gmail, and other services
-                    </p>
-                  </div>
-                  <span className="text-arc-text-secondary">&rarr;</span>
-                </div>
-              </button>
-            </section>
-
             {/* Projects Section */}
             <section id="projects">
               <button
@@ -412,7 +432,7 @@ export function SettingsPage() {
       <footer className="bg-arc-bg-secondary border-t border-arc-border py-4">
         <div className="max-w-4xl mx-auto px-4 text-center">
           <p className="text-xs text-arc-text-dim">
-            Pip by Arc Forge &bull; Your data stays in your Xero account
+            Pip by Arc Forge &bull; Your data stays in your connected accounts
           </p>
         </div>
       </footer>
