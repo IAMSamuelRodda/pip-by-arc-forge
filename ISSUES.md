@@ -468,15 +468,32 @@ If dental practice uses Google Workspace (not personal Gmail):
   - [CASA Assessment](https://appdefensealliance.dev/casa)
 
 #### issue_030: Per-Tool Permissions (Claude.ai Pattern)
-- **Status**: 🔴 Open
+- **Status**: 🟡 In Progress (Phase 1 Complete)
 - **Priority**: P1 (High - security + UX improvement)
 - **Component**: `packages/pwa-app`, `packages/server`, `packages/pip-mcp`
 - **Created**: 2025-12-02
+- **Phase 1 Completed**: 2025-12-09 (Per-Connector Permissions - Backend)
 - **Description**: Replace single "safety level" dropdown with per-tool three-tier permissions
-- **Current State**:
-  - Single dropdown: Read-only → Create drafts → Approve/Update → Delete/Void
-  - All tools in a level are enabled/disabled together
-  - No granular control
+
+**Phase 1 Complete (Per-Connector Permissions)**:
+- ✅ `connector_permissions` table with (user_id, connector, permission_level)
+- ✅ Database methods: getConnectorPermission, upsertConnectorPermission, etc.
+- ✅ Safety service uses per-connector permission levels
+- ✅ Tool visibility filtered per-connector at MCP level
+- ✅ API endpoints: GET/PUT/DELETE /api/settings/connectors/:connector
+- ✅ Programmatic denial at tool execution (not just prompt instructions)
+- ✅ Default is Level 0 (read-only) for ALL connectors
+
+**Phase 2 TODO (Per-Tool Granularity)**:
+- [ ] Per-tool permissions within each connector (vs per-connector level)
+- [ ] Three-tier toggle: Always allow / Needs approval / Blocked
+- [ ] PWA settings UI for connector permissions
+- [ ] PWA settings UI for per-tool permissions (future)
+
+- **Current State** (after Phase 1):
+  - Per-connector permission levels (Xero, Gmail, Google Sheets)
+  - Each connector can have different level (e.g., Sheets=Write, Xero=Read-Only)
+  - Within a connector, all tools at/below that level are enabled
 - **Target Pattern** (Claude.ai Tool Permissions):
   - **Three tiers per tool**: Always allow ✓ / Needs approval 👆 / Blocked ⊘
   - **Per-connector view**: Inside each connector (Xero), show all its MCP tools
