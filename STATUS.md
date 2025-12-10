@@ -31,7 +31,6 @@
 
 | Priority | Issue | Summary |
 |----------|-------|---------|
-| P1 | issue_039 | Google Sheets OAuth + MCP Tools (blocker for Google verification) |
 | P1 | issue_043 | Memory system project isolation (auto-inject projectId) |
 | P1 | issue_034 | Skills System - report templates & agent capabilities |
 | P2 | issue_044 | Remove global currentProjectId dependency |
@@ -39,6 +38,7 @@
 
 ### Recently Completed
 
+- **Google Sheets Integration (issue_039)** - Full OAuth + 15 MCP tools (Dec 10)
 - 12 manual testing bug fixes (Dec 10) - see CHANGELOG.md
 - Gmail image attachment viewing
 - Projects UX rework (Claude.ai pattern)

@@ -495,6 +495,31 @@ export const memoryApi = {
     }
     return response.json();
   },
+
+  /**
+   * Generate a new summary using Claude
+   */
+  async generateSummary(projectId?: string): Promise<{
+    success: boolean;
+    summary: string;
+    entityCount: number;
+    observationCount: number;
+    generatedAt: number;
+  }> {
+    const response = await fetch(`${API_BASE}/api/memory/summary/generate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify({ projectId }),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Failed to generate summary' }));
+      throw new Error(error.error || 'Failed to generate summary');
+    }
+    return response.json();
+  },
 };
 
 // Project types (Epic 2.3)

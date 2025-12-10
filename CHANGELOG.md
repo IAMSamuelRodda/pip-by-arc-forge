@@ -12,6 +12,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > **Last Updated**: 2025-12-10 (Manual testing bug fixes + resolved issues migration from ISSUES.md)
 
 ### Added
+- **Google Sheets Integration (issue_039)** - Full OAuth + MCP tools (2025-12-09)
+  - OAuth flow: `/connectors/sheets`, `/connectors/sheets/callback`, `/connectors/sheets/disconnect`
+  - Service: `getSheetsClient()` with auto-refresh, all API helpers
+  - 15 MCP tools: 5 read-only (L0), 6 write/create (L1), 4 delete (L2)
+  - Per-connector permissions in safety.ts
+  - Connectors page shows Google Sheets with Connect/Disconnect
+  - `packages/pip-mcp/src/services/sheets.ts` - Sheets service
+  - `packages/pip-mcp/src/handlers/sheets-tools.ts` - MCP tool definitions
+  - `packages/pip-mcp/src/index.ts:1576-1707` - OAuth routes
 - **Response Styles (Claude.ai Pattern)** - issue_020 (2025-12-02)
   - Five styles: Normal, Formal, Concise, Explanatory, Learning
   - Style selector dropdown in Settings page

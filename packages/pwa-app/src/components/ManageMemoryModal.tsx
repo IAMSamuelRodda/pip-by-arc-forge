@@ -24,6 +24,9 @@ export function ManageMemoryModal({ isOpen, onClose }: ManageMemoryModalProps) {
   const [editInput, setEditInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Summary generation state
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+
   useEffect(() => {
     if (isOpen) {
       loadMemory();
@@ -99,6 +102,27 @@ export function ManageMemoryModal({ isOpen, onClose }: ManageMemoryModalProps) {
     }
   };
 
+  const handleGenerateSummary = async () => {
+    try {
+      setIsGeneratingSummary(true);
+      setError(null);
+      const result = await memoryApi.generateSummary();
+      // Update memory state with new summary
+      setMemory(prev => prev ? {
+        ...prev,
+        summary: result.summary,
+        summaryGeneratedAt: result.generatedAt,
+        isStale: false,
+        entityCount: result.entityCount,
+        observationCount: result.observationCount,
+      } : null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to generate summary');
+    } finally {
+      setIsGeneratingSummary(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -143,6 +167,8 @@ export function ManageMemoryModal({ isOpen, onClose }: ManageMemoryModalProps) {
               onSubmitEdit={handleSubmitEdit}
               isSubmitting={isSubmitting}
               onManageEdits={() => setView('edits')}
+              onGenerateSummary={handleGenerateSummary}
+              isGeneratingSummary={isGeneratingSummary}
             />
           ) : (
             <EditsView
@@ -166,6 +192,8 @@ interface SummaryViewProps {
   onSubmitEdit: () => void;
   isSubmitting: boolean;
   onManageEdits: () => void;
+  onGenerateSummary: () => void;
+  isGeneratingSummary: boolean;
 }
 
 function SummaryView({
@@ -175,39 +203,68 @@ function SummaryView({
   onSubmitEdit,
   isSubmitting,
   onManageEdits,
+  onGenerateSummary,
+  isGeneratingSummary,
 }: SummaryViewProps) {
   const hasSummary = memory?.summary;
   const hasEntities = (memory?.entityCount || 0) > 0;
+  const isStale = memory?.isStale ?? false;
+
+  // Tooltip text based on state
+  const tooltipText = isGeneratingSummary
+    ? 'Generating summary...'
+    : hasSummary
+      ? isStale
+        ? 'Memory changed - click to refresh'
+        : 'Regenerate summary'
+      : 'Generate a summary of your memories';
 
   return (
     <div className="space-y-4">
-      {/* Description */}
-      <p className="text-sm text-arc-text-secondary">
-        Here&apos;s what Pip remembers about you! This summary is generated from your conversations.
-      </p>
-
       {/* Summary Box */}
       <div className="bg-arc-bg-tertiary border border-arc-border rounded-lg p-4">
         {hasSummary ? (
           <>
             <p className="text-sm text-arc-text-primary whitespace-pre-wrap">{memory.summary}</p>
-            {memory.isStale && (
-              <p className="mt-3 text-xs text-yellow-400 italic">
-                Memory has changed since this summary was generated.
+            {isStale && (
+              <p className="mt-3 text-xs text-yellow-400">
+                Memory changed
               </p>
             )}
           </>
         ) : hasEntities ? (
           <p className="text-sm text-arc-text-secondary italic">
-            Pip has {memory?.entityCount} memories with {memory?.observationCount} observations,
-            but no summary has been generated yet. Ask Pip to summarize what it knows about you.
+            {memory?.entityCount} memories, {memory?.observationCount} observations
           </p>
         ) : (
           <p className="text-sm text-arc-text-secondary italic">
-            No memories yet. As you chat with Pip, it will learn about you and your preferences.
+            No memories yet
           </p>
         )}
       </div>
+
+      {/* Summarise Button - only show if there are entities */}
+      {hasEntities && (
+        <button
+          onClick={onGenerateSummary}
+          disabled={isGeneratingSummary}
+          title={tooltipText}
+          className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            isStale && !isGeneratingSummary
+              ? 'bg-yellow-500/20 border border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/30'
+              : 'bg-arc-bg-tertiary border border-arc-border text-arc-text-primary hover:border-arc-accent/50'
+          } disabled:opacity-50 disabled:cursor-not-allowed`}
+        >
+          {isGeneratingSummary ? (
+            <>
+              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              Summarising
+            </>
+          ) : (
+            'Summarise'
+          )}
+        </button>
+      )}
 
       {/* Inline Edit Input */}
       <div className="flex gap-2">

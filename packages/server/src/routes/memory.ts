@@ -299,5 +299,139 @@ export function createMemoryRoutes(): Router {
     }
   });
 
+  /**
+   * POST /api/memory/summary/generate - Generate a new summary using Claude
+   */
+  router.post('/summary/generate', requireAuth, async (req, res) => {
+    const db = getDb();
+    try {
+      const userId = req.userId!;
+      const projectId = (req.body.projectId as string) || null;
+
+      // Build scope clause for project isolation
+      const scopeClause = projectId
+        ? 'AND me.project_id = ?'
+        : 'AND me.project_id IS NULL';
+      const scopeParams = projectId ? [userId, projectId] : [userId];
+
+      // Get all entities with observations
+      const entities = db.prepare(`
+        SELECT me.name, me.entity_type, GROUP_CONCAT(mo.observation, '||') as observations
+        FROM memory_entities me
+        LEFT JOIN memory_observations mo ON me.id = mo.entity_id
+        WHERE me.user_id = ? ${scopeClause}
+        GROUP BY me.id
+        ORDER BY me.created_at DESC
+      `).all(...scopeParams) as { name: string; entity_type: string; observations: string | null }[];
+
+      // Get relations
+      const relations = db.prepare(`
+        SELECT e1.name as from_name, mr.relation_type, e2.name as to_name
+        FROM memory_relations mr
+        JOIN memory_entities e1 ON mr.from_entity_id = e1.id
+        JOIN memory_entities e2 ON mr.to_entity_id = e2.id
+        WHERE mr.user_id = ? ${scopeClause.replace(/me\./g, 'mr.')}
+      `).all(...scopeParams) as { from_name: string; relation_type: string; to_name: string }[];
+
+      if (entities.length === 0) {
+        return res.status(400).json({ error: 'No memories to summarise' });
+      }
+
+      // Build knowledge graph text for Claude
+      let graphText = 'ENTITIES:\n';
+      let totalObservations = 0;
+      for (const e of entities) {
+        const obs = e.observations ? e.observations.split('||') : [];
+        totalObservations += obs.length;
+        graphText += `\n${e.name} (${e.entity_type}):\n`;
+        for (const o of obs) {
+          graphText += `  - ${o}\n`;
+        }
+      }
+
+      if (relations.length > 0) {
+        graphText += '\nRELATIONS:\n';
+        for (const r of relations) {
+          graphText += `  ${r.from_name} → ${r.relation_type} → ${r.to_name}\n`;
+        }
+      }
+
+      // Call Claude to generate summary
+      const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
+      if (!anthropicApiKey) {
+        return res.status(500).json({ error: 'Anthropic API key not configured' });
+      }
+
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': anthropicApiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-3-5-haiku-20241022',
+          max_tokens: 500,
+          messages: [
+            {
+              role: 'user',
+              content: `You are Pip, a friendly AI bookkeeping assistant. Below is a knowledge graph of what you remember about a user. Write a brief, friendly summary (2-4 sentences) of what you know about them. Use second person ("You..."). Be warm but concise. Don't list everything - just capture the key facts.
+
+${graphText}
+
+Write only the summary, nothing else.`,
+            },
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        console.error('Claude API error:', error);
+        return res.status(500).json({ error: 'Failed to generate summary' });
+      }
+
+      const result = await response.json() as { content: Array<{ type: string; text: string }> };
+      const summary = result.content[0]?.text?.trim();
+
+      if (!summary) {
+        return res.status(500).json({ error: 'Empty summary generated' });
+      }
+
+      // Save summary to database
+      const now = Date.now();
+      const existingSummary = db.prepare(`
+        SELECT id FROM memory_summaries
+        WHERE user_id = ? AND ${projectId ? 'project_id = ?' : 'project_id IS NULL'}
+      `).get(...scopeParams) as { id: number } | undefined;
+
+      if (existingSummary) {
+        db.prepare(`
+          UPDATE memory_summaries
+          SET summary = ?, entity_count = ?, observation_count = ?, generated_at = ?
+          WHERE id = ?
+        `).run(summary, entities.length, totalObservations, now, existingSummary.id);
+      } else {
+        db.prepare(`
+          INSERT INTO memory_summaries (user_id, project_id, summary, entity_count, observation_count, generated_at)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `).run(userId, projectId, summary, entities.length, totalObservations, now);
+      }
+
+      res.json({
+        success: true,
+        summary,
+        entityCount: entities.length,
+        observationCount: totalObservations,
+        generatedAt: now,
+      });
+    } catch (error) {
+      console.error('Summary generation error:', error);
+      res.status(500).json({ error: 'Failed to generate summary' });
+    } finally {
+      db.close();
+    }
+  });
+
   return router;
 }
