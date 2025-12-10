@@ -1940,7 +1940,8 @@ app.get("/.well-known/oauth-authorization-server", (req: Request, res: Response)
     response_types_supported: ["code"],
     grant_types_supported: ["authorization_code"],
     code_challenge_methods_supported: ["S256", "plain"],
-    token_endpoint_auth_methods_supported: ["client_secret_post", "client_secret_basic"]
+    token_endpoint_auth_methods_supported: ["none", "client_secret_post", "client_secret_basic"],
+    scopes_supported: ["mcp"]
   });
 });
 
@@ -2382,7 +2383,7 @@ app.post("/oauth/register/submit", express.urlencoded({ extended: true }), async
 app.post("/oauth/token", express.urlencoded({ extended: true }), (req: Request, res: Response) => {
   const { grant_type, code, redirect_uri, client_id, client_secret } = req.body;
 
-  console.log("OAuth token request:", { grant_type, code, client_id });
+  console.log("OAuth token request:", { grant_type, code, client_id, hasSecret: !!client_secret });
 
   // Validate grant_type
   if (grant_type !== "authorization_code") {
@@ -2390,9 +2391,16 @@ app.post("/oauth/token", express.urlencoded({ extended: true }), (req: Request, 
     return;
   }
 
-  // Validate client credentials
-  if (client_id !== OAUTH_CLIENT_ID || client_secret !== OAUTH_CLIENT_SECRET) {
-    res.status(401).json({ error: "invalid_client" });
+  // Validate client_id (required)
+  if (client_id !== OAUTH_CLIENT_ID) {
+    res.status(401).json({ error: "invalid_client", error_description: "Unknown client_id" });
+    return;
+  }
+
+  // Validate client_secret if provided (supports 'none' auth method for public clients)
+  // Claude.ai may use PKCE without client_secret
+  if (client_secret && client_secret !== OAUTH_CLIENT_SECRET) {
+    res.status(401).json({ error: "invalid_client", error_description: "Invalid client_secret" });
     return;
   }
 
