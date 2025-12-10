@@ -205,6 +205,41 @@ export class AgentOrchestrator {
       // Log which model is being used
       console.log(`💬 Chat request: model=${model || 'default'}, provider=${provider.name}, override=${modelOverride || 'none'}`);
 
+      // 8.5. Check rate limits before making API call
+      // Get user for rate limiting check
+      const user = await this.dbProvider!.getUserById(userId);
+      if (!user) {
+        throw new Error(`User not found: ${userId}`);
+      }
+
+      // Determine actual model ID for rate limiting (normalize model names)
+      const modelIdForRateLimit = modelOverride || model || provider.name;
+
+      // Estimate token count (conservative: prompt + max response)
+      const estimatedPromptTokens = JSON.stringify(conversationHistory).length / 4; // ~4 chars per token
+      const estimatedResponseTokens = 2000; // Conservative estimate for response
+      const estimatedTotalTokens = Math.ceil(estimatedPromptTokens + estimatedResponseTokens);
+
+      // Check rate limit
+      const rateLimitResult = await this.rateLimiter!.checkRateLimit(
+        user,
+        modelIdForRateLimit,
+        estimatedTotalTokens
+      );
+
+      if (!rateLimitResult.allowed) {
+        console.warn(`⚠️ Rate limit exceeded for user ${userId}: ${rateLimitResult.message}`);
+        return {
+          message: rateLimitResult.message || 'Rate limit exceeded. Please try again later.',
+          sessionId,
+          metadata: {
+            tokensUsed: 0,
+          },
+        };
+      }
+
+      console.log(`✓ Rate limit check passed: ${rateLimitResult.tokensRemaining} tokens remaining today`);
+
       // 9. Invoke LLM provider to generate response with tools
       // For Ollama, check if the specific model supports native tool calling
       // Models like qwq, llama3.1, mistral support tools; deepseek-r1 doesn't
@@ -269,6 +304,16 @@ export class AgentOrchestrator {
       });
 
       // 8. TODO: Update memory if needed (extract learnings from conversation)
+
+      // 9. Record actual token usage for rate limiting
+      if (llmResponse.usage.totalTokens > 0) {
+        await this.rateLimiter!.recordUsage(
+          userId,
+          modelIdForRateLimit,
+          llmResponse.usage.totalTokens
+        );
+        console.log(`✓ Recorded ${llmResponse.usage.totalTokens} tokens for ${modelIdForRateLimit}`);
+      }
 
       // Return response with metadata
       return {
