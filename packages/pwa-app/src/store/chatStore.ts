@@ -53,7 +53,7 @@ interface ChatState {
   drafts: Record<string, string>;
 
   // Actions
-  sendMessage: (content: string) => Promise<void>;
+  sendMessage: (content: string, options?: { projectId?: string }) => Promise<void>;
   loadChatList: (projectId?: string | null) => Promise<void>;
   loadChat: (sessionId: string) => Promise<void>;
   newChat: (projectId?: string) => void;
@@ -85,7 +85,7 @@ export const useChatStore = create<ChatState>()(
   isLoadingList: false,
   drafts: {},
 
-  sendMessage: async (content: string) => {
+  sendMessage: async (content: string, options?: { projectId?: string }) => {
     const userMessage: Message = {
       id: `user-${Date.now()}`,
       role: 'user',
@@ -100,10 +100,10 @@ export const useChatStore = create<ChatState>()(
     }));
 
     try {
-      // Get current project and model from stores
-      const currentProjectId = useProjectStore.getState().currentProjectId;
+      // Use explicitly passed projectId, falling back to global state for backwards compatibility
+      const projectId = options?.projectId ?? useProjectStore.getState().currentProjectId;
       const selectedModel = get().selectedModel;
-      const response = await api.chat(content, get().sessionId || undefined, currentProjectId || undefined, selectedModel);
+      const response = await api.chat(content, get().sessionId || undefined, projectId || undefined, selectedModel);
 
       const assistantMessage: Message = {
         id: `assistant-${Date.now()}`,

@@ -143,11 +143,14 @@ export function ChatPage() {
   // Handle pending message from ProjectDetailPage navigation
   useEffect(() => {
     const pendingMessage = sessionStorage.getItem('pendingMessage');
+    const pendingProjectId = sessionStorage.getItem('pendingProjectId');
     if (pendingMessage) {
       sessionStorage.removeItem('pendingMessage');
+      sessionStorage.removeItem('pendingProjectId');
       // Send the message after a brief delay to ensure store is ready
+      // Pass explicit projectId to avoid race conditions with global state
       setTimeout(() => {
-        sendMessage(pendingMessage);
+        sendMessage(pendingMessage, { projectId: pendingProjectId || undefined });
       }, 100);
     }
   }, [sendMessage]);
@@ -176,7 +179,8 @@ export function ChatPage() {
   const handleSubmitMessage = async (message: string, _attachments?: File[]) => {
     if (!message.trim() || isLoading) return;
     clearDraft();
-    await sendMessage(message);
+    // Pass explicit projectId from current chat context to avoid global state race conditions
+    await sendMessage(message, { projectId: projectId || undefined });
     // TODO: Handle attachments when file upload is implemented (Epic 2.4)
   };
 

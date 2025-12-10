@@ -8,6 +8,7 @@
 import { Router } from 'express';
 import { AgentOrchestrator } from '@pip/agent-core';
 import type { DatabaseProvider } from '@pip/core';
+import { canAccessModel, getDefaultModel, MODEL_CONFIGS } from '@pip/core';
 
 export function createChatRoutes(db: DatabaseProvider): Router {
   const router = Router();
@@ -21,7 +22,7 @@ export function createChatRoutes(db: DatabaseProvider): Router {
    */
   router.post('/', async (req, res, next) => {
     try {
-      const { message, sessionId, projectId, model } = req.body;
+      const { message, sessionId, projectId, model: requestedModel } = req.body;
 
       if (!message || typeof message !== 'string') {
         return res.status(400).json({
@@ -31,6 +32,32 @@ export function createChatRoutes(db: DatabaseProvider): Router {
 
       // Get userId from auth middleware
       const userId = req.userId!;
+
+      // Get user for access control check
+      const user = await db.getUserById(userId);
+      if (!user) {
+        return res.status(401).json({ error: 'User not found' });
+      }
+
+      // Access control: Check if user can use the requested model
+      let model = requestedModel;
+      if (model) {
+        // Normalize Ollama model format for access check
+        const modelId = model.startsWith('ollama:') ? model.replace('ollama:', '') : model;
+
+        if (!canAccessModel(user, modelId)) {
+          // User doesn't have access to this model - fall back to default
+          const defaultModel = getDefaultModel(user);
+          if (!defaultModel) {
+            return res.status(403).json({
+              error: 'No models available',
+              details: 'Your subscription tier does not include access to any AI models. Please upgrade or use BYOM.',
+            });
+          }
+          console.log(`Access denied for model ${modelId}, falling back to ${defaultModel.id}`);
+          model = defaultModel.id;
+        }
+      }
 
       // Track if this is a new session (for title generation)
       const isNewSession = !sessionId;
@@ -76,6 +103,41 @@ export function createChatRoutes(db: DatabaseProvider): Router {
           details: 'ANTHROPIC_API_KEY is not set. Please configure the API key.',
         });
       }
+      next(error);
+    }
+  });
+
+  /**
+   * GET /api/chat/models
+   * Get list of models accessible to the current user
+   */
+  router.get('/models', async (req, res, next) => {
+    try {
+      const userId = req.userId!;
+      const user = await db.getUserById(userId);
+      if (!user) {
+        return res.status(401).json({ error: 'User not found' });
+      }
+
+      // Filter models based on user access
+      const accessibleModels = MODEL_CONFIGS
+        .filter(model => canAccessModel(user, model.id))
+        .map(model => ({
+          id: model.id,
+          name: model.name,
+          provider: model.provider,
+        }));
+
+      // Get default model
+      const defaultModel = getDefaultModel(user);
+
+      res.json({
+        models: accessibleModels,
+        defaultModelId: defaultModel?.id,
+        userTier: user.subscriptionTier,
+        userRole: user.role,
+      });
+    } catch (error) {
       next(error);
     }
   });

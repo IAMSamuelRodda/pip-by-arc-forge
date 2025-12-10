@@ -156,6 +156,30 @@ export interface OAuthTokens {
 export type MemoryVariant = 'a' | 'b' | 'control';
 
 /**
+ * User Role - Administrative capability (WHO you are)
+ * Separate from subscription tier (WHAT you've paid for)
+ */
+export type UserRole = 'superadmin' | 'admin' | 'user';
+
+/**
+ * Subscription Tier - What the user has paid for
+ * Controls rate limits and model access
+ */
+export type SubscriptionTier = 'free' | 'starter' | 'pro' | 'enterprise';
+
+/**
+ * Feature Flag - Temporary overrides for testing/beta access
+ * Stored as JSON array in database for flexibility
+ */
+export type FeatureFlag =
+  | 'beta_tester'      // Can access test models (local GPU)
+  | 'early_access'     // Gets new features early
+  | 'staff'            // Internal staff member
+  | 'investor_demo'    // Demo account for investors
+  | 'unlimited_tokens' // No rate limiting (for testing)
+  | 'byom_enabled';    // Can use Bring Your Own Model
+
+/**
  * User Account
  * Stores user authentication and profile information
  */
@@ -164,8 +188,13 @@ export interface User {
   email: string;
   passwordHash: string;
   name?: string;
+  // Legacy field - use 'role' instead
   isAdmin?: boolean;
-  memoryVariant?: MemoryVariant; // A/B testing variant assignment
+  // Authorization fields (issue_052-055)
+  role: UserRole;                    // Administrative capability
+  subscriptionTier: SubscriptionTier; // What they've paid for
+  featureFlags: FeatureFlag[];       // Temporary overrides
+  memoryVariant?: MemoryVariant;     // A/B testing variant assignment
   createdAt: number;
   updatedAt: number;
   lastLoginAt?: number;

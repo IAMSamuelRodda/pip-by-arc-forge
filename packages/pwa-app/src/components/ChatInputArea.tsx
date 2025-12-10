@@ -39,16 +39,28 @@ interface ChatInputAreaProps {
 interface ModelOption {
   id: string;
   name: string;
-  description: string;
-  provider: 'anthropic' | 'ollama';
+  description?: string;
+  provider: string;
 }
 
-// Available cloud models (correct API model IDs)
-const CLOUD_MODELS: ModelOption[] = [
-  { id: 'claude-sonnet-4-5-20250929', name: 'Sonnet 4.5', description: 'Smartest for everyday tasks', provider: 'anthropic' },
-  { id: 'claude-opus-4-5-20251101', name: 'Opus 4.5', description: 'Most capable for complex work', provider: 'anthropic' },
-  { id: 'claude-haiku-4-5-20251001', name: 'Haiku 4.5', description: 'Fastest for quick answers', provider: 'anthropic' },
-];
+// Model descriptions by provider/id pattern
+const MODEL_DESCRIPTIONS: Record<string, string> = {
+  'claude-sonnet': 'Smartest for everyday tasks',
+  'claude-opus': 'Most capable for complex work',
+  'claude-haiku': 'Fastest for quick answers',
+  'qwen': 'Local - fast, private',
+  'llama': 'Local - fast, private',
+  'byom': 'Use your own API key',
+};
+
+function getModelDescription(id: string): string {
+  for (const [pattern, desc] of Object.entries(MODEL_DESCRIPTIONS)) {
+    if (id.toLowerCase().includes(pattern.toLowerCase())) {
+      return desc;
+    }
+  }
+  return '';
+}
 
 // ============================================================================
 // Icon Components
@@ -257,90 +269,87 @@ interface ModelSelectorProps {
   onClose: () => void;
   currentModel: string;
   onModelChange: (modelId: string) => void;
-  ollamaModels: string[];
-  ollamaAvailable: boolean;
+  accessibleModels: ModelOption[];
+  isLoading: boolean;
 }
 
-function ModelSelector({ isOpen, onClose, currentModel, onModelChange, ollamaModels, ollamaAvailable }: ModelSelectorProps) {
-  const [showLocalModels, setShowLocalModels] = useState(false);
-
+function ModelSelector({ isOpen, onClose, currentModel, onModelChange, accessibleModels, isLoading }: ModelSelectorProps) {
   if (!isOpen) return null;
 
-  // Convert Ollama model names to display format (e.g., "deepseek-coder:33b" -> "DeepSeek Coder 33B")
-  const formatModelName = (name: string): string => {
-    return name
-      .replace(/:latest$/, '')
-      .split(/[-:]/)
-      .map(part => part.charAt(0).toUpperCase() + part.slice(1))
-      .join(' ');
-  };
+  // Separate cloud and local models
+  const cloudModels = accessibleModels.filter(m => m.provider === 'anthropic');
+  const localModels = accessibleModels.filter(m => m.provider === 'ollama');
+  const byomModels = accessibleModels.filter(m => m.provider === 'byom');
 
   return (
     <>
       <div className="fixed inset-0 z-10" onClick={onClose} />
       <div className="absolute bottom-full right-0 mb-2 w-56 bg-arc-bg-secondary border border-arc-border rounded-lg shadow-xl z-20">
         <div className="py-1">
-          {/* Cloud models */}
-          {CLOUD_MODELS.map((model) => (
-            <button
-              key={model.id}
-              onClick={() => { onModelChange(model.id); onClose(); }}
-              className="w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-arc-bg-tertiary transition-colors"
-            >
-              <div className="text-left">
-                <div className="text-arc-text-primary font-medium">{model.name}</div>
-                <div className="text-xs text-arc-text-dim">{model.description}</div>
-              </div>
-              {currentModel === model.id && <CheckIcon />}
-            </button>
-          ))}
-
-          {/* Local models section */}
-          {ollamaAvailable && ollamaModels.length > 0 && (
+          {isLoading ? (
+            <div className="px-3 py-2 text-sm text-arc-text-dim">Loading models...</div>
+          ) : accessibleModels.length === 0 ? (
+            <div className="px-3 py-2 text-sm text-arc-text-dim">No models available</div>
+          ) : (
             <>
-              <div className="border-t border-arc-border my-1" />
-              <div className="relative">
+              {/* Cloud models */}
+              {cloudModels.map((model) => (
                 <button
-                  onClick={() => setShowLocalModels(!showLocalModels)}
-                  className="w-full flex items-center justify-between px-3 py-1.5 text-sm text-arc-text-secondary hover:bg-arc-bg-tertiary transition-colors"
+                  key={model.id}
+                  onClick={() => { onModelChange(model.id); onClose(); }}
+                  className="w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-arc-bg-tertiary transition-colors"
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-green-500" />
-                    <span>Local models</span>
+                  <div className="text-left">
+                    <div className="text-arc-text-primary font-medium">{model.name}</div>
+                    <div className="text-xs text-arc-text-dim">{getModelDescription(model.id)}</div>
                   </div>
-                  <ChevronIcon direction="right" />
+                  {currentModel === model.id && <CheckIcon />}
                 </button>
-                {showLocalModels && (
-                  <div className="absolute left-full top-0 ml-1 w-48 bg-arc-bg-secondary border border-arc-border rounded-lg shadow-xl">
-                    <div className="py-1">
-                      {ollamaModels.map((modelName) => {
-                        const modelId = `ollama:${modelName}`;
-                        return (
-                          <button
-                            key={modelId}
-                            onClick={() => { onModelChange(modelId); setShowLocalModels(false); onClose(); }}
-                            className="w-full flex items-center justify-between px-3 py-1.5 text-sm text-arc-text-primary hover:bg-arc-bg-tertiary transition-colors"
-                          >
-                            <span>{formatModelName(modelName)}</span>
-                            {currentModel === modelId && <CheckIcon />}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
+              ))}
 
-          {/* Ollama unavailable indicator */}
-          {!ollamaAvailable && (
-            <>
-              <div className="border-t border-arc-border my-1" />
-              <div className="px-3 py-1.5 text-sm text-arc-text-dim flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-arc-text-dim" />
-                <span>Local models offline</span>
-              </div>
+              {/* Local models */}
+              {localModels.length > 0 && (
+                <>
+                  {cloudModels.length > 0 && <div className="border-t border-arc-border my-1" />}
+                  <div className="px-3 py-1 text-xs text-arc-text-dim flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-green-500" />
+                    <span>Local</span>
+                  </div>
+                  {localModels.map((model) => (
+                    <button
+                      key={model.id}
+                      onClick={() => { onModelChange(`ollama:${model.id}`); onClose(); }}
+                      className="w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-arc-bg-tertiary transition-colors"
+                    >
+                      <div className="text-left">
+                        <div className="text-arc-text-primary font-medium">{model.name}</div>
+                        <div className="text-xs text-arc-text-dim">{getModelDescription(model.id)}</div>
+                      </div>
+                      {(currentModel === model.id || currentModel === `ollama:${model.id}`) && <CheckIcon />}
+                    </button>
+                  ))}
+                </>
+              )}
+
+              {/* BYOM option */}
+              {byomModels.length > 0 && (
+                <>
+                  <div className="border-t border-arc-border my-1" />
+                  {byomModels.map((model) => (
+                    <button
+                      key={model.id}
+                      onClick={() => { onModelChange(model.id); onClose(); }}
+                      className="w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-arc-bg-tertiary transition-colors"
+                    >
+                      <div className="text-left">
+                        <div className="text-arc-text-primary font-medium">{model.name}</div>
+                        <div className="text-xs text-arc-text-dim">{getModelDescription(model.id)}</div>
+                      </div>
+                      {currentModel === model.id && <CheckIcon />}
+                    </button>
+                  ))}
+                </>
+              )}
             </>
           )}
         </div>
@@ -372,8 +381,8 @@ export function ChatInputArea({
   const [memoryEnabled, setMemoryEnabled] = useState(true);
   const [styles, setStyles] = useState<ResponseStyleOption[]>([]);
   const [currentStyle, setCurrentStyle] = useState<ResponseStyleId>('normal');
-  const [ollamaModels, setOllamaModels] = useState<string[]>([]);
-  const [ollamaAvailable, setOllamaAvailable] = useState(false);
+  const [accessibleModels, setAccessibleModels] = useState<ModelOption[]>([]);
+  const [modelsLoading, setModelsLoading] = useState(true);
 
   // Model selection from store (persisted)
   const selectedModel = useChatStore((state) => state.selectedModel);
@@ -381,14 +390,29 @@ export function ChatInputArea({
   const modelLoadingState = useChatStore((state) => state.modelLoadingState);
   const setModelLoadingState = useChatStore((state) => state.setModelLoadingState);
 
-  // Load settings and Ollama status
+  // Load settings and accessible models
   useEffect(() => {
     api.getStyles().then(({ styles }) => setStyles(styles)).catch(console.error);
     api.getSettings().then(({ settings }) => setCurrentStyle(settings.responseStyle)).catch(console.error);
-    api.getOllamaStatus().then((status) => {
-      setOllamaAvailable(status.available);
-      setOllamaModels(status.models || []);
-    }).catch(console.error);
+
+    // Fetch accessible models from API (filtered by user's role/tier/flags)
+    api.getAccessibleModels()
+      .then(({ models, defaultModelId }) => {
+        setAccessibleModels(models.map(m => ({
+          id: m.id,
+          name: m.name,
+          provider: m.provider,
+        })));
+        // If current selected model is not accessible, switch to default
+        if (defaultModelId && !models.some(m => m.id === selectedModel || `ollama:${m.id}` === selectedModel)) {
+          setSelectedModel(defaultModelId);
+        }
+        setModelsLoading(false);
+      })
+      .catch((err) => {
+        console.error('Failed to load accessible models:', err);
+        setModelsLoading(false);
+      });
   }, []);
 
   // Auto-focus
@@ -473,11 +497,12 @@ export function ChatInputArea({
 
   // Get display name for current model
   const getModelDisplayName = (modelId: string): string => {
-    // Check cloud models first
-    const cloudModel = CLOUD_MODELS.find(m => m.id === modelId);
-    if (cloudModel) return cloudModel.name;
+    // Check accessible models first (both direct and ollama: prefixed)
+    const normalizedId = modelId.startsWith('ollama:') ? modelId.replace('ollama:', '') : modelId;
+    const model = accessibleModels.find(m => m.id === modelId || m.id === normalizedId);
+    if (model) return model.name;
 
-    // Handle ollama models (format: "ollama:modelname")
+    // Handle ollama models (format: "ollama:modelname") - format nicely
     if (modelId.startsWith('ollama:')) {
       const ollamaModel = modelId.replace('ollama:', '');
       return ollamaModel
@@ -487,8 +512,8 @@ export function ChatInputArea({
         .join(' ');
     }
 
-    // Fallback to default
-    return CLOUD_MODELS[0].name;
+    // Fallback to first accessible model or generic name
+    return accessibleModels[0]?.name || 'Select Model';
   };
 
   const currentModelName = getModelDisplayName(selectedModel);
@@ -592,8 +617,8 @@ export function ChatInputArea({
                 onClose={() => setModelMenuOpen(false)}
                 currentModel={selectedModel}
                 onModelChange={handleModelChange}
-                ollamaModels={ollamaModels}
-                ollamaAvailable={ollamaAvailable}
+                accessibleModels={accessibleModels}
+                isLoading={modelsLoading}
               />
             </div>
 

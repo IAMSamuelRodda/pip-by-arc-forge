@@ -15,3 +15,6 @@ export * from "./styles/index.js";
 
 // Personalities (deferred feature)
 export * from "./personalities/index.js";
+
+// Access Control (role + tier + flags)
+export * from "./auth/access-control.js";

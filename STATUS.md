@@ -31,12 +31,18 @@
 
 | Priority | Issue | Summary |
 |----------|-------|---------|
-| P1 | issue_034 | Skills System - report templates & agent capabilities |
-| P2 | issue_044 | Remove global currentProjectId dependency |
-| P2 | issue_036 | Collapsible thinking blocks + tool call visibility |
+| P0 | issue_051 | MCP Transport - Streamable HTTP + SSE fallback |
+| P0 | issue_052 | Rate Limiting System |
+| P0 | issue_055 | GPU Optimization for test users |
+| P1 | issue_034 | Skills System - report templates |
 
 ### Recently Completed
 
+- **Authorization System (issue_053/054)** - Role + Tier + Flags architecture (Dec 10)
+  - UserRole, SubscriptionTier, FeatureFlag types
+  - Model access control with superadmin bypass
+  - GET /api/chat/models endpoint for UI
+- **Remove Global projectId Dependency (issue_044)** - Explicit projectId passing (Dec 10)
 - **Memory Project Isolation (issue_043)** - Auto-inject projectId into tools (Dec 10)
 - **Google Sheets Integration (issue_039)** - Full OAuth + 15 MCP tools (Dec 10)
 - 12 manual testing bug fixes (Dec 10) - see CHANGELOG.md

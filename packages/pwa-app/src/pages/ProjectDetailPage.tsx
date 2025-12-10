@@ -136,8 +136,9 @@ export function ProjectDetailPage() {
     await newChat(projectId);
 
     // Navigate to chat page - the message will be sent there
-    // Store the initial message to send after navigation
+    // Store the initial message and projectId explicitly to avoid race conditions
     sessionStorage.setItem('pendingMessage', message);
+    sessionStorage.setItem('pendingProjectId', projectId);
     navigate('/');
   };
 

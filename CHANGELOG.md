@@ -9,9 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-> **Last Updated**: 2025-12-10 (Manual testing bug fixes + resolved issues migration from ISSUES.md)
+> **Last Updated**: 2025-12-10 (MCP Streamable HTTP transport)
 
 ### Added
+- **MCP Streamable HTTP Transport (issue_051)** - New primary transport for MCP connections (2025-12-10)
+  - Implements MCP spec 2025-03-26 Streamable HTTP as primary transport
+  - New `/mcp` endpoint: POST (init/messages), GET (SSE stream), DELETE (session cleanup)
+  - Uses `Mcp-Session-Id` header for session management
+  - JSON responses with `enableJsonResponse: true` for simple requests
+  - Legacy `/sse` + `/messages` endpoints kept for backwards compatibility
+  - Sessions track `transportType: 'sse' | 'streamable-http'`
+  - `packages/pip-mcp/src/index.ts:840-985` - New transport implementation
+- **Authorization System (issue_053/054)** - Role + Tier + Feature Flags architecture (2025-12-10)
+  - Separates WHO you are (role) from WHAT you've paid for (tier) from overrides (flags)
+  - `UserRole`: 'superadmin' | 'admin' | 'user' - administrative capability
+  - `SubscriptionTier`: 'free' | 'starter' | 'pro' | 'enterprise' - billing level
+  - `FeatureFlag[]`: 'beta_tester', 'early_access', etc. - temporary overrides
+  - Superadmin bypasses ALL restrictions (your main account)
+  - Beta testers get local GPU access without affecting tier logic
+  - `packages/core/src/auth/access-control.ts` - canAccessModel(), getRateLimits(), etc.
+  - `packages/core/src/database/types.ts` - New types for role/tier/flags
+  - `packages/core/src/database/providers/sqlite.ts` - Schema + auto-migration
+  - `packages/server/src/routes/chat.ts` - Model access check + GET /api/chat/models
+  - Database migration: `is_admin=1` → `role='superadmin'` (automatic)
 - **Google Sheets Integration (issue_039)** - Full OAuth + MCP tools (2025-12-09)
   - OAuth flow: `/connectors/sheets`, `/connectors/sheets/callback`, `/connectors/sheets/disconnect`
   - Service: `getSheetsClient()` with auto-refresh, all API helpers
@@ -62,6 +82,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated all documentation for Simple tier
 
 ### Fixed
+- **Remove Global projectId Dependency (issue_044)** - Explicit projectId passing (2025-12-10)
+  - `sendMessage()` now accepts explicit `{ projectId }` options parameter
+  - ChatPage passes projectId from current chat context instead of global state
+  - ProjectDetailPage stores projectId in sessionStorage alongside pendingMessage
+  - Removed `currentProjectId` from persisted state (URL is source of truth)
+  - Eliminates race conditions when switching between projects
+  - `packages/pwa-app/src/store/chatStore.ts:56,88-106` - sendMessage signature change
+  - `packages/pwa-app/src/pages/ChatPage.tsx:143-156,178-185` - Explicit projectId passing
+  - `packages/pwa-app/src/store/projectStore.ts:123-129` - Removed persistence
 - **Memory System Project Isolation (issue_043)** - Auto-inject projectId (2025-12-10)
   - Tool interface now includes `ToolContext` with `userId` and `projectId`
   - Orchestrator passes `request.projectId` to all tool executions

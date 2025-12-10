@@ -20,6 +20,9 @@ import type {
   SessionFilter,
   MemoryFilter,
   User,
+  UserRole,
+  SubscriptionTier,
+  FeatureFlag,
   InviteCode,
   MemoryVariant,
   UserSettings,
@@ -223,7 +226,10 @@ export class SQLiteProvider implements DatabaseProvider {
         password_hash TEXT NOT NULL,
         name TEXT,
         is_admin INTEGER DEFAULT 0,
-        memory_variant TEXT DEFAULT 'a',  -- A/B testing: 'a', 'b', or 'control'
+        role TEXT DEFAULT 'user',           -- superadmin, admin, user
+        subscription_tier TEXT DEFAULT 'free', -- free, starter, pro, enterprise
+        feature_flags TEXT DEFAULT '[]',    -- JSON array of feature flags
+        memory_variant TEXT DEFAULT 'a',    -- A/B testing: 'a', 'b', or 'control'
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         last_login_at INTEGER
@@ -236,6 +242,34 @@ export class SQLiteProvider implements DatabaseProvider {
       this.db.exec(`ALTER TABLE users ADD COLUMN memory_variant TEXT DEFAULT 'a'`);
     } catch {
       // Column already exists, ignore
+    }
+
+    // Migration: Add role column (issue_052-055 - authorization system)
+    try {
+      this.db.exec(`ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'`);
+    } catch {
+      // Column already exists, ignore
+    }
+
+    // Migration: Add subscription_tier column
+    try {
+      this.db.exec(`ALTER TABLE users ADD COLUMN subscription_tier TEXT DEFAULT 'free'`);
+    } catch {
+      // Column already exists, ignore
+    }
+
+    // Migration: Add feature_flags column (JSON array)
+    try {
+      this.db.exec(`ALTER TABLE users ADD COLUMN feature_flags TEXT DEFAULT '[]'`);
+    } catch {
+      // Column already exists, ignore
+    }
+
+    // Migration: Migrate is_admin=1 users to role='superadmin'
+    try {
+      this.db.exec(`UPDATE users SET role = 'superadmin' WHERE is_admin = 1 AND (role IS NULL OR role = 'user')`);
+    } catch {
+      // Migration already applied or no matching users
     }
 
     // Invite codes table
@@ -1230,6 +1264,9 @@ export class SQLiteProvider implements DatabaseProvider {
     passwordHash: string;
     name?: string;
     isAdmin?: boolean;
+    role?: UserRole;
+    subscriptionTier?: SubscriptionTier;
+    featureFlags?: FeatureFlag[];
     memoryVariant?: MemoryVariant;
   }): Promise<User> {
     if (!this.db) throw new DatabaseError("Database not connected", this.name);
@@ -1238,9 +1275,14 @@ export class SQLiteProvider implements DatabaseProvider {
       const id = crypto.randomUUID();
       const now = Date.now();
 
+      // Derive role from isAdmin for backwards compatibility
+      const role: UserRole = user.role || (user.isAdmin ? 'superadmin' : 'user');
+      const subscriptionTier: SubscriptionTier = user.subscriptionTier || 'free';
+      const featureFlags: FeatureFlag[] = user.featureFlags || [];
+
       const stmt = this.db.prepare(`
-        INSERT INTO users (id, email, password_hash, name, is_admin, memory_variant, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO users (id, email, password_hash, name, is_admin, role, subscription_tier, feature_flags, memory_variant, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       stmt.run(
@@ -1249,6 +1291,9 @@ export class SQLiteProvider implements DatabaseProvider {
         user.passwordHash,
         user.name || null,
         user.isAdmin ? 1 : 0,
+        role,
+        subscriptionTier,
+        JSON.stringify(featureFlags),
         user.memoryVariant || 'b',
         now,
         now
@@ -1260,6 +1305,9 @@ export class SQLiteProvider implements DatabaseProvider {
         passwordHash: user.passwordHash,
         name: user.name,
         isAdmin: user.isAdmin || false,
+        role,
+        subscriptionTier,
+        featureFlags,
         memoryVariant: user.memoryVariant || 'a',
         createdAt: now,
         updatedAt: now,
@@ -1288,12 +1336,23 @@ export class SQLiteProvider implements DatabaseProvider {
 
       if (!row) return null;
 
+      // Parse feature_flags JSON, default to empty array
+      let featureFlags: FeatureFlag[] = [];
+      try {
+        featureFlags = row.feature_flags ? JSON.parse(row.feature_flags) : [];
+      } catch {
+        featureFlags = [];
+      }
+
       return {
         id: row.id,
         email: row.email,
         passwordHash: row.password_hash,
         name: row.name,
         isAdmin: row.is_admin === 1,
+        role: (row.role as UserRole) || (row.is_admin === 1 ? 'superadmin' : 'user'),
+        subscriptionTier: (row.subscription_tier as SubscriptionTier) || 'free',
+        featureFlags,
         memoryVariant: (row.memory_variant as MemoryVariant) || 'a',
         createdAt: row.created_at,
         updatedAt: row.updated_at,
@@ -1320,12 +1379,23 @@ export class SQLiteProvider implements DatabaseProvider {
 
       if (!row) return null;
 
+      // Parse feature_flags JSON, default to empty array
+      let featureFlags: FeatureFlag[] = [];
+      try {
+        featureFlags = row.feature_flags ? JSON.parse(row.feature_flags) : [];
+      } catch {
+        featureFlags = [];
+      }
+
       return {
         id: row.id,
         email: row.email,
         passwordHash: row.password_hash,
         name: row.name,
         isAdmin: row.is_admin === 1,
+        role: (row.role as UserRole) || (row.is_admin === 1 ? 'superadmin' : 'user'),
+        subscriptionTier: (row.subscription_tier as SubscriptionTier) || 'free',
+        featureFlags,
         memoryVariant: (row.memory_variant as MemoryVariant) || 'a',
         createdAt: row.created_at,
         updatedAt: row.updated_at,
@@ -1352,13 +1422,20 @@ export class SQLiteProvider implements DatabaseProvider {
       const now = Date.now();
       const stmt = this.db.prepare(`
         UPDATE users
-        SET name = ?, is_admin = ?, memory_variant = ?, updated_at = ?, last_login_at = ?
+        SET name = ?, is_admin = ?, role = ?, subscription_tier = ?, feature_flags = ?, memory_variant = ?, updated_at = ?, last_login_at = ?
         WHERE id = ?
       `);
+
+      const newRole = updates.role ?? existing.role;
+      const newTier = updates.subscriptionTier ?? existing.subscriptionTier;
+      const newFlags = updates.featureFlags ?? existing.featureFlags;
 
       stmt.run(
         updates.name ?? existing.name ?? null,
         updates.isAdmin !== undefined ? (updates.isAdmin ? 1 : 0) : (existing.isAdmin ? 1 : 0),
+        newRole,
+        newTier,
+        JSON.stringify(newFlags),
         updates.memoryVariant ?? existing.memoryVariant ?? 'a',
         now,
         updates.lastLoginAt ?? existing.lastLoginAt ?? null,
@@ -1368,6 +1445,9 @@ export class SQLiteProvider implements DatabaseProvider {
       return {
         ...existing,
         ...updates,
+        role: newRole,
+        subscriptionTier: newTier,
+        featureFlags: newFlags,
         updatedAt: now,
       };
     } catch (error) {

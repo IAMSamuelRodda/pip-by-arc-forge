@@ -397,6 +397,25 @@ export const api = {
       return { available: false, error: 'Failed to check Ollama status' };
     }
   },
+
+  /**
+   * Get accessible models for the current user
+   * Returns models filtered by user's role, tier, and feature flags
+   */
+  async getAccessibleModels(): Promise<{
+    models: Array<{ id: string; name: string; provider: string }>;
+    defaultModelId?: string;
+    userTier: string;
+    userRole: string;
+  }> {
+    const response = await fetch(`${API_BASE}/api/chat/models`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to get accessible models');
+    }
+    return response.json();
+  },
 };
 
 // Memory types

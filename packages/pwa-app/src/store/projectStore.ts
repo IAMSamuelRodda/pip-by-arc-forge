@@ -122,9 +122,10 @@ export const useProjectStore = create<ProjectState>()(
     }),
     {
       name: 'pip-project-store',
-      partialize: (state) => ({
-        currentProjectId: state.currentProjectId,
-      }),
+      // NOTE: currentProjectId is NOT persisted (issue_044)
+      // The URL (/projects/:projectId) is the source of truth, not global state
+      // This prevents stale projectId from surviving page refreshes
+      partialize: () => ({}),
     }
   )
 );

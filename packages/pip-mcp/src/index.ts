@@ -17,6 +17,7 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
@@ -124,10 +125,12 @@ Current permission levels:
 // Types
 interface Session {
   id: string;
-  transport: SSEServerTransport;
+  transport: SSEServerTransport | StreamableHTTPServerTransport;
+  server: Server;
   userId?: string;
   xeroConnected: boolean;
   createdAt: Date;
+  transportType: 'sse' | 'streamable-http';
 }
 
 // Store active sessions
@@ -828,9 +831,167 @@ app.post("/api/memory/summary", (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
+// ===========================================
+// Streamable HTTP Transport (New - MCP 2025-03-26)
+// ===========================================
+// Single endpoint that handles GET (SSE stream), POST (messages), and DELETE (session close)
+// This is the primary transport - SSE below is for backwards compatibility
+
+// Store Streamable HTTP transports by session ID
+const streamableTransports = new Map<string, {
+  transport: StreamableHTTPServerTransport;
+  server: Server;
+  userId: string;
+}>();
+
+// Helper to extract and verify auth token
+function extractAuthToken(req: Request): { userId: string } | null {
+  let token: string | undefined;
+
+  // Check Authorization header first (Bearer token)
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    token = authHeader.substring(7);
+  } else {
+    // Fallback to query parameter
+    token = req.query.token as string | undefined;
+  }
+
+  if (!token) return null;
+
+  const decoded = verifyToken(token);
+  if (!decoded) return null;
+
+  return { userId: decoded.userId };
+}
+
+// Streamable HTTP endpoint - handles all MCP protocol messages
+app.all("/mcp", async (req: Request, res: Response) => {
+  const method = req.method;
+  console.log(`[Streamable HTTP] ${method} /mcp request`);
+
+  // Extract session ID from header (for existing sessions)
+  const sessionId = req.headers['mcp-session-id'] as string | undefined;
+
+  // For POST requests, we need to handle initialization and regular messages
+  if (method === 'POST') {
+    // Check if this is an initialization request (no session ID or new session)
+    const body = req.body;
+    const isInitRequest = body?.method === 'initialize';
+
+    if (isInitRequest) {
+      // New session - authenticate user
+      const auth = extractAuthToken(req);
+      if (!auth) {
+        console.log("[Streamable HTTP] No auth token for init - returning 401");
+        res.status(401).json({
+          error: "unauthorized",
+          error_description: "Authentication required. Please connect via OAuth."
+        });
+        return;
+      }
+
+      console.log(`[Streamable HTTP] New session init for user: ${auth.userId}`);
+
+      // Create MCP server for this user (before transport so we can reference it in callback)
+      const server = createMcpServer(auth.userId);
+
+      // Create new transport with session ID generator and session callback
+      const transport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: () => crypto.randomUUID(),
+        enableJsonResponse: true, // Use JSON responses instead of SSE for simple requests
+        onsessioninitialized: (newSessionId: string) => {
+          console.log(`[Streamable HTTP] Session initialized: ${newSessionId}`);
+          streamableTransports.set(newSessionId, {
+            transport,
+            server,
+            userId: auth.userId,
+          });
+
+          // Also store in main sessions map for consistency
+          sessions.set(newSessionId, {
+            id: newSessionId,
+            transport,
+            server,
+            userId: auth.userId,
+            xeroConnected: false, // Will be updated on first tool call
+            createdAt: new Date(),
+            transportType: 'streamable-http',
+          });
+        },
+      });
+
+      // Start the transport
+      await transport.start();
+
+      // Connect server to transport
+      await server.connect(transport);
+
+      // Handle request
+      await transport.handleRequest(req, res, body);
+      return;
+    }
+
+    // Existing session - look up transport
+    if (!sessionId) {
+      console.log("[Streamable HTTP] Missing session ID for non-init request");
+      res.status(400).json({ error: "Missing Mcp-Session-Id header" });
+      return;
+    }
+
+    const sessionData = streamableTransports.get(sessionId);
+    if (!sessionData) {
+      console.log(`[Streamable HTTP] Session not found: ${sessionId}`);
+      res.status(404).json({ error: "Session not found" });
+      return;
+    }
+
+    // Forward to transport
+    await sessionData.transport.handleRequest(req, res, body);
+    return;
+  }
+
+  // For GET requests (SSE stream) and DELETE (session close)
+  if (method === 'GET' || method === 'DELETE') {
+    if (!sessionId) {
+      console.log(`[Streamable HTTP] Missing session ID for ${method}`);
+      res.status(400).json({ error: "Missing Mcp-Session-Id header" });
+      return;
+    }
+
+    const sessionData = streamableTransports.get(sessionId);
+    if (!sessionData) {
+      console.log(`[Streamable HTTP] Session not found: ${sessionId}`);
+      res.status(404).json({ error: "Session not found" });
+      return;
+    }
+
+    if (method === 'DELETE') {
+      // Clean up session
+      console.log(`[Streamable HTTP] Session deleted: ${sessionId}`);
+      streamableTransports.delete(sessionId);
+      sessions.delete(sessionId);
+      res.status(204).end();
+      return;
+    }
+
+    // GET - forward to transport for SSE stream
+    await sessionData.transport.handleRequest(req, res);
+    return;
+  }
+
+  // Method not allowed
+  res.status(405).json({ error: "Method not allowed" });
+});
+
+// ===========================================
+// Legacy SSE Transport (Backwards Compatibility)
+// ===========================================
+// Kept for older clients that don't support Streamable HTTP
+
 // SSE endpoint for MCP connections
 app.get("/sse", async (req: Request, res: Response) => {
-  console.log("New SSE connection request");
+  console.log("New SSE connection request (legacy transport)");
 
   // Extract auth token from Authorization header (Bearer token) or query parameter
   let token: string | undefined;
@@ -888,9 +1049,11 @@ app.get("/sse", async (req: Request, res: Response) => {
   const session: Session = {
     id: sessionId,
     transport,
+    server,
     userId,
     xeroConnected: xeroStatus.connected,
     createdAt: new Date(),
+    transportType: 'sse',
   };
   sessions.set(sessionId, session);
 
@@ -932,11 +1095,17 @@ app.post("/messages", async (req: Request, res: Response) => {
     return;
   }
 
-  console.log(`Processing message for session: ${sessionId}`);
+  console.log(`Processing message for session: ${sessionId} (transport: ${session.transportType})`);
 
-  // Forward message to transport - pass the already-parsed body from express.json()
+  // Forward message to transport - only SSE transport uses handlePostMessage
   try {
-    await session.transport.handlePostMessage(req, res, req.body);
+    if (session.transportType === 'sse') {
+      // SSE transport has handlePostMessage method
+      await (session.transport as SSEServerTransport).handlePostMessage(req, res, req.body);
+    } else {
+      // Streamable HTTP should not receive messages on /messages endpoint
+      res.status(400).json({ error: "Use /mcp endpoint for Streamable HTTP transport" });
+    }
   } catch (error) {
     console.error("Error handling message:", error);
     res.status(500).json({ error: "Internal server error" });
