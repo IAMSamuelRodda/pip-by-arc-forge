@@ -18,3 +18,6 @@ export * from "./personalities/index.js";
 
 // Access Control (role + tier + flags)
 export * from "./auth/access-control.js";
+
+// Rate Limiting (token usage tracking)
+export * from "./auth/rate-limiter.js";

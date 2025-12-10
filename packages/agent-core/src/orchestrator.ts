@@ -13,6 +13,7 @@ import {
   type ResponseStyleId,
   buildStylePrompt,
   isToolCapableModel,
+  RateLimiter,
 } from '@pip/core';
 import Database from 'better-sqlite3';
 import { SessionManager } from './session/manager.js';
@@ -31,6 +32,7 @@ export class AgentOrchestrator {
   private llmProvider: LLMProvider | null = null;
   private ollamaProvider: LLMProvider | null = null;
   private dbProvider: DatabaseProvider | null = null;
+  private rateLimiter: RateLimiter | null = null;
   private xeroClient: XeroClient | null = null;
   private xeroTools: Tool[] = [];
   private memoryTools: Tool[] = [];
@@ -62,6 +64,10 @@ export class AgentOrchestrator {
       // Initialize managers with database
       this.sessionManager = new SessionManager(this.dbProvider);
       this.memoryManager = new MemoryManager(this.dbProvider);
+
+      // Initialize rate limiter for token usage tracking
+      this.rateLimiter = new RateLimiter(this.dbProvider);
+      console.log(`✓ Rate Limiter initialized`);
 
       // Initialize LLM providers (Anthropic as default, Ollama as optional)
       this.llmProvider = await createLLMProviderFromEnv();

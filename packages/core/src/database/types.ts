@@ -218,6 +218,31 @@ export interface Project {
 }
 
 /**
+ * Token Usage Record
+ * Tracks API token consumption per user/model for rate limiting
+ */
+export interface TokenUsage {
+  id?: number;
+  userId: string;
+  modelId: string; // e.g., "claude-sonnet-4", "qwen2.5:3b"
+  tokensUsed: number;
+  requestTimestamp: number; // Unix timestamp
+  dateBucket: string; // YYYY-MM-DD for daily aggregation
+}
+
+/**
+ * Token Usage Summary
+ * Aggregated usage for a user/model/period
+ */
+export interface TokenUsageSummary {
+  userId: string;
+  modelId: string;
+  dateBucket: string;
+  totalTokens: number;
+  requestCount: number;
+}
+
+/**
  * Invite Code
  * Controls beta access - users need a valid code to sign up
  */
@@ -550,6 +575,11 @@ export interface DatabaseProvider {
   getOperationSnapshot(id: string): Promise<OperationSnapshot | null>;
   updateOperationSnapshot(id: string, updates: Partial<OperationSnapshot>): Promise<OperationSnapshot>;
   listOperationSnapshots(userId: string, options?: { limit?: number; status?: OperationSnapshot["status"] }): Promise<OperationSnapshot[]>;
+
+  // Token usage operations (rate limiting)
+  recordTokenUsage(usage: Omit<TokenUsage, "id">): Promise<void>;
+  getTokenUsage(userId: string, modelId: string, dateBucket: string): Promise<TokenUsageSummary>;
+  getDailyTokenUsage(userId: string, date: string): Promise<TokenUsageSummary[]>;
 }
 
 // ============================================================================

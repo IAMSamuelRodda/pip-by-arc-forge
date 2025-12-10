@@ -440,6 +440,21 @@ export class SQLiteProvider implements DatabaseProvider {
       CREATE INDEX IF NOT EXISTS idx_snapshots_user ON operation_snapshots(user_id);
       CREATE INDEX IF NOT EXISTS idx_snapshots_status ON operation_snapshots(user_id, status);
     `);
+
+    // Token usage tracking table
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS token_usage (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL,
+        model_id TEXT NOT NULL,
+        tokens_used INTEGER NOT NULL,
+        request_timestamp INTEGER NOT NULL,
+        date_bucket TEXT NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS idx_token_usage_user_date ON token_usage(user_id, date_bucket);
+      CREATE INDEX IF NOT EXISTS idx_token_usage_user_model_date ON token_usage(user_id, model_id, date_bucket);
+    `);
   }
 
   // ============================================================================
@@ -2140,6 +2155,114 @@ export class SQLiteProvider implements DatabaseProvider {
     } catch (error) {
       throw new DatabaseError(
         `Failed to list operation snapshots for user: ${userId}`,
+        this.name,
+        error as Error
+      );
+    }
+  }
+
+  // ============================================================================
+  // Token Usage Operations (Rate Limiting)
+  // ============================================================================
+
+  async recordTokenUsage(usage: Omit<import("../types.js").TokenUsage, "id">): Promise<void> {
+    if (!this.db) throw new DatabaseError("Database not connected", this.name);
+
+    try {
+      const stmt = this.db.prepare(`
+        INSERT INTO token_usage (user_id, model_id, tokens_used, request_timestamp, date_bucket)
+        VALUES (?, ?, ?, ?, ?)
+      `);
+
+      stmt.run(
+        usage.userId,
+        usage.modelId,
+        usage.tokensUsed,
+        usage.requestTimestamp,
+        usage.dateBucket
+      );
+    } catch (error) {
+      throw new DatabaseError(
+        `Failed to record token usage for user: ${usage.userId}`,
+        this.name,
+        error as Error
+      );
+    }
+  }
+
+  async getTokenUsage(
+    userId: string,
+    modelId: string,
+    dateBucket: string
+  ): Promise<import("../types.js").TokenUsageSummary> {
+    if (!this.db) throw new DatabaseError("Database not connected", this.name);
+
+    try {
+      const row = this.db.prepare(`
+        SELECT
+          user_id,
+          model_id,
+          date_bucket,
+          SUM(tokens_used) as total_tokens,
+          COUNT(*) as request_count
+        FROM token_usage
+        WHERE user_id = ? AND model_id = ? AND date_bucket = ?
+        GROUP BY user_id, model_id, date_bucket
+      `).get(userId, modelId, dateBucket) as any;
+
+      if (!row) {
+        return {
+          userId,
+          modelId,
+          dateBucket,
+          totalTokens: 0,
+          requestCount: 0,
+        };
+      }
+
+      return {
+        userId: row.user_id,
+        modelId: row.model_id,
+        dateBucket: row.date_bucket,
+        totalTokens: row.total_tokens,
+        requestCount: row.request_count,
+      };
+    } catch (error) {
+      throw new DatabaseError(
+        `Failed to get token usage for user: ${userId}`,
+        this.name,
+        error as Error
+      );
+    }
+  }
+
+  async getDailyTokenUsage(userId: string, date: string): Promise<import("../types.js").TokenUsageSummary[]> {
+    if (!this.db) throw new DatabaseError("Database not connected", this.name);
+
+    try {
+      const rows = this.db.prepare(`
+        SELECT
+          user_id,
+          model_id,
+          date_bucket,
+          SUM(tokens_used) as total_tokens,
+          COUNT(*) as request_count
+        FROM token_usage
+        WHERE user_id = ? AND date_bucket = ?
+        GROUP BY user_id, model_id, date_bucket
+        ORDER BY total_tokens DESC
+      `).all(userId, date) as any[];
+
+      return rows.map((row) => ({
+        userId: row.user_id,
+        modelId: row.model_id,
+        dateBucket: row.date_bucket,
+        totalTokens: row.total_tokens,
+        requestCount: row.request_count,
+      }));
+    } catch (error) {
+      throw new DatabaseError(
+        `Failed to get daily token usage for user: ${userId}`,
         this.name,
         error as Error
       );
