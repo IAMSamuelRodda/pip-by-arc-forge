@@ -866,9 +866,10 @@ function extractAuthToken(req: Request): { userId: string } | null {
 }
 
 // Streamable HTTP endpoint - handles all MCP protocol messages
-app.all("/mcp", async (req: Request, res: Response) => {
+// Claude.ai expects MCP at root path for auto-discovery
+app.all("/", async (req: Request, res: Response) => {
   const method = req.method;
-  console.log(`[Streamable HTTP] ${method} /mcp request`);
+  console.log(`[Streamable HTTP] ${method} / request`);
 
   // Extract session ID from header (for existing sessions)
   const sessionId = req.headers['mcp-session-id'] as string | undefined;
