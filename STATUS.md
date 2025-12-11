@@ -3,7 +3,7 @@
 > **Purpose**: Current state snapshot (lean, actionable)
 > **Lifecycle**: Living (update as focus changes)
 
-**Last Updated**: 2025-12-10
+**Last Updated**: 2025-12-11
 **Current Phase**: Milestone 2 - UX & Features (v0.4.0-dev)
 
 ---
@@ -31,27 +31,36 @@
 
 | Priority | Issue | Summary |
 |----------|-------|---------|
-| P0 | issue_051 | MCP Transport - Streamable HTTP + SSE fallback |
 | P1 | issue_034 | Skills System - report templates |
+| P2 | issue_050 | Tools Dropdown Z-Index Issue |
 
-### Recently Completed
+### Recently Completed (Dec 10-11)
 
-- **✅ Critical Path Complete: Test User Onboarding (Dec 10)** - 4/4 tasks done, ready for Philip
-  - issue_052: Rate limiting system (token usage tracking, daily limits)
-  - issue_054: PWA model selector integration (access control filtering)
-  - issue_055: GPU model configuration (qwen2.5:0.5b + 3b)
-  - issue_056: Philip beta tester onboarding (comprehensive docs created)
-- **Authorization System (issue_053/054)** - Role + Tier + Flags architecture (Dec 10)
+- **✅ Critical Path Complete: Test User Onboarding** - 4/4 tasks done, Philip ready to test
+  - issue_051: MCP Transport - Streamable HTTP with SSE fallback ✅
+  - issue_052: Rate limiting system (100k tokens/day beta testers) ✅
+  - issue_054: PWA model selector integration (access control filtering) ✅
+  - issue_055: GPU model configuration (qwen2.5:0.5b + 3b) ✅
+  - issue_056: Philip beta tester onboarding (docs + account setup) ✅
+  - **Production Deployment**: All changes live on app.pip.arcforge.au
+  - **Model Selector UX**: Cleaned up header "Local Models", descriptions "Fast and private"
+  - **VPS Networking**: Fixed Docker bridge network configuration (droplet_frontend)
+  - **Documentation Sync**: Resolved issues migrated to CHANGELOG.md
+- **Authorization System** - Role + Tier + Feature Flags architecture
   - UserRole, SubscriptionTier, FeatureFlag types
   - Model access control with superadmin bypass
   - GET /api/chat/models endpoint for UI
-- **Remove Global projectId Dependency (issue_044)** - Explicit projectId passing (Dec 10)
-- **Memory Project Isolation (issue_043)** - Auto-inject projectId into tools (Dec 10)
-- **Google Sheets Integration (issue_039)** - Full OAuth + 15 MCP tools (Dec 10)
-- 12 manual testing bug fixes (Dec 10) - see CHANGELOG.md
-- Gmail image attachment viewing
-- Projects UX rework (Claude.ai pattern)
-- Per-connector permissions in Settings
+- **Technical Fixes (Dec 10-11)**
+  - Docker networking: Fixed 502 errors by switching pip-app from host network to droplet_frontend bridge
+  - MCP URL docs: Updated from `/sse` to root path (Streamable HTTP)
+  - Client secret optional: Confirmed PKCE support in OAuth
+- **Earlier Work (Dec 1-10)**
+  - Remove Global projectId Dependency (issue_044)
+  - Memory Project Isolation (issue_043)
+  - Google Sheets Integration (issue_039)
+  - Gmail image attachment viewing
+  - Projects UX rework (Claude.ai pattern)
+  - Per-connector permissions in Settings
 
 ---
 
